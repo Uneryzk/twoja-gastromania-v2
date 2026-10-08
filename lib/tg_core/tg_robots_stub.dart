@@ -1,0 +1,1 @@
+void applyListingRobots(bool noIndex) {}
