@@ -194,7 +194,7 @@ class _StoreBody extends StatelessWidget {
     final tabs = <TGStoreTab>[
       TGStoreTab.products,
       if (isStore && profile.showAbout) TGStoreTab.about,
-      if (isStore) TGStoreTab.reviews,
+      TGStoreTab.reviews,
     ];
     var tab = query.tab;
     if (!tabs.contains(tab)) tab = TGStoreTab.products;
@@ -337,7 +337,7 @@ class _StoreBody extends StatelessWidget {
             ],
           ),
         ),
-        if (isStore && profile.isLive)
+        if (profile.isLive)
           SliverPersistentHeader(
             pinned: true,
             delegate: _TabsDelegate(
@@ -971,7 +971,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
                         Flexible(child: Text(profile.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
                         if (profile.verified) ...[const SizedBox(width: 8), const TGVerifiedSellerBadge()],
                         const SizedBox(width: 16),
-                        Expanded(child: _TabList(tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect, short: mobile)),
+                        Expanded(child: _TabList(tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect, short: mobile, isStore: profile.isStore)),
                         if (onCall != null)
                           TGButton(
                             onPressed: onCall,
@@ -981,7 +981,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
                           ),
                       ],
                     )
-                  : _TabList(key: const ValueKey('full'), tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect, short: mobile),
+                  : _TabList(key: const ValueKey('full'), tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect, short: mobile, isStore: profile.isStore),
             ),
           ),
         ),
@@ -994,21 +994,26 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
 }
 
 class _TabList extends StatelessWidget {
-  const _TabList({super.key, required this.tabs, required this.active, required this.listingsCount, required this.reviewsCount, required this.onSelect, this.short = false});
+  const _TabList({super.key, required this.tabs, required this.active, required this.listingsCount, required this.reviewsCount, required this.onSelect, this.short = false, this.isStore = true});
   final List<TGStoreTab> tabs;
   final TGStoreTab active;
   final int listingsCount;
   final int reviewsCount;
   final ValueChanged<TGStoreTab> onSelect;
   final bool short;
+  final bool isStore;
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     String label(TGStoreTab t) => short
-        ? storeMobileTabLabel(context, name: t.name, products: listingsCount, reviews: reviewsCount)
+        ? (t == TGStoreTab.products && !isStore
+            ? context.t('ui_active_listings')
+            : storeMobileTabLabel(context, name: t.name, products: listingsCount, reviews: reviewsCount))
         : switch (t) {
-            TGStoreTab.products => '${context.t('ui_active_products')} ($listingsCount)',
+            TGStoreTab.products => isStore
+                ? '${context.t('ui_active_products')} ($listingsCount)'
+                : context.t('ui_active_listings'),
             TGStoreTab.about => context.t('ui_about_business'),
             TGStoreTab.reviews => '${context.t('ui_reviews')} ($reviewsCount)',
           };

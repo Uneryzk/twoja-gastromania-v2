@@ -228,6 +228,36 @@ Future<void> showAdminHideReview(BuildContext context, String reviewId) async {
   }
 }
 
+Future<void> showAdminApproveReview(BuildContext context, String reviewId) async {
+  final auth = context.read<FakeAuthState>();
+  var lang = 'pl';
+  final ok = await showAdminDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
+      final preview = ModerationService.instance.previewEmail(templateId: 'hide_review', lang: lang, vars: {'listingNo': reviewId, 'seller': 'reviewer', 'to': 'author@example.com'});
+      return AdminDialogScaffold(
+        title: ctx.t('ui_approve'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t('ui_cancel'))),
+          const SizedBox(width: 8),
+          TGButton(onPressed: () => Navigator.pop(ctx, true), label: ctx.t('ui_approve'), height: 40),
+        ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _LangToggle(value: lang, onChanged: (v) => setSt(() => lang = v)),
+            const SizedBox(height: 8),
+            EmailPreviewBlock(email: preview),
+          ],
+        ),
+      );
+    }),
+  );
+  if (ok == true && context.mounted) {
+    await ModerationService.instance.approveReview(reviewId: reviewId, actorId: auth.userId, actorRole: auth.role.name);
+  }
+}
+
 Future<void> showAdminRemoveReview(BuildContext context, String reviewId) async {
   final auth = context.read<FakeAuthState>();
   var reason = TGRemoveReason.other;

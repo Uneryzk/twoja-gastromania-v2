@@ -89,16 +89,17 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
   String? _error;
   TGListingHit? _hit;
   TGPurchaseReview? _posted;
+  TGPurchaseReview? _existing;
 
   @override
   void initState() {
     super.initState();
-    if (widget.listingNo != null) {
-      _listingNo.text = widget.listingNo!;
-      _validateNo();
-    }
     _listingNo.addListener(_validateNo);
     _text.addListener(() => setState(() {}));
+    if (widget.listingNo != null) _listingNo.text = widget.listingNo!;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _validateNo();
+    });
   }
 
   @override
@@ -120,11 +121,17 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
     final auth = context.read<FakeAuthState>();
     final check = DealService.instance.checkListingNo(listingNo: raw, sellerId: widget.sellerId, authorId: auth.userId);
     final hit = DealService.instance.resolveListing(raw);
+    final existing = DealService.instance.existingReview(authorId: auth.userId, listingNo: raw);
     setState(() {
       _hit = check == ListingNoCheck.ok || check == ListingNoCheck.alreadyReviewed ? hit : null;
+      _existing = check == ListingNoCheck.alreadyReviewed && existing != null && existing.canEdit ? existing : null;
+      if (_existing != null) {
+        _rating ??= _existing!.rating;
+        if (_text.text.isEmpty) _text.text = _existing!.text;
+      }
       _error = switch (check) {
         ListingNoCheck.ok => null,
-        ListingNoCheck.alreadyReviewed => context.t('ui_review_already_listing'),
+        ListingNoCheck.alreadyReviewed => _existing != null ? null : context.t('ui_review_already_listing'),
         ListingNoCheck.ownListing => context.t('ui_review_own_listing'),
         ListingNoCheck.removed => context.t('ui_review_listing_removed'),
         _ => context.t('ui_review_wrong_seller'),
@@ -141,7 +148,7 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
         t.length >= 20 &&
         t.length <= 1000 &&
         _honest &&
-        DealService.instance.reviewsPostedToday(context.read<FakeAuthState>().userId) < 3;
+        (_existing != null || DealService.instance.reviewsPostedToday(context.read<FakeAuthState>().userId) < 3);
   }
 
   Future<void> _submit() async {
@@ -170,15 +177,21 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
     if (!tgInWidgetTest()) {
       await Future<void>.delayed(const Duration(milliseconds: 400));
     }
-    final review = DealService.instance.submitReviewFirst(
-      auth: auth,
-      sellerId: widget.sellerId,
-      listingNo: _listingNo.text.replaceAll(RegExp(r'\D'), ''),
-      dealType: _type,
-      dealMonth: _month,
-      rating: _rating!,
-      text: _text.text.trim(),
-    );
+    TGPurchaseReview? review;
+    if (_existing != null) {
+      DealService.instance.updateReview(_existing!, rating: _rating!, text: _text.text.trim());
+      review = _existing;
+    } else {
+      review = DealService.instance.submitReviewFirst(
+        auth: auth,
+        sellerId: widget.sellerId,
+        listingNo: _listingNo.text.replaceAll(RegExp(r'\D'), ''),
+        dealType: _type,
+        dealMonth: _month,
+        rating: _rating!,
+        text: _text.text.trim(),
+      );
+    }
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -215,7 +228,7 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
                 padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
                 child: Row(
                   children: [
-                    Expanded(child: Text(context.t('ui_review_a_purchase'), style: theme.titleMedium.override(fontWeight: FontWeight.w900))),
+                    Expanded(child: Text(_existing != null ? context.t('ui_edit_review') : context.t('ui_review_a_purchase'), style: theme.titleMedium.override(fontWeight: FontWeight.w900))),
                     IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: Icon(Icons.close, color: theme.secondaryText)),
                   ],
                 ),
@@ -316,14 +329,20 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
         Text(context.t('ui_your_rating'), style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
         Semantics(
           container: true,
+          explicitChildNodes: true,
           label: context.t('ui_your_rating'),
           child: Row(
             children: [
               for (var i = 1; i <= 5; i++)
-                IconButton(
-                  key: Key('review-star-$i'),
-                  onPressed: () => setState(() => _rating = i),
-                  icon: Icon(_rating != null && i <= _rating! ? Icons.star : Icons.star_border, color: TGColors.rating),
+                Semantics(
+                  inMutuallyExclusiveGroup: true,
+                  checked: _rating == i,
+                  button: true,
+                  child: IconButton(
+                    key: Key('review-star-$i'),
+                    onPressed: () => setState(() => _rating = i),
+                    icon: Icon(_rating != null && i <= _rating! ? Icons.star : Icons.star_border, color: TGColors.rating),
+                  ),
                 ),
             ],
           ),
@@ -336,6 +355,7 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
           decoration: InputDecoration(hintText: context.t('ui_review_text_hint'), counterText: '${_text.text.trim().length}/1000'),
         ),
         CheckboxListTile(
+          key: const Key('review-honest'),
           value: _honest,
           onChanged: (v) => setState(() => _honest = v ?? false),
           controlAffinity: ListTileControlAffinity.leading,

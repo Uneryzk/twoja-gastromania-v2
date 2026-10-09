@@ -10,6 +10,7 @@ import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
@@ -47,24 +48,32 @@ class TGReportSubject {
   const TGReportSubject.listing(this.product)
       : kind = TGReportTarget.listing,
         seller = null,
-        review = null;
+        review = null,
+        purchaseReview = null;
   const TGReportSubject.seller(this.seller)
       : kind = TGReportTarget.seller,
         product = null,
-        review = null;
+        review = null,
+        purchaseReview = null;
   const TGReportSubject.review(this.review, this.seller)
       : kind = TGReportTarget.review,
-        product = null;
+        product = null,
+        purchaseReview = null;
+  const TGReportSubject.purchaseReview(this.purchaseReview, this.seller)
+      : kind = TGReportTarget.review,
+        product = null,
+        review = null;
 
   final TGReportTarget kind;
   final TGProduct? product;
   final TGStoreProfile? seller;
   final TGStoreReview? review;
+  final TGPurchaseReview? purchaseReview;
 
   String get targetId => switch (kind) {
         TGReportTarget.listing => product?.listingNo ?? product?.id ?? '',
         TGReportTarget.seller => seller?.sellerKey ?? '',
-        TGReportTarget.review => review?.id ?? '',
+        TGReportTarget.review => purchaseReview?.id ?? review?.id ?? '',
       };
 
   List<TGReportReason> get reasons => switch (kind) {
@@ -93,7 +102,7 @@ Future<void> showReportFlow(BuildContext context, TGReportSubject subject) {
   } else if (subject.kind == TGReportTarget.seller) {
     TGAnalytics.track('seller_report_open', {'sellerId': subject.seller?.sellerKey, 'id': subject.seller?.publicId});
   } else {
-    TGAnalytics.track('review_report', {'reviewId': subject.review?.id, 'sellerId': subject.seller?.sellerKey});
+    TGAnalytics.track('review_report', {'reviewId': subject.targetId, 'sellerId': subject.seller?.sellerKey});
   }
   final wide = MediaQuery.sizeOf(context).width >= TGBreakpoints.phone;
   if (wide) {
@@ -233,7 +242,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
       name: _name.text.trim().isEmpty ? null : _name.text.trim(),
       text: _details.text.trim(),
       sellerId: subject.seller?.sellerKey ?? subject.product?.seller.id,
-      reviewId: subject.review?.id,
+      reviewId: subject.kind == TGReportTarget.review ? subject.targetId : null,
       otherListingRef: _otherRef.text.trim().isEmpty ? null : _otherRef.text.trim(),
       originalListingRef: _originalRef.text.trim().isEmpty ? null : _originalRef.text.trim(),
       isOriginalOwner: _owner,

@@ -11,11 +11,11 @@ import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
-import 'package:twoja_gastromania/tg_models/tg_review.dart';
+import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
-import 'package:twoja_gastromania/tg_services/review_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 
 class AdminSellerCasePage extends StatefulWidget {
@@ -33,7 +33,7 @@ class _AdminSellerCasePageState extends State<AdminSellerCasePage> {
   void initState() {
     super.initState();
     ModerationService.instance.ensureSeeded();
-    TGReviewService.instance.ensureSeeded();
+    DealService.instance.ensureSeeded();
     TGProductService.instance.getAll().then((all) {
       if (mounted) setState(() => _all = all);
     });
@@ -65,6 +65,7 @@ class _AdminSellerCasePageState extends State<AdminSellerCasePage> {
                     Text('${profile?.phone ?? store?.phone ?? '—'} · NIP ${store?.nip ?? profile?.nip ?? '—'}'),
                     Text(profile?.email ?? '', style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
                     if (store != null) Text('${store.city} · ${context.t('ui_reviews_n', {'n': '${store.reviewsCount}'})}'),
+                    Text(context.t('ui_unjust_disputes', {'n': '${DealService.instance.unjustObjections90d[widget.sellerId] ?? 0}'})),
                     if (store?.status == TGStoreStatus.suspended || profile?.suspended == true)
                       Text(context.t('ui_suspended'), style: const TextStyle(color: TGColors.error, fontWeight: FontWeight.w900)),
                   ],
@@ -80,6 +81,17 @@ class _AdminSellerCasePageState extends State<AdminSellerCasePage> {
                   subtitle: Text(p.listingNo ?? p.id),
                   onTap: () => TGAdminNav.openCase(context, p.listingNo ?? p.id),
                 ),
+              const SizedBox(height: 12),
+              Text(context.t('ui_admin_deals'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              for (final d in DealService.instance.deals.where((d) => DealService.instance.sameSeller(d.sellerId, widget.sellerId)))
+                ListTile(dense: true, title: Text(d.id), subtitle: Text('${d.listingNo} · ${d.status.name}')),
+              const SizedBox(height: 12),
+              Text(context.t('ui_admin_objections'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              for (final o in DealService.instance.objections.where((o) {
+                final deal = DealService.instance.byId(o.dealId);
+                return deal != null && DealService.instance.sameSeller(deal.sellerId, widget.sellerId);
+              }))
+                ListTile(dense: true, title: Text(o.id), subtitle: Text('${o.kind.name} · ${o.status.name}')),
               const SizedBox(height: 12),
               Text(context.t('ui_reports'), style: const TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
@@ -127,15 +139,14 @@ class AdminReviewCasePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<ModerationService>();
-    TGReviewService.instance.ensureSeeded();
-    final review = TGReviewService.instance.byId(reviewId);
+    DealService.instance.ensureSeeded();
+    final review = DealService.instance.reviewById(reviewId);
     final key = ModerationService.caseKeyFor(TGReportTarget.review, reviewId);
     final reports = ModerationService.instance.reportsFor(key);
-    final others = review == null ? const <TGStoreReview>[] : TGReviewService.instance.byAuthor(review.authorId, exceptId: review.id).take(8).toList();
-    final signals = review == null
-        ? const <TGStoreReview>[]
-        : TGReviewService.instance.sameSignal(ip: review.authorIp, phone: review.authorPhone, exceptId: review.id).take(8).toList();
-    final store = review == null ? null : TGSellerProfileService.instance.bySellerKey(review.sellerId);
+    final others = review == null
+        ? const <TGPurchaseReview>[]
+        : DealService.instance.reviews.where((r) => r.authorId == review.authorId && r.id != review.id).take(8).toList();
+    final store = review == null ? null : TGSellerProfileService.instance.bySellerKey(review.sellerId) ?? TGSellerProfileService.instance.bySellerKey(review.sellerId == FakeAuthState.mockOwnerId ? 'seller_technica' : review.sellerId);
     return Column(
       children: [
         Expanded(
@@ -151,6 +162,8 @@ class AdminReviewCasePage extends StatelessWidget {
                   TGButton(onPressed: () => showAdminDismiss(context, key), label: context.t('ui_dismiss'), height: 40, variant: TGButtonVariant.outline),
                   TGButton(key: const Key('admin-remove-review'), onPressed: () => showAdminRemoveReview(context, reviewId), label: context.t('ui_remove_review'), height: 40),
                   TGButton(onPressed: () => showAdminHideReview(context, reviewId), label: context.t('ui_hide_temporarily'), height: 40, variant: TGButtonVariant.outline),
+                  if (review?.state == TGPurchaseReviewState.pendingCheck)
+                    TGButton(key: const Key('admin-approve-review'), onPressed: () => showAdminApproveReview(context, reviewId), label: context.t('ui_approve'), height: 40, variant: TGButtonVariant.outline),
                   TGButton(onPressed: () => showAdminContact(context, key, seller: false), label: context.t('ui_contact_reporter'), height: 40, variant: TGButtonVariant.ghost),
                 ],
               ),
@@ -166,8 +179,12 @@ class AdminReviewCasePage extends StatelessWidget {
                       Text(review.text, style: const TextStyle(height: 1.4)),
                       const SizedBox(height: 6),
                       Text('${context.t('ui_seller')}: ${store?.name ?? review.sellerId}', style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
-                      Text('${review.authorEmail} · ${review.authorPhone} · ${review.authorIp}', style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
-                      Text(review.status.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                      Text('${review.state.name} · ${review.listingNo}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                      if (review.dealId.isNotEmpty)
+                        TextButton(
+                          onPressed: () => context.go(TGAdminNav.dealCasePath(review.dealId)),
+                          child: Text(review.dealId),
+                        ),
                     ],
                   ),
                 ),
@@ -180,10 +197,6 @@ class AdminReviewCasePage extends StatelessWidget {
                   subtitle: Text(o.text, maxLines: 2, overflow: TextOverflow.ellipsis),
                   onTap: () => context.go(TGAdminNav.reviewCasePath(o.id)),
                 ),
-              const SizedBox(height: 8),
-              Text(context.t('ui_same_signal'), style: const TextStyle(fontWeight: FontWeight.w800)),
-              for (final s in signals)
-                ListTile(dense: true, title: Text('${s.authorName} · ${s.authorIp} · ${s.authorPhone}'), onTap: () => context.go(TGAdminNav.reviewCasePath(s.id))),
               const SizedBox(height: 12),
               Text(context.t('ui_reports'), style: const TextStyle(fontWeight: FontWeight.w800)),
               for (final r in reports)

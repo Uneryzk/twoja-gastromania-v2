@@ -7,6 +7,7 @@ import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 
 const kNeutralMatchCopy = 'Request sent if an account matches';
 
@@ -30,6 +31,8 @@ class DealService extends ChangeNotifier {
   final Map<String, int> unjustObjections90d = {};
   final Map<String, int> _reviewsToday = {};
   final Set<String> _calendarKeys = {};
+  final Set<String> _helpfulKeys = {};
+  final Map<String, TGPurchaseReviewState> _reviewUndo = {};
   int _seq = 123;
   int _reviewSeq = 1;
   int _objSeq = 1;
@@ -69,6 +72,8 @@ class DealService extends ChangeNotifier {
     unjustObjections90d.clear();
     _reviewsToday.clear();
     _calendarKeys.clear();
+    _helpfulKeys.clear();
+    _reviewUndo.clear();
     _lookupsToday.clear();
     _seq = 123;
     _reviewSeq = 1;
@@ -225,6 +230,8 @@ class DealService extends ChangeNotifier {
       params: {'name': seller, 'title': snap1.title},
     );
     _seedReviewFirst(now, snap1, snap2, snap3, seller);
+    _seedCatalogReviews(now);
+    syncStoreRatings();
   }
 
   String _nextId() {
@@ -475,7 +482,109 @@ class DealService extends ChangeNotifier {
   TGObjection? objectionForReview(String reviewId) => objections.where((o) => o.reviewId == reviewId).firstOrNull;
   List<TGEvidence> evidenceForDeal(String dealId) => evidence.where((e) => e.dealId == dealId).toList();
   List<TGPurchaseReview> reviewsForBuyer(String buyerId) => reviews.where((r) => r.authorId == buyerId).toList();
-  List<TGPurchaseReview> reviewsForSeller(String sellerId) => reviews.where((r) => r.sellerId == sellerId).toList();
+  List<TGPurchaseReview> reviewsForSeller(String sellerId) => reviews.where((r) => sellerAliases(sellerId).contains(r.sellerId)).toList();
+
+  static Set<String> sellerAliases(String sellerId) {
+    if (sellerId == FakeAuthState.mockOwnerId || sellerId == 'seller_technica') {
+      return {FakeAuthState.mockOwnerId, 'seller_technica'};
+    }
+    return {sellerId};
+  }
+
+  bool sameSeller(String a, String b) => sellerAliases(a).contains(b);
+
+  List<TGPurchaseReview> publicReviewsFor(String sellerKey) =>
+      reviewsForSeller(sellerKey).where((r) => r.isPublicVisible).toList();
+
+  List<TGPurchaseReview> countedReviewsFor(String sellerKey) =>
+      reviewsForSeller(sellerKey).where((r) => r.countsTowardRating && !r.hidden).toList();
+
+  double averageFor(String sellerKey) {
+    final list = countedReviewsFor(sellerKey);
+    if (list.isEmpty) return 0;
+    return list.fold<int>(0, (a, r) => a + r.rating) / list.length;
+  }
+
+  Map<int, int> countedDistribution(String sellerKey) {
+    final m = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+    for (final r in countedReviewsFor(sellerKey)) {
+      m[r.rating] = (m[r.rating] ?? 0) + 1;
+    }
+    return m;
+  }
+
+  int notInRatingCount(String sellerKey) => publicReviewsFor(sellerKey).where((r) => !r.countsTowardRating).length;
+
+  void syncStoreRatings() {
+    for (final p in TGSellerProfileService.instance.all) {
+      final counted = countedReviewsFor(p.sellerKey);
+      final avg = counted.isEmpty ? 0.0 : counted.fold<int>(0, (a, r) => a + r.rating) / counted.length;
+      TGSellerProfileService.instance.patch(p.publicId, (x) => x.copyWith(rating: (avg * 10).round() / 10, reviewsCount: counted.length));
+    }
+  }
+
+  bool markHelpful(String reviewId, String actor) {
+    final key = '$reviewId|$actor';
+    if (!_helpfulKeys.add(key)) return false;
+    final r = reviewById(reviewId);
+    if (r == null) return false;
+    r.helpfulCount++;
+    TGAnalytics.track('review_helpful', {'reviewId': reviewId});
+    notifyListeners();
+    return true;
+  }
+
+  bool replyToReview({required String reviewId, required String text, required String actorId}) {
+    final r = reviewById(reviewId);
+    if (r == null || r.reply != null || text.trim().isEmpty || text.trim().length > 500) return false;
+    r.reply = TGPurchaseReply(text: text.trim(), createdAt: TGClock.now());
+    TGAnalytics.track('review_reply_submit', {'reviewId': reviewId, 'actorId': actorId});
+    notifyListeners();
+    return true;
+  }
+
+  void setReviewState(String reviewId, TGPurchaseReviewState next, {bool recordUndo = false}) {
+    final r = reviewById(reviewId);
+    if (r == null) return;
+    if (recordUndo) _reviewUndo[reviewId] = r.state;
+    r.state = next;
+    if (next != TGPurchaseReviewState.pendingCheck) r.hidden = false;
+    syncStoreRatings();
+    notifyListeners();
+  }
+
+  void hideReviewTemporarily(String reviewId) {
+    final r = reviewById(reviewId);
+    if (r == null) return;
+    r.hidden = true;
+    syncStoreRatings();
+    notifyListeners();
+  }
+
+  bool undoReviewState(String reviewId) {
+    final prev = _reviewUndo.remove(reviewId);
+    final r = reviewById(reviewId);
+    if (prev == null || r == null) return false;
+    r.state = prev;
+    r.hidden = false;
+    syncStoreRatings();
+    notifyListeners();
+    return true;
+  }
+
+  TGDeal? confirmedDealWith({required String buyerId, required String sellerId}) {
+    return deals.where((d) => d.buyerId == buyerId && sameSeller(d.sellerId, sellerId) && d.isConfirmed).firstOrNull;
+  }
+
+  TGPurchaseReview? existingReview({required String authorId, required String listingNo}) =>
+      reviews.where((r) => r.authorId == authorId && r.listingNo == listingNo && r.state != TGPurchaseReviewState.removed).firstOrNull;
+
+  void updateReview(TGPurchaseReview review, {required int rating, required String text}) {
+    review.rating = rating;
+    review.text = text;
+    syncStoreRatings();
+    notifyListeners();
+  }
 
   bool evidenceRequiredFor(String sellerId) => (unjustObjections90d[sellerId] ?? 0) >= 3;
 
@@ -486,7 +595,7 @@ class DealService extends ChangeNotifier {
     if (listing == null) return ListingNoCheck.notFound;
     if (listing.ownerId == authorId || listing.sellerId == authorId) return ListingNoCheck.ownListing;
     if (listing.status == TGListingStatus.removed) return ListingNoCheck.removed;
-    final sellerOk = listing.ownerId == sellerId || listing.sellerId == sellerId;
+    final sellerOk = sameSeller(listing.sellerId, sellerId) || (listing.ownerId != null && sameSeller(listing.ownerId!, sellerId));
     if (!sellerOk) return ListingNoCheck.wrongSeller;
     if (reviews.any((r) => r.authorId == authorId && r.listingNo == listingNo && r.state != TGPurchaseReviewState.removed)) {
       return ListingNoCheck.alreadyReviewed;
@@ -555,7 +664,7 @@ class DealService extends ChangeNotifier {
     final check = checkListingNo(listingNo: listingNo, sellerId: sellerId, authorId: auth.userId);
     if (check != ListingNoCheck.ok) return null;
     final listing = resolveListing(listingNo);
-    final confirmed = deals.any((d) => d.listingNo == listingNo && d.buyerId == auth.userId && d.sellerId == sellerId && d.isConfirmed);
+    final confirmed = deals.any((d) => d.listingNo == listingNo && d.buyerId == auth.userId && sameSeller(d.sellerId, sellerId) && d.isConfirmed);
     final hold = riskFlags.where((f) => f == 'hold' || f.startsWith('hold')).length >= 2;
     var state = confirmed
         ? TGPurchaseReviewState.confirmed
@@ -606,6 +715,7 @@ class DealService extends ChangeNotifier {
     _notify(auth.userId, 'review_live', deal.id, deal.listingSnapshot.title, deepLink: '/account/reviews/${review.id}');
     TGAnalytics.track('review_submit', {'reviewId': review.id, 'dealId': deal.id, 'state': state.name});
     TGAnalytics.track('review_state_change', {'reviewId': review.id, 'state': state.name});
+    syncStoreRatings();
     notifyListeners();
     return review;
   }
@@ -625,6 +735,7 @@ class DealService extends ChangeNotifier {
     _notify(deal.buyerId ?? '', 'review_seller_confirmed', deal.id, deal.listingSnapshot.title, deepLink: '/account/reviews/${review.id}');
     TGAnalytics.track('seller_answer', {'dealId': deal.id, 'answer': 'yes'});
     TGAnalytics.track('review_state_change', {'reviewId': review.id, 'state': 'confirmed'});
+    syncStoreRatings();
     notifyListeners();
   }
 
@@ -906,6 +1017,9 @@ class DealService extends ChangeNotifier {
     pair(dealId: 'D-2026-000208', reviewId: 'R-2026-0008', state: TGPurchaseReviewState.removed, dealStatus: TGDealStatus.rejectedByModerator, snap: snap2, listingNo: '39816253', createdAgo: const Duration(days: 12));
     pair(dealId: 'D-2026-000209', reviewId: 'R-2026-0009', state: TGPurchaseReviewState.awaitingSeller, dealStatus: TGDealStatus.pendingSeller, ver: TGDealVerification.none, snap: snap3, listingNo: '40927364', buyerId: buyerPiotr.userId, author: 'Piotr B.', createdAgo: const Duration(days: 3));
     pair(dealId: 'D-2026-000210', reviewId: 'R-2026-0010', state: TGPurchaseReviewState.suspendedObjection, dealStatus: TGDealStatus.inModeration, snap: snap1, listingNo: '38705142', createdAgo: const Duration(days: 2));
+    reviewById('R-2026-0002')!
+      ..helpfulCount = 3
+      ..reply = TGPurchaseReply(text: 'Thanks for collecting in Gliwice — glad the unit matched the listing.', createdAt: now.subtract(const Duration(days: 2)));
 
     objections.add(TGObjection(
       id: 'O-2026-0001',
@@ -937,5 +1051,77 @@ class DealService extends ChangeNotifier {
     _objSeq = 3;
     _evSeq = 2;
     _notify(buyerMarek.userId, 'review_disputed', 'D-2026-000206', snap3.title, deepLink: '/account/reviews/R-2026-0006?evidence=1');
+  }
+
+  void _seedCatalogReviews(DateTime now) {
+    const img = 'assets/images/bartscher_2002170.webp';
+    const names = ['Marek K.', 'Anna W.', 'Piotr B.', 'Kasia M.', 'Jan Z.'];
+    const ids = ['buyer_marek', 'buyer_anna', 'buyer_piotr', 'buyer_kasia', 'buyer_jan'];
+    var seq = 1100;
+    void add({
+      required String sellerId,
+      required String listingNo,
+      required String title,
+      required int rating,
+      required TGPurchaseReviewState state,
+      required Duration ago,
+      String? text,
+    }) {
+      final i = seq % names.length;
+      final created = now.subtract(ago);
+      reviews.add(TGPurchaseReview(
+        id: 'R-2026-${seq.toString().padLeft(4, '0')}',
+        sellerId: sellerId,
+        authorId: ids[i],
+        authorName: names[i],
+        dealId: 'D-CAT-$seq',
+        listingNo: listingNo,
+        listingTitleSnapshot: title,
+        dealType: TGDealType.sale,
+        dealMonth: DateTime(created.year, created.month),
+        rating: rating,
+        text: text ?? 'Collected this unit as listed. Packaging was intact and the seller was reachable the same day.',
+        state: state,
+        createdAt: created,
+        imageUrl: img,
+      ));
+      seq++;
+    }
+
+    void spread(String sellerId, String listingNo, String title, List<int> stars, {Duration start = const Duration(days: 12)}) {
+      for (var i = 0; i < stars.length; i++) {
+        add(sellerId: sellerId, listingNo: listingNo, title: title, rating: stars[i], state: TGPurchaseReviewState.confirmed, ago: start + Duration(days: i));
+      }
+    }
+
+    // Technica already has 3 counted 5★ DEAL-2 rows → add 9×5, 6×4, 8×3, 2×2.
+    spread(FakeAuthState.mockOwnerId, '38705142', 'Piec pizza 4 pizze – 3 dni do końca', [
+      ...List.filled(9, 5),
+      ...List.filled(6, 4),
+      ...List.filled(8, 3),
+      ...List.filled(2, 2),
+    ]);
+    spread('seller_gastropl', '30110001', 'Piec konwekcyjny 10 GN – Gastrosilesia', [
+      ...List.filled(16, 5),
+      ...List.filled(4, 4),
+      ...List.filled(4, 3),
+    ]);
+    add(sellerId: 'seller_gastropl', listingNo: '30110002', title: 'Szafa chłodnicza 1400L', rating: 5, state: TGPurchaseReviewState.awaitingSeller, ago: const Duration(days: 1));
+    add(sellerId: 'seller_gastropl', listingNo: '30110003', title: 'Stół centralny 2000 mm', rating: 4, state: TGPurchaseReviewState.notVerified, ago: const Duration(days: 11));
+    spread('seller_ek', '30220001', 'Zmywarka podszafkowa EK', [5, 5, 4, 4, 4, 3, 3, 3, 2, 2]);
+    add(sellerId: 'seller_ek', listingNo: '30220002', title: 'Stół roboczy 1500 mm', rating: 5, state: TGPurchaseReviewState.awaitingSeller, ago: const Duration(days: 2));
+    spread('seller_rm', '30330001', 'Linia Rational iCombi – RM', [
+      ...List.filled(20, 5),
+      ...List.filled(6, 4),
+      ...List.filled(3, 3),
+      2,
+    ]);
+    add(sellerId: 'seller_rm', listingNo: '30330002', title: 'Komora chłodnicza 12 m²', rating: 3, state: TGPurchaseReviewState.notVerified, ago: const Duration(days: 8));
+    spread('seller_primegastro', '10482137', 'PrimeGastro warewasher line', [5, 5, 4, 4, 4, 3, 3, 3, 2, 2]);
+    spread('seller_gastrolab', '99010001', 'GastroLab prep table', [5, 4]);
+    spread('seller_mateusz', '16038472', 'Used slicer – Mateusz K.', [5, 4]);
+    spread('seller_oldkitchen', '77030001', 'OldKitchen range', [4, 4, 4, 3, 2, 2, 2]);
+    spread('seller_nordgastro', '88040001', 'NordGastro mixer', [2, 2]);
+    _reviewSeq = 2000;
   }
 }

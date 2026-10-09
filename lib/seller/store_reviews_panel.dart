@@ -10,13 +10,19 @@ import 'package:twoja_gastromania/seller/write_review_sheet.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
+import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/tg_jsonld.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
-import 'package:twoja_gastromania/tg_models/tg_review.dart';
+import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
-import 'package:twoja_gastromania/tg_services/review_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
+
+enum TGReviewSort { newest, highest, lowest, helpful }
 
 class StoreReviewsPanel extends StatefulWidget {
   const StoreReviewsPanel({super.key, required this.profile, this.stickySummary = false});
@@ -30,20 +36,22 @@ class StoreReviewsPanel extends StatefulWidget {
 class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
   TGReviewSort _sort = TGReviewSort.newest;
   int? _starFilter;
+  bool _onlyCounted = false;
   int _visible = 10;
   bool _barsPlayed = false;
 
   @override
   void initState() {
     super.initState();
-    TGReviewService.instance.ensureSeeded();
+    DealService.instance.ensureSeeded();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _barsPlayed = true);
     });
   }
 
-  List<TGStoreReview> _filtered(List<TGStoreReview> all) {
+  List<TGPurchaseReview> _filtered(List<TGPurchaseReview> all) {
     var list = [...all];
+    if (_onlyCounted) list = list.where((r) => r.countsTowardRating).toList();
     if (_starFilter != null) list = list.where((r) => r.rating == _starFilter).toList();
     switch (_sort) {
       case TGReviewSort.newest:
@@ -60,24 +68,23 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
 
   Future<void> _write() async {
     final chrome = StoreChromeScope.maybeOf(context);
-    if (chrome?.previewVisitor == true) {
-      // Preview only — the button looks enabled.
-      return;
-    }
-    final auth = context.read<FakeAuthState>();
-    final existing = auth.isLoggedIn ? TGReviewService.instance.byAuthorAndSeller(auth.userId, widget.profile.sellerKey) : null;
-    await withStoreOverlay(context, () => showWriteReviewFlow(context, widget.profile, existing: existing));
+    if (chrome?.previewVisitor == true) return;
+    await withStoreOverlay(context, () => showWriteReviewFlow(context, widget.profile));
   }
 
   @override
   Widget build(BuildContext context) {
     final profile = TGSellerProfileService.instance.bySellerKey(widget.profile.sellerKey) ?? widget.profile;
     return ListenableBuilder(
-      listenable: TGReviewService.instance,
+      listenable: Listenable.merge([DealService.instance, TGSellerProfileService.instance]),
       builder: (context, _) {
-        final all = TGReviewService.instance.publishedFor(profile.sellerKey);
-        final dist = TGReviewService.instance.distribution(profile.sellerKey);
-        final filtered = _filtered(all);
+        final deals = DealService.instance;
+        final counted = deals.countedReviewsFor(profile.sellerKey);
+        final public = deals.publicReviewsFor(profile.sellerKey);
+        final dist = deals.countedDistribution(profile.sellerKey);
+        final avg = deals.averageFor(profile.sellerKey);
+        setStoreAggregateRating(name: profile.name, rating: avg, count: counted.length);
+        final filtered = _filtered(public);
         final shown = filtered.take(_visible).toList();
         final wide = MediaQuery.sizeOf(context).width >= 1024;
         final ownerUi = storeOwnerUi(context, profile);
@@ -86,7 +93,9 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
         final summary = _SummaryCard(
           profile: profile,
           dist: dist,
-          total: all.length,
+          counted: counted.length,
+          pending: deals.notInRatingCount(profile.sellerKey),
+          average: avg,
           barsPlayed: _barsPlayed,
           selected: _starFilter,
           compact: !wide,
@@ -104,13 +113,18 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
           total: filtered.length,
           sort: _sort,
           starFilter: _starFilter,
+          onlyCounted: _onlyCounted,
           onSort: (s) => setState(() => _sort = s),
           onStarFilter: (s) => setState(() {
             _starFilter = s;
             _visible = 10;
           }),
+          onOnlyCounted: (v) => setState(() {
+            _onlyCounted = v;
+            _visible = 10;
+          }),
           onMore: () => setState(() => _visible += 10),
-          empty: all.isEmpty,
+          empty: public.isEmpty,
         );
         if (!wide) {
           return Column(
@@ -124,12 +138,8 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
             ],
           );
         }
-        final left = widget.stickySummary
-            ? Align(alignment: Alignment.topCenter, child: SingleChildScrollView(child: summary))
-            : summary;
-        final right = widget.stickySummary
-            ? ListView(padding: const EdgeInsets.only(bottom: 8), children: [list])
-            : list;
+        final left = widget.stickySummary ? Align(alignment: Alignment.topCenter, child: SingleChildScrollView(child: summary)) : summary;
+        final right = widget.stickySummary ? ListView(padding: const EdgeInsets.only(bottom: 8), children: [list]) : list;
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -147,7 +157,9 @@ class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.profile,
     required this.dist,
-    required this.total,
+    required this.counted,
+    required this.pending,
+    required this.average,
     required this.barsPlayed,
     required this.selected,
     required this.onStar,
@@ -159,7 +171,9 @@ class _SummaryCard extends StatelessWidget {
 
   final TGStoreProfile profile;
   final Map<int, int> dist;
-  final int total;
+  final int counted;
+  final int pending;
+  final double average;
   final bool barsPlayed;
   final int? selected;
   final ValueChanged<int> onStar;
@@ -171,11 +185,11 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    final notEnough = total < 3;
+    final notEnough = counted < 3;
     final maxBar = dist.values.fold<int>(0, (a, b) => a > b ? a : b).clamp(1, 999);
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(TGRadius.card)),
+      decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -193,11 +207,20 @@ class _SummaryCard extends StatelessWidget {
               ],
             ),
           ] else ...[
-            Text(profile.rating.toStringAsFixed(1), style: theme.displaySmall.override(fontSize: 48, fontWeight: FontWeight.w800, lineHeight: 1.1)),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: average, end: average),
+              duration: tgAnim(context, const Duration(milliseconds: 300)),
+              builder: (context, v, _) => Text(v.toStringAsFixed(1), style: theme.displaySmall.override(fontSize: 48, fontWeight: FontWeight.w800, lineHeight: 1.1)),
+            ),
             const SizedBox(height: 6),
-            _GoldStars(rating: profile.rating),
+            _GoldStars(rating: average),
             const SizedBox(height: 6),
-            Text(context.t('ui_reviews_n', {'n': '$total'}), style: theme.bodyMedium.override(fontWeight: FontWeight.w700)),
+            Text(context.t('ui_reviews_n', {'n': '$counted'}), style: theme.bodyMedium.override(fontWeight: FontWeight.w700)),
+            if (pending > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(context.t('ui_awaiting_not_in_rating', {'n': '$pending'}), style: theme.bodySmall.override(color: theme.secondaryText, fontSize: 12)),
+              ),
           ],
           const SizedBox(height: 16),
           for (var star = 5; star >= 1; star--)
@@ -207,7 +230,7 @@ class _SummaryCard extends StatelessWidget {
                 star: star,
                 count: dist[star] ?? 0,
                 max: maxBar,
-                total: total,
+                total: counted,
                 selected: selected == star,
                 played: barsPlayed,
                 onTap: () => onStar(star),
@@ -262,11 +285,16 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
         ),
+        transitionBuilder: (ctx, anim, _, child) {
+          final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+          return FadeTransition(opacity: curved, child: ScaleTransition(scale: Tween(begin: 0.96, end: 1.0).animate(curved), child: child));
+        },
       );
     } else {
       showModalBottomSheet<void>(
         context: context,
         backgroundColor: TGColors.surface,
+        sheetAnimationStyle: AnimationStyle(duration: tgAnim(context, const Duration(milliseconds: 250))),
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
         builder: (ctx) => Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -312,7 +340,7 @@ class _GoldStars extends StatelessWidget {
   }
 }
 
-class _DistBar extends StatefulWidget {
+class _DistBar extends StatelessWidget {
   const _DistBar({
     required this.star,
     required this.count,
@@ -331,27 +359,22 @@ class _DistBar extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<_DistBar> createState() => _DistBarState();
-}
-
-class _DistBarState extends State<_DistBar> {
-  @override
   Widget build(BuildContext context) {
-    final frac = widget.max == 0 ? 0.0 : widget.count / widget.max;
+    final frac = max == 0 ? 0.0 : count / max;
     return Semantics(
       button: true,
-      selected: widget.selected,
-      label: context.t('ui_reviews_with_stars', {'n': '${widget.count}', 's': '${widget.star}'}),
+      selected: selected,
+      label: context.t('ui_reviews_with_stars', {'n': '$count', 's': '$star'}),
       child: InkWell(
-        key: Key('reviews-dist-${widget.star}'),
-        onTap: widget.onTap,
+        key: Key('reviews-dist-$star'),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         focusColor: TGColors.cta.withValues(alpha: 0.16),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Row(
             children: [
-              SizedBox(width: 14, child: Text('${widget.star}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
+              SizedBox(width: 14, child: Text('$star', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
               const Icon(Icons.star_rounded, size: 12, color: TGColors.rating),
               const SizedBox(width: 8),
               Expanded(
@@ -367,8 +390,8 @@ class _DistBarState extends State<_DistBar> {
                             AnimatedContainer(
                               duration: tgAnim(context, const Duration(milliseconds: 400)),
                               curve: Curves.easeOutCubic,
-                              width: widget.played ? c.maxWidth * frac : 0,
-                              color: widget.selected ? TGColors.cta : TGColors.rating,
+                              width: played ? c.maxWidth * frac : 0,
+                              color: selected ? TGColors.cta : TGColors.rating,
                             ),
                           ],
                         );
@@ -378,7 +401,7 @@ class _DistBarState extends State<_DistBar> {
                 ),
               ),
               const SizedBox(width: 8),
-              SizedBox(width: 28, child: Text('${widget.count}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
+              SizedBox(width: 28, child: Text('$count', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
             ],
           ),
         ),
@@ -394,19 +417,23 @@ class _ReviewsList extends StatelessWidget {
     required this.total,
     required this.sort,
     required this.starFilter,
+    required this.onlyCounted,
     required this.onSort,
     required this.onStarFilter,
+    required this.onOnlyCounted,
     required this.onMore,
     required this.empty,
   });
 
   final TGStoreProfile profile;
-  final List<TGStoreReview> reviews;
+  final List<TGPurchaseReview> reviews;
   final int total;
   final TGReviewSort sort;
   final int? starFilter;
+  final bool onlyCounted;
   final ValueChanged<TGReviewSort> onSort;
   final ValueChanged<int?> onStarFilter;
+  final ValueChanged<bool> onOnlyCounted;
   final VoidCallback onMore;
   final bool empty;
 
@@ -446,6 +473,12 @@ class _ReviewsList extends StatelessWidget {
                 onChanged: onStarFilter,
               ),
             ),
+            FilterChip(
+              key: const Key('review-only-counted'),
+              label: Text(context.t('ui_only_counted')),
+              selected: onlyCounted,
+              onSelected: onOnlyCounted,
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -460,6 +493,11 @@ class _ReviewsList extends StatelessWidget {
             child: Text(context.t('ui_no_reviews_filter'), textAlign: TextAlign.center),
           )
         else ...[
+          Semantics(
+            liveRegion: true,
+            container: true,
+            child: const SizedBox.shrink(),
+          ),
           for (final r in reviews) ...[
             _ReviewCard(profile: profile, review: r),
             const SizedBox(height: 12),
@@ -484,7 +522,7 @@ class _ReviewsList extends StatelessWidget {
 class _ReviewCard extends StatefulWidget {
   const _ReviewCard({required this.profile, required this.review});
   final TGStoreProfile profile;
-  final TGStoreReview review;
+  final TGPurchaseReview review;
 
   @override
   State<_ReviewCard> createState() => _ReviewCardState();
@@ -497,7 +535,7 @@ class _ReviewCardState extends State<_ReviewCard> {
   Future<void> _helpful() async {
     final auth = context.read<FakeAuthState>();
     final key = auth.isLoggedIn ? auth.userId : 'guest';
-    final ok = TGReviewService.instance.markHelpful(widget.review.id, key);
+    final ok = DealService.instance.markHelpful(widget.review.id, key);
     if (!ok) return;
     setState(() => _pop = true);
     await Future<void>.delayed(tgAnim(context, const Duration(milliseconds: 150)));
@@ -510,6 +548,7 @@ class _ReviewCardState extends State<_ReviewCard> {
     final r = widget.review;
     final isOwner = storeOwnerUi(context, widget.profile);
     final fmt = DateFormat('d MMM yyyy', Localizations.localeOf(context).languageCode);
+    final month = DateFormat('MMM yyyy', Localizations.localeOf(context).languageCode).format(r.dealMonth);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(TGRadius.card)),
@@ -535,33 +574,9 @@ class _ReviewCardState extends State<_ReviewCard> {
             child: _ExpandableText(text: r.text, expanded: _expanded, onToggle: () => setState(() => _expanded = !_expanded)),
           ),
           const SizedBox(height: 10),
-          Tooltip(
-            message: context.t('ui_self_declared_tip'),
-            child: Chip(
-              avatar: Icon(
-                switch (r.declaration) {
-                  TGReviewDeclaration.bought => Icons.shopping_bag_outlined,
-                  TGReviewDeclaration.contacted => Icons.chat_bubble_outline,
-                  TGReviewDeclaration.visited => Icons.storefront_outlined,
-                },
-                size: 14,
-                color: TGColors.textSecondary,
-              ),
-              label: Text(context.t('ui_decl_chip_${r.declaration.name}'), style: const TextStyle(fontSize: 11)),
-              backgroundColor: TGColors.surfaceHover,
-              side: const BorderSide(color: TGColors.border),
-            ),
-          ),
-          if (r.listingNo != null) ...[
-            const SizedBox(height: 6),
-            InkWell(
-              onTap: () => _openListing(r.listingNo!),
-              child: Text(
-                context.t('ui_review_about', {'title': r.listingTitle ?? r.listingNo!, 'n': r.listingNo!}),
-                style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w700, decoration: TextDecoration.underline, fontSize: 12),
-              ),
-            ),
-          ],
+          _StateChip(review: r),
+          const SizedBox(height: 6),
+          _AboutLine(review: r, month: month),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -578,7 +593,7 @@ class _ReviewCardState extends State<_ReviewCard> {
               ),
               TextButton.icon(
                 key: Key('review-report-${r.id}'),
-                onPressed: () => withStoreOverlay(context, () => showReportFlow(context, TGReportSubject.review(r, widget.profile))),
+                onPressed: () => withStoreOverlay(context, () => showReportFlow(context, TGReportSubject.purchaseReview(r, widget.profile))),
                 icon: const Icon(Icons.flag_outlined, size: 16),
                 label: Text(context.t('ui_report')),
               ),
@@ -588,6 +603,12 @@ class _ReviewCardState extends State<_ReviewCard> {
                   onPressed: () => withStoreOverlay(context, () => showReviewReplyFlow(context, profile: widget.profile, review: r)),
                   child: Text(context.t('ui_reply')),
                 ),
+              if (isOwner && r.state == TGPurchaseReviewState.awaitingSeller)
+                TextButton(
+                  key: Key('review-check-${r.id}'),
+                  onPressed: () => TGNav.dashboardDeals(context, tab: 'requests'),
+                  child: Text(context.t('ui_respond_review_check')),
+                ),
             ],
           ),
           if (r.reply != null) ...[
@@ -595,9 +616,7 @@ class _ReviewCardState extends State<_ReviewCard> {
             Container(
               margin: const EdgeInsets.only(left: 16),
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              decoration: const BoxDecoration(
-                border: Border(left: BorderSide(color: TGColors.cta, width: 2)),
-              ),
+              decoration: const BoxDecoration(border: Border(left: BorderSide(color: TGColors.cta, width: 2))),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -615,12 +634,80 @@ class _ReviewCardState extends State<_ReviewCard> {
       ),
     );
   }
+}
 
-  Future<void> _openListing(String no) async {
+class _StateChip extends StatelessWidget {
+  const _StateChip({required this.review});
+  final TGPurchaseReview review;
+
+  @override
+  Widget build(BuildContext context) {
+    final days = review.awaitingDaysLeft;
+    final spec = switch (review.state) {
+      TGPurchaseReviewState.confirmed => (context.t('ui_store_chip_confirmed'), Icons.handshake, TGColors.cta, context.t('ui_store_chip_confirmed_tip')),
+      TGPurchaseReviewState.confirmedModerator => (context.t('ui_store_chip_moderator'), Icons.verified_user, TGColors.cta, context.t('ui_store_chip_moderator_tip')),
+      TGPurchaseReviewState.notDisputed => (context.t('ui_store_chip_not_disputed'), Icons.watch_later_outlined, TGColors.textSecondary, context.t('ui_store_chip_not_disputed_tip')),
+      TGPurchaseReviewState.awaitingSeller => (context.t('ui_store_chip_awaiting', {'n': '$days'}), Icons.schedule, TGColors.slaAmber, context.t('ui_store_chip_awaiting_tip')),
+      TGPurchaseReviewState.notVerified => (context.t('ui_store_chip_not_verified'), Icons.info_outline, const Color(0xFF9AA0A6), context.t('ui_store_chip_not_verified_tip')),
+      _ => (review.state.name, Icons.info_outline, TGColors.textSecondary, ''),
+    };
+    return Tooltip(
+      message: spec.$4,
+      child: AnimatedSwitcher(
+        duration: tgAnim(context, const Duration(milliseconds: 200)),
+        child: Container(
+          key: ValueKey(review.state),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), border: Border.all(color: spec.$3)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(spec.$2, size: 14, color: spec.$3),
+              const SizedBox(width: 6),
+              Flexible(child: Text(spec.$1, style: TextStyle(color: spec.$3, fontSize: 11, fontWeight: FontWeight.w800))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AboutLine extends StatelessWidget {
+  const _AboutLine({required this.review, required this.month});
+  final TGPurchaseReview review;
+  final String month;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = context.t('ui_review_about_month', {'title': review.listingTitleSnapshot, 'm': month});
+    return FutureBuilder(
+      future: _listingActive(review.listingNo),
+      builder: (context, snap) {
+        final active = snap.data ?? false;
+        if (!active) {
+          return Text(label, style: const TextStyle(fontSize: 12, color: TGColors.textSecondary, fontWeight: FontWeight.w700));
+        }
+        return InkWell(
+          onTap: () => _openListing(context, review.listingNo),
+          child: Text(label, style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w700, decoration: TextDecoration.underline, fontSize: 12)),
+        );
+      },
+    );
+  }
+
+  Future<bool> _listingActive(String no) async {
     final all = await TGProductService.instance.getAll();
     final hit = all.where((p) => p.listingNo == no).firstOrNull ??
         TGSellerProfileService.instance.extraListings.where((p) => p.listingNo == no).firstOrNull;
-    if (!mounted) return;
+    return hit != null && hit.status == TGListingStatus.active && !hit.isHidden;
+  }
+
+  Future<void> _openListing(BuildContext context, String no) async {
+    final all = await TGProductService.instance.getAll();
+    final hit = all.where((p) => p.listingNo == no).firstOrNull ??
+        TGSellerProfileService.instance.extraListings.where((p) => p.listingNo == no).firstOrNull;
+    if (!context.mounted) return;
     if (hit != null) context.go(hit.detailPath);
   }
 }
@@ -649,7 +736,7 @@ class _ExpandableText extends StatelessWidget {
 }
 
 String _ago(BuildContext context, DateTime at) {
-  final d = DateTime.now().difference(at);
+  final d = TGClock.now().difference(at);
   if (d.inMinutes < 60) return context.t('ui_minutes_ago', {'n': '${d.inMinutes.clamp(1, 59)}'});
   if (d.inHours < 24) return context.t('ui_hours_ago', {'n': '${d.inHours}'});
   if (d.inDays == 1) return context.t('ui_yesterday');

@@ -56,8 +56,11 @@ class TGPurchaseReview {
     this.price,
     this.appealed = false,
     this.keepListingActive = false,
+    this.hidden = false,
+    DateTime? sellerAnswerDueAt,
   })  : createdAt = createdAt ?? TGClock.now(),
-        editableUntil = editableUntil ?? (createdAt ?? TGClock.now()).add(const Duration(days: 14));
+        editableUntil = editableUntil ?? (createdAt ?? TGClock.now()).add(const Duration(days: 14)),
+        sellerAnswerDueAt = sellerAnswerDueAt ?? (createdAt ?? TGClock.now()).add(const Duration(days: 5));
 
   final String id;
   final String sellerId;
@@ -80,6 +83,10 @@ class TGPurchaseReview {
   final int? price;
   bool appealed;
   bool keepListingActive;
+  bool hidden;
+  DateTime sellerAnswerDueAt;
+
+  int get awaitingDaysLeft => sellerAnswerDueAt.difference(TGClock.now()).inHours.clamp(0, 200) ~/ 24;
 
   bool get countsTowardRating =>
       state == TGPurchaseReviewState.confirmed ||
@@ -89,7 +96,7 @@ class TGPurchaseReview {
   bool get isPublicVisible => switch (state) {
         TGPurchaseReviewState.suspendedObjection || TGPurchaseReviewState.pendingCheck => false,
         TGPurchaseReviewState.removed => false,
-        _ => true,
+        _ => !hidden,
       };
 
   bool get canEdit =>

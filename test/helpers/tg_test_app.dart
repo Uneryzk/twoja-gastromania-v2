@@ -194,9 +194,9 @@ Future<TGApp> pumpTgApp(
   MessagingService.instance.reset();
   InvoicingService.instance.reset();
   ModerationService.instance.reset();
+  TGSellerProfileService.instance.reset();
   DealService.instance.reset();
   DealModerationService.instance.reset();
-  TGSellerProfileService.instance.reset();
   TGReviewService.instance.reset();
   AccountIdentityService.instance.reset();
   AdminLocaleState.instance.reset(to: locale.languageCode);

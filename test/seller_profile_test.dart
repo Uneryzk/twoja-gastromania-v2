@@ -62,12 +62,13 @@ void main() {
     expect(app.errors.distinct, isEmpty);
   });
 
-  testWidgets('private seller has no cover tabs', (tester) async {
+  testWidgets('private seller has listings and reviews tabs without About', (tester) async {
     final app = await pumpTgApp(tester, location: '/seller/6621-anna-p');
     expect(find.text('Anna P.'), findsWidgets);
     expect(find.text('Private seller'), findsOneWidget);
     expect(find.text('+48 (532) 784-074'), findsWidgets);
-    expect(find.textContaining('Active Products'), findsNothing);
+    expect(find.text('Active listings'), findsWidgets);
+    expect(find.textContaining('Reviews'), findsWidgets);
     expect(find.text('About Business'), findsNothing);
     app.errors.stop();
     expect(app.errors.distinct, isEmpty);

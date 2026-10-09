@@ -8,6 +8,8 @@ import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
+import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/review_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
@@ -328,6 +330,7 @@ class ModerationService extends ChangeNotifier {
   }) async {
     final key = caseKeyFor(TGReportTarget.review, reviewId);
     TGReviewService.instance.setStatus(reviewId, TGReviewStatus.underReview);
+    DealService.instance.hideReviewTemporarily(reviewId);
     _resolve(key, TGReportStatus.inReview);
     final review = TGReviewService.instance.byId(reviewId);
     _enqueue(
@@ -352,6 +355,7 @@ class ModerationService extends ChangeNotifier {
   }) async {
     final key = caseKeyFor(TGReportTarget.review, reviewId);
     TGReviewService.instance.setStatus(reviewId, TGReviewStatus.removed, recordUndo: true);
+    DealService.instance.setReviewState(reviewId, TGPurchaseReviewState.removed, recordUndo: true);
     _resolve(key, TGReportStatus.resolvedRemoved);
     final review = TGReviewService.instance.byId(reviewId);
     _enqueue(
@@ -374,14 +378,29 @@ class ModerationService extends ChangeNotifier {
   }
 
   bool undoRemoveReview(String reviewId, {required String actorId, required String actorRole}) {
-    final ok = TGReviewService.instance.undoStatus(reviewId);
-    if (!ok) return false;
+    final storeOk = TGReviewService.instance.undoStatus(reviewId);
+    final dealOk = DealService.instance.undoReviewState(reviewId);
+    if (!storeOk && !dealOk) return false;
     final key = caseKeyFor(TGReportTarget.review, reviewId);
     _resolve(key, TGReportStatus.inReview);
     _audit(actorId: actorId, actorRole: actorRole, action: TGModerationActionType.undo, listingNo: key, summary: 'Undo review removal');
     TGAnalytics.track('admin_action', {'type': 'undo', 'reviewId': reviewId, 'target': 'review'});
     notifyListeners();
     return true;
+  }
+
+  Future<void> approveReview({
+    required String reviewId,
+    required String actorId,
+    required String actorRole,
+  }) async {
+    final key = caseKeyFor(TGReportTarget.review, reviewId);
+    DealService.instance.setReviewState(reviewId, TGPurchaseReviewState.awaitingSeller);
+    _resolve(key, TGReportStatus.resolvedNoViolation);
+    _audit(actorId: actorId, actorRole: actorRole, action: TGModerationActionType.restore, listingNo: key, summary: 'Pending-check review approved');
+    _event(key, 'Review approved into the normal state machine');
+    TGAnalytics.track('admin_action', {'type': 'approve', 'reviewId': reviewId, 'target': 'review'});
+    notifyListeners();
   }
 
   Future<void> requestInfo({
@@ -1169,10 +1188,10 @@ class ModerationService extends ChangeNotifier {
     addTargeted(no: 'R-2026-000409', target: TGReportTarget.seller, targetId: 'seller_technica', sellerId: 'seller_technica', reason: TGReportReason.fakeStore, email: 'watch.store@example.com', reporterId: 'r_s1', text: 'This shop copies Technica branding from another company in Katowice.', ago: const Duration(hours: 9));
     addTargeted(no: 'R-2026-000410', target: TGReportTarget.seller, targetId: 'seller_primegastro', sellerId: 'seller_primegastro', reason: TGReportReason.fraud, email: 'buyer.s2@example.com', reporterId: 'r_s2', text: 'The store asked for a BLIK transfer before any visit to the showroom.', ago: const Duration(hours: 15));
     addTargeted(no: 'R-2026-000411', target: TGReportTarget.seller, targetId: 'seller_ek', sellerId: 'seller_ek', reason: TGReportReason.fakeReviews, email: 'mod.watch@example.com', reporterId: 'r_s3', text: 'Several five-star reviews appeared on the same afternoon from similar names.', ago: const Duration(hours: 28));
-    addTargeted(no: 'R-2026-000412', target: TGReportTarget.review, targetId: 'rv_tech_01', sellerId: 'seller_technica', reviewId: 'rv_tech_01', reason: TGReportReason.fakeReview, email: 'seller.rival@example.com', reporterId: 'r_rv1', text: 'This reviewer never collected anything — we have no matching invoice or visit.', ago: const Duration(hours: 5));
-    addTargeted(no: 'R-2026-000413', target: TGReportTarget.review, targetId: 'rv_gs_02', sellerId: 'seller_gastropl', reviewId: 'rv_gs_02', reason: TGReportReason.sellerOrCompetitor, email: 'buyer.rv@example.com', reporterId: 'r_rv2', text: 'The wording matches the store’s own catalogue copy. Looks written in-house.', ago: const Duration(hours: 11));
-    addTargeted(no: 'R-2026-000414', target: TGReportTarget.review, targetId: 'rv_pg_01', sellerId: 'seller_primegastro', reviewId: 'rv_pg_01', reason: TGReportReason.offensive, email: 'reader.x@example.com', reporterId: 'r_rv3', text: 'The review uses abusive language about staff that should not stay public.', ago: const Duration(hours: 7));
-    addTargeted(no: 'R-2026-000415', target: TGReportTarget.review, targetId: 'rv_ek_08', sellerId: 'seller_ek', reviewId: 'rv_ek_08', reason: TGReportReason.personalData, email: 'privacy@example.com', reporterId: 'r_rv4', text: 'The text includes a private mobile number and a home address.', ago: const Duration(hours: 19));
+    addTargeted(no: 'R-2026-000412', target: TGReportTarget.review, targetId: 'R-2026-0002', sellerId: 'seller_technica', reviewId: 'R-2026-0002', reason: TGReportReason.fakeReview, email: 'seller.rival@example.com', reporterId: 'r_rv1', text: 'This reviewer never collected anything — we have no matching invoice or visit.', ago: const Duration(hours: 5));
+    addTargeted(no: 'R-2026-000413', target: TGReportTarget.review, targetId: 'R-2026-0004', sellerId: 'seller_technica', reviewId: 'R-2026-0004', reason: TGReportReason.sellerOrCompetitor, email: 'buyer.rv@example.com', reporterId: 'r_rv2', text: 'The wording matches the store’s own catalogue copy. Looks written in-house.', ago: const Duration(hours: 11));
+    addTargeted(no: 'R-2026-000414', target: TGReportTarget.review, targetId: 'R-2026-0005', sellerId: 'seller_technica', reviewId: 'R-2026-0005', reason: TGReportReason.offensive, email: 'reader.x@example.com', reporterId: 'r_rv3', text: 'The review uses abusive language about staff that should not stay public.', ago: const Duration(hours: 7));
+    addTargeted(no: 'R-2026-000415', target: TGReportTarget.review, targetId: 'R-2026-0003', sellerId: 'seller_technica', reviewId: 'R-2026-0003', reason: TGReportReason.personalData, email: 'privacy@example.com', reporterId: 'r_rv4', text: 'The text includes a private mobile number and a home address.', ago: const Duration(hours: 19));
 
     appeals.addAll([
       TGModerationAppeal(id: 'ap-01', listingNo: '16038472', sellerId: mateusz.id, createdAt: t.subtract(const Duration(days: 2)), statement: 'The listing was marked sold by mistake. Please restore.'),

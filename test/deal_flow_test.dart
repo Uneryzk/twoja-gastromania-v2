@@ -21,7 +21,7 @@ void main() {
     final d = DealService.instance;
     expect(d.deals.map((e) => e.id), containsAll(['D-2026-000123', 'D-2026-000130']));
     expect(d.deals, hasLength(18));
-    expect(d.reviews, hasLength(10));
+    expect(d.reviews.where((r) => !r.dealId.startsWith('D-CAT-')), hasLength(10));
     expect(d.reviews.map((r) => r.state).toSet(), containsAll(TGPurchaseReviewState.values));
     expect(d.objections, hasLength(2));
     expect(d.evidence.any((e) => e.type == TGEvidenceType.liveVideo), isTrue);
