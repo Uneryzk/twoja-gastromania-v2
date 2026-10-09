@@ -8,6 +8,10 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/tg_nav.dart';
+import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 
 Future<void> _showTGSheet(BuildContext context, WidgetBuilder builder) {
@@ -50,10 +54,34 @@ Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
       const PopupMenuItem(enabled: false, child: Text('Listings', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
       for (final s in TGEntitlementScenario.values)
         PopupMenuItem(value: s, child: Text(_AccountSheet.scenarioLabel(s), style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w600))),
+      const PopupMenuDivider(),
+      const PopupMenuItem(enabled: false, child: Text('Store owner', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+      for (final p in StoreOwnerDevPick.all)
+        PopupMenuItem(value: p, child: Text(p.label, style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w600))),
+      const PopupMenuDivider(),
+      const PopupMenuItem(enabled: false, child: Text('Buyers', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+      for (final p in BuyerDevPick.all)
+        PopupMenuItem(value: p, child: Text(p.label, style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w600))),
+      const PopupMenuDivider(),
+      const PopupMenuItem(enabled: false, child: Text('Clock', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
+      const PopupMenuItem(value: 1, child: Text('Advance time +1 days')),
+      const PopupMenuItem(value: 2, child: Text('Advance time +2 days')),
+      const PopupMenuItem(value: 3, child: Text('Advance time +3 days')),
+      const PopupMenuItem(value: 5, child: Text('Advance time +5 days')),
+      const PopupMenuItem(value: 14, child: Text('Advance time +14 days')),
     ],
   );
   if (picked is TGUserRole) auth.setRole(picked);
   if (picked is TGEntitlementScenario) auth.setScenario(picked);
+  if (picked is StoreOwnerDevPick) auth.actAsStoreOwner(picked);
+  if (picked is BuyerDevPick) auth.actAsBuyer(picked);
+  if (picked is int) {
+    DealService.instance.ensureSeeded();
+    DealModerationService.instance.ensureSeeded();
+    TGClock.advance(Duration(days: picked));
+    DealService.instance.onClockAdvanced();
+    DealModerationService.instance.onClockAdvanced();
+  }
 }
 
 /// B2B lead-gen: manufacturers receive the request with reference photos.
@@ -178,16 +206,16 @@ class _PricingSheet extends StatelessWidget {
     String primaryLabel;
     VoidCallback primaryAction;
     if (!publishing) {
-      primaryLabel = 'Got it';
+      primaryLabel = context.t('ui_got_it');
       primaryAction = () => Navigator.of(context).pop();
     } else if (!auth.isLoggedIn) {
-      primaryLabel = 'Log in to start';
+      primaryLabel = context.t('ui_log_in_to_start');
       primaryAction = () {
         Navigator.of(context).pop();
         context.goNamed(LoginPageWidget.routeName);
       };
     } else {
-      primaryLabel = 'Start a listing';
+      primaryLabel = context.t('ui_start_a_listing');
       primaryAction = () {
         Navigator.of(context).pop();
         context.go('/add-product');
@@ -195,7 +223,7 @@ class _PricingSheet extends StatelessWidget {
     }
 
     return _SheetFrame(
-      title: publishing ? 'Sell your equipment' : 'Pricing for sellers',
+      title: publishing ? context.t('ui_sell_your_equipment') : context.t('ui_pricing_for_sellers'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -203,25 +231,23 @@ class _PricingSheet extends StatelessWidget {
             _QuotaCard(auth: auth),
             const SizedBox(height: 12),
           ],
-          const _InfoCard(
+          _InfoCard(
             icon: Icons.card_giftcard_rounded,
-            title: 'First ${TGPricing.freeListingQuota} listings are free',
-            body: 'Each listing runs ${TGPricing.listingPeriodDays} days from its own publish date. '
-                'Unused free slots never expire.',
+            title: context.t('ui_first_n_listings_free', {'n': '${TGPricing.freeListingQuota}'}),
+            body: context.t('ui_free_listings_body', {'days': '${TGPricing.listingPeriodDays}'}),
           ),
           const SizedBox(height: 10),
           _InfoCard(
             icon: Icons.receipt_long_rounded,
-            title: '${TGPricing.listingFeePln} PLN / ${TGPricing.listingPeriodDays} days per listing',
-            body: 'After the free tier, every listing costs ${TGPricing.listingFeePln} PLN for '
-                '${TGPricing.listingPeriodDays} days.',
+            title: context.t('ui_listing_fee_title', {'fee': '${TGPricing.listingFeePln}', 'days': '${TGPricing.listingPeriodDays}'}),
+            body: context.t('ui_listing_fee_body', {'fee': '${TGPricing.listingFeePln}', 'days': '${TGPricing.listingPeriodDays}'}),
             accent: theme.secondary,
           ),
           const SizedBox(height: 18),
-          Text('B2B Stores', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_b2b_stores'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
           Text(
-            'Monthly subscription for companies that sell regularly.',
+            context.t('ui_b2b_stores_sub'),
             style: theme.bodySmall.override(color: theme.secondaryText),
           ),
           const SizedBox(height: 10),
@@ -237,8 +263,7 @@ class _PricingSheet extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'All prices include ${(TGPricing.vatRate * 100).round()}% VAT. There is no escrow and no '
-                  'in-platform checkout: buyers and sellers agree on payment and delivery directly.',
+                  context.t('ui_prices_vat_note', {'vat': '${(TGPricing.vatRate * 100).round()}'}),
                   style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.45),
                 ),
               ),
@@ -270,13 +295,13 @@ class _PlanRow extends StatelessWidget {
         children: [
           Icon(Icons.storefront_outlined, color: theme.primary, size: 22),
           const SizedBox(width: 12),
-          Expanded(child: Text(plan.name, style: theme.bodyLarge.override(fontWeight: FontWeight.w800))),
+          Expanded(child: Text(_storePlanShortName(context, plan.name), style: theme.bodyLarge.override(fontWeight: FontWeight.w800))),
           Text(
             '${plan.monthlyPricePln} PLN',
             style: theme.titleSmall.override(fontWeight: FontWeight.w900, color: theme.primary),
           ),
           const SizedBox(width: 4),
-          Text('/ mo', style: theme.bodySmall.override(color: theme.secondaryText)),
+          Text(context.t('ui_slash_mo'), style: theme.bodySmall.override(color: theme.secondaryText)),
         ],
       ),
     );
@@ -304,32 +329,36 @@ class _QuotaCard extends StatelessWidget {
     final double progress;
     switch (kind) {
       case TGHeaderPillKind.store:
-        headline = '${auth.storePlanLabel}: ${auth.storeActiveUsed} of ${auth.storeActiveLimit} listings active';
-        detail = 'Subscription renews monthly.';
+        headline = context.t('ui_store_listings_active', {
+          'plan': _storePlanFullName(context, auth.storePlanLabel),
+          'used': '${auth.storeActiveUsed}',
+          'limit': '${auth.storeActiveLimit}',
+        });
+        detail = context.t('ui_subscription_renews_monthly');
         progress = auth.storeActiveUsed / auth.storeActiveLimit;
       case TGHeaderPillKind.needsAttention:
-        headline = '${auth.ownedNeedsAttention.length} listing(s) need attention';
-        detail = 'A moderator asked for more information.';
+        headline = context.t('ui_listings_need_attention', {'n': '${auth.ownedNeedsAttention.length}'});
+        detail = context.t('ui_moderator_asked_info');
         progress = 0.5;
       case TGHeaderPillKind.expiredListings:
-        headline = '${auth.ownedExpired.length} expired listing(s)';
-        detail = 'Renew to put them back online.';
+        headline = context.t('ui_n_expired_listings', {'n': '${auth.ownedExpired.length}'});
+        detail = context.t('ui_renew_to_put_back');
         progress = 1;
       case TGHeaderPillKind.expiringListings:
-        headline = '${auth.ownedExpiringSoon.length} listing(s) ending soon';
-        detail = 'Renew early to keep them visible.';
+        headline = context.t('ui_n_ending_soon', {'n': '${auth.ownedExpiringSoon.length}'});
+        detail = context.t('ui_renew_early_keep');
         progress = 0.85;
       case TGHeaderPillKind.noQuota:
-        headline = 'No free listings left';
-        detail = 'Next listing: ${TGPricing.listingFeePln} PLN / ${TGPricing.listingPeriodDays} days.';
+        headline = context.t('ui_no_free_listings_left');
+        detail = context.t('ui_next_listing_fee', {'fee': '${TGPricing.listingFeePln}', 'days': '${TGPricing.listingPeriodDays}'});
         progress = 1;
       case TGHeaderPillKind.noListings:
-        headline = '3 free listings';
-        detail = 'Your first 3 listings are free. Each runs 30 days from its own publish date.';
+        headline = context.t('ui_three_free_listings');
+        detail = context.t('ui_first_three_free_detail');
         progress = 0;
       case TGHeaderPillKind.freeQuota:
-        headline = 'Free listings: ${auth.freeListingsLeft} of ${auth.freeListingsTotal} left';
-        detail = '${auth.freeListingsLeft} of ${auth.freeListingsTotal} free listings left. They don\'t expire - use them any time.';
+        headline = context.t('ui_free_listings_left_of', {'left': '${auth.freeListingsLeft}', 'total': '${auth.freeListingsTotal}'});
+        detail = context.t('ui_free_listings_left_detail', {'left': '${auth.freeListingsLeft}', 'total': '${auth.freeListingsTotal}'});
         progress = (auth.freeListingsTotal - auth.freeListingsLeft) / auth.freeListingsTotal;
     }
 
@@ -362,12 +391,25 @@ class _QuotaCard extends StatelessWidget {
   }
 }
 
+String _storePlanShortName(BuildContext context, String name) => switch (name) {
+      'Pro' => context.t('ui_plan_pro'),
+      'Enterprise' => context.t('ui_plan_enterprise'),
+      _ => context.t('ui_plan_basic'),
+    };
+
+String _storePlanFullName(BuildContext context, String label) => switch (label) {
+      'Pro Store' => context.t('ui_plan_pro_store'),
+      'Enterprise Store' => context.t('ui_plan_enterprise_store'),
+      _ => context.t('ui_plan_basic_store'),
+    };
+
 String _roleLabel(BuildContext context, TGUserRole role) => switch (role) {
       TGUserRole.visitor => context.t('ui_role_visitor'),
       TGUserRole.seller => context.t('ui_role_seller'),
       TGUserRole.storeSeller => context.t('ui_role_store_seller'),
       TGUserRole.moderator => context.t('ui_role_moderator'),
       TGUserRole.admin => context.t('ui_role_admin'),
+      TGUserRole.buyer => context.t('ui_role_buyer'),
     };
 
 class _AccountSheet extends StatelessWidget {
@@ -438,6 +480,34 @@ class _AccountSheet extends StatelessWidget {
             variant: TGButtonVariant.outline,
             height: 46,
           ),
+          const SizedBox(height: 10),
+          TGButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              if (auth.role == TGUserRole.buyer) {
+                TGNav.accountDeals(context);
+              } else {
+                TGNav.dashboardDeals(context);
+              }
+            },
+            label: context.t('ui_deals'),
+            icon: Icons.handshake_outlined,
+            variant: TGButtonVariant.outline,
+            height: 46,
+          ),
+          if (auth.role == TGUserRole.buyer) ...[
+            const SizedBox(height: 10),
+            TGButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                TGNav.accountReviews(context);
+              },
+              label: context.t('ui_your_reviews'),
+              icon: Icons.rate_review_outlined,
+              variant: TGButtonVariant.outline,
+              height: 46,
+            ),
+          ],
           if (auth.canModerate) ...[
             const SizedBox(height: 10),
             TGButton(

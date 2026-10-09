@@ -251,6 +251,7 @@ class _QueueTable extends StatelessWidget {
               headingRowColor: WidgetStateProperty.all(TGColors.adminBar),
               columns: [
                 DataColumn(label: _Th(context.t('ui_report_no'))),
+                DataColumn(label: _Th(context.t('ui_target'))),
                 DataColumn(label: _Th(context.t('ui_listing_no_header'))),
                 DataColumn(label: _Th(context.t('ui_reason'))),
                 DataColumn(label: _Th(context.t('ui_reports'))),
@@ -288,6 +289,7 @@ class _QueueTable extends StatelessWidget {
       onSelectChanged: (_) => onOpen(),
       cells: [
         DataCell(Text(row.reports.isEmpty ? '—' : row.primary.reportNo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+        DataCell(Text(context.t('ui_target_${row.target.name}'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
         DataCell(
           InkWell(
             onTap: onOpen,
@@ -356,6 +358,8 @@ class _QueueCards extends StatelessWidget {
                     children: [
                       Text(row.listingNo, style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w900)),
                       const Spacer(),
+                      Text(context.t('ui_target_${row.target.name}'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                      const SizedBox(width: 8),
                       AdminSlaChip(row: row),
                     ],
                   ),

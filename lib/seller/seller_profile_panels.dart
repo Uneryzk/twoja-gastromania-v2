@@ -9,7 +9,9 @@ import 'package:twoja_gastromania/products/products_logic.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/products/products_results.dart' show TGSortDropdown, TGViewToggle;
 import 'package:twoja_gastromania/seller/seller_profile_query.dart';
+import 'package:twoja_gastromania/seller/store_owner_edit.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_filter_menu.dart';
 import 'package:twoja_gastromania/tg_components/tg_map_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_search_field.dart';
@@ -22,7 +24,7 @@ import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:url_launcher/link.dart';
 
-class StoreProductsPanel extends StatelessWidget {
+class StoreProductsPanel extends StatefulWidget {
   const StoreProductsPanel({
     super.key,
     required this.profile,
@@ -39,8 +41,43 @@ class StoreProductsPanel extends StatelessWidget {
   final bool hideSeller;
 
   @override
+  State<StoreProductsPanel> createState() => _StoreProductsPanelState();
+}
+
+class _StoreProductsPanelState extends State<StoreProductsPanel> {
+  bool _searchOpen = false;
+
+  TGStoreProfile get profile => widget.profile;
+  List<TGProduct> get listings => widget.listings;
+  TGStoreQuery get query => widget.query;
+  bool get hideSeller => widget.hideSeller;
+
+  void apply(TGStoreQuery next, {bool filter = true}) {
+    if (filter) TGAnalytics.track('store_filter_applied', {'seller': profile.publicId, 'q': next.search, 'cat': next.category?.name, 'sort': next.sort.name});
+    widget.onQuery(next);
+  }
+
+  Future<void> _openFilters(BuildContext context, int resultCount) async {
+    await withStoreOverlay(context, () => showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: TGColors.surface,
+          barrierColor: Colors.black54,
+          builder: (ctx) => _StoreFilterSheet(
+            query: query,
+            resultCount: resultCount,
+            onApply: (q) {
+              apply(q);
+              Navigator.pop(ctx);
+            },
+          ),
+        ));
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
+    final mobile = MediaQuery.sizeOf(context).width < TGBreakpoints.desktop;
     final q = query.search?.trim().toLowerCase();
     var filtered = listings.where((p) {
       if (query.category != null && p.category != query.category) return false;
@@ -55,18 +92,15 @@ class StoreProductsPanel extends StatelessWidget {
     final featured = sorted.where((p) => p.isPromoted).take(3).toList();
     final organic = sorted.where((p) => !featured.any((f) => f.id == p.id)).toList();
     const perPage = 12;
+    final shown = mobile ? (query.page * perPage).clamp(0, organic.length) : null;
     final pages = pageCount(organic.length, perPage);
     final page = query.page.clamp(1, pages);
-    final visible = paginate(organic, page, perPage: perPage);
+    final visible = mobile ? organic.take(shown!).toList() : paginate(organic, page, perPage: perPage);
     final cats = <TGCategory, int>{};
     for (final p in listings) {
       cats[p.category] = (cats[p.category] ?? 0) + 1;
     }
-
-    void apply(TGStoreQuery next, {bool filter = true}) {
-      if (filter) TGAnalytics.track('store_filter_applied', {'seller': profile.publicId, 'q': next.search, 'cat': next.category?.name, 'sort': next.sort.name});
-      onQuery(next);
-    }
+    final layout = mobile ? TGProductCardLayout.list : query.view;
 
     if (listings.isEmpty) {
       return _EmptyStore(profile: profile);
@@ -75,57 +109,107 @@ class StoreProductsPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            SizedBox(
-              width: 280,
-              child: TGSearchField(
-                initialText: query.search ?? '',
-                hint: context.t('ui_search_products'),
+        if (mobile) ...[
+          Row(
+            children: [
+              IconButton(
+                key: const Key('store-search-icon'),
+                tooltip: context.t('ui_search_in_store'),
+                onPressed: () => setState(() => _searchOpen = !_searchOpen),
+                icon: const Icon(Icons.search),
+              ),
+              Expanded(
+                child: TGFilterMenu(
+                  menuKey: const Key('store-listings-filter-menu'),
+                  title: context.t('ui_categories'),
+                  currentId: query.category?.name ?? '',
+                  options: [
+                    TGFilterOption(id: '', label: context.t('ui_all')),
+                    for (final e in cats.entries)
+                      TGFilterOption(
+                        id: e.key.name,
+                        label: '${categoryLabel(e.key, t: (k) => context.t(k))} (${e.value})',
+                      ),
+                  ],
+                  onSelect: (id) {
+                    if (id.isEmpty) {
+                      apply(query.copyWith(categoryToNull: true, page: 1));
+                    } else {
+                      apply(query.copyWith(category: TGCategory.values.byName(id), page: 1));
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              TGButton(
+                onPressed: () => _openFilters(context, organic.length),
+                label: context.t('ui_filters_sort'),
+                variant: TGButtonVariant.outline,
                 height: 44,
-                onSubmitted: (t) => apply(query.copyWith(search: t, searchToNull: t.trim().isEmpty, page: 1)),
               ),
+            ],
+          ),
+          if (_searchOpen) ...[
+            const SizedBox(height: 8),
+            TGSearchField(
+              initialText: query.search ?? '',
+              hint: context.t('ui_search_products'),
+              height: 44,
+              onSubmitted: (t) => apply(query.copyWith(search: t, searchToNull: t.trim().isEmpty, page: 1)),
             ),
-            for (final e in cats.entries)
-              _FilterChip(
-                label: '${categoryLabel(e.key, t: (k) => context.t(k))} (${e.value})',
-                selected: query.category == e.key,
-                accent: true,
-                onTap: () => apply(query.copyWith(category: e.key, categoryToNull: query.category == e.key, page: 1)),
-              ),
-            _FilterChip(
-              label: conditionLabel(TGCondition.newItem, t: (k) => context.t(k)),
-              selected: query.conditions.contains(TGCondition.newItem),
-              onTap: () {
-                final next = {...query.conditions};
-                next.contains(TGCondition.newItem) ? next.remove(TGCondition.newItem) : next.add(TGCondition.newItem);
-                apply(query.copyWith(conditions: next, page: 1));
-              },
-            ),
-            _FilterChip(
-              label: conditionLabel(TGCondition.used, t: (k) => context.t(k)),
-              selected: query.conditions.contains(TGCondition.used),
-              onTap: () {
-                final next = {...query.conditions};
-                next.contains(TGCondition.used) ? next.remove(TGCondition.used) : next.add(TGCondition.used);
-                apply(query.copyWith(conditions: next, page: 1));
-              },
-            ),
-            TGSortDropdown(
-              value: const {TGProductsSort.recommended, TGProductsSort.newest, TGProductsSort.priceLowHigh, TGProductsSort.priceHighLow}.contains(query.sort) ? query.sort : TGProductsSort.recommended,
-              onChanged: (s) => apply(query.copyWith(sort: s, page: 1)),
-            ),
-            TGViewToggle(value: query.view, onChanged: (v) => apply(query.copyWith(view: v), filter: false)),
           ],
-        ),
+        ] else
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SizedBox(
+                width: 280,
+                child: TGSearchField(
+                  initialText: query.search ?? '',
+                  hint: context.t('ui_search_products'),
+                  height: 44,
+                  onSubmitted: (t) => apply(query.copyWith(search: t, searchToNull: t.trim().isEmpty, page: 1)),
+                ),
+              ),
+              for (final e in cats.entries)
+                _FilterChip(
+                  label: '${categoryLabel(e.key, t: (k) => context.t(k))} (${e.value})',
+                  selected: query.category == e.key,
+                  accent: true,
+                  onTap: () => apply(query.copyWith(category: e.key, categoryToNull: query.category == e.key, page: 1)),
+                ),
+              _FilterChip(
+                label: conditionLabel(TGCondition.newItem, t: (k) => context.t(k)),
+                selected: query.conditions.contains(TGCondition.newItem),
+                onTap: () {
+                  final next = {...query.conditions};
+                  next.contains(TGCondition.newItem) ? next.remove(TGCondition.newItem) : next.add(TGCondition.newItem);
+                  apply(query.copyWith(conditions: next, page: 1));
+                },
+              ),
+              _FilterChip(
+                label: conditionLabel(TGCondition.used, t: (k) => context.t(k)),
+                selected: query.conditions.contains(TGCondition.used),
+                onTap: () {
+                  final next = {...query.conditions};
+                  next.contains(TGCondition.used) ? next.remove(TGCondition.used) : next.add(TGCondition.used);
+                  apply(query.copyWith(conditions: next, page: 1));
+                },
+              ),
+              TGSortDropdown(
+                value: const {TGProductsSort.recommended, TGProductsSort.newest, TGProductsSort.priceLowHigh, TGProductsSort.priceHighLow}.contains(query.sort) ? query.sort : TGProductsSort.recommended,
+                onChanged: (s) => apply(query.copyWith(sort: s, page: 1)),
+              ),
+              TGViewToggle(value: query.view, onChanged: (v) => apply(query.copyWith(view: v), filter: false)),
+            ],
+          ),
         const SizedBox(height: 22),
         if (featured.isNotEmpty) ...[
           Text(context.t('ui_promoted_badge'), style: theme.titleMedium.override(fontWeight: FontWeight.w900, color: theme.secondary)),
           const SizedBox(height: 12),
-          _StoreGrid(items: featured, layout: query.view, hideSeller: hideSeller),
+          _StoreGrid(items: featured, layout: mobile ? TGProductCardLayout.list : query.view, hideSeller: hideSeller),
           const SizedBox(height: 28),
         ],
         if (visible.isEmpty)
@@ -134,10 +218,101 @@ class StoreProductsPanel extends StatelessWidget {
             child: Text(context.t('ui_store_empty'), style: theme.bodyMedium.override(color: theme.secondaryText)),
           )
         else
-          _StoreGrid(items: visible, layout: query.view, hideSeller: hideSeller),
+          _StoreGrid(items: visible, layout: layout, hideSeller: hideSeller),
         const SizedBox(height: 24),
-        _Pages(current: page, total: pages, onPage: (p) => apply(query.copyWith(page: p), filter: false)),
+        if (mobile) ...[
+          if (organic.isNotEmpty)
+            Center(child: Text(context.t('ui_shown_of', {'shown': '${visible.length}', 'total': '${organic.length}'}), style: theme.bodySmall.override(fontWeight: FontWeight.w800))),
+          if (visible.length < organic.length) ...[
+            const SizedBox(height: 10),
+            TGButton(
+              onPressed: () => apply(query.copyWith(page: query.page + 1), filter: false),
+              label: context.t('ui_show_more'),
+              variant: TGButtonVariant.outline,
+              height: 44,
+            ),
+          ],
+        ] else
+          _Pages(current: page, total: pages, onPage: (p) => apply(query.copyWith(page: p), filter: false)),
       ],
+    );
+  }
+}
+
+class _StoreFilterSheet extends StatelessWidget {
+  const _StoreFilterSheet({required this.query, required this.resultCount, required this.onApply});
+  final TGStoreQuery query;
+  final int resultCount;
+  final ValueChanged<TGStoreQuery> onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    var draft = query;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: StatefulBuilder(
+        builder: (context, setLocal) {
+          return SafeArea(
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.72,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(context.t('ui_filters_sort'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
+                        IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 18)),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      children: [
+                        Text(context.t('ui_sort_listings'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        TGSortDropdown(
+                          value: const {TGProductsSort.recommended, TGProductsSort.newest, TGProductsSort.priceLowHigh, TGProductsSort.priceHighLow}.contains(draft.sort) ? draft.sort : TGProductsSort.recommended,
+                          onChanged: (s) => setLocal(() => draft = draft.copyWith(sort: s, page: 1)),
+                        ),
+                        const SizedBox(height: 16),
+                        _FilterChip(
+                          label: conditionLabel(TGCondition.newItem, t: (k) => context.t(k)),
+                          selected: draft.conditions.contains(TGCondition.newItem),
+                          onTap: () {
+                            final next = {...draft.conditions};
+                            next.contains(TGCondition.newItem) ? next.remove(TGCondition.newItem) : next.add(TGCondition.newItem);
+                            setLocal(() => draft = draft.copyWith(conditions: next, page: 1));
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        _FilterChip(
+                          label: conditionLabel(TGCondition.used, t: (k) => context.t(k)),
+                          selected: draft.conditions.contains(TGCondition.used),
+                          onTap: () {
+                            final next = {...draft.conditions};
+                            next.contains(TGCondition.used) ? next.remove(TGCondition.used) : next.add(TGCondition.used);
+                            setLocal(() => draft = draft.copyWith(conditions: next, page: 1));
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: TGButton(
+                      onPressed: () => onApply(draft),
+                      label: context.t('ui_show_n_results', {'n': '$resultCount'}),
+                      height: 48,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -298,8 +473,10 @@ class _FilterChip extends StatelessWidget {
 }
 
 class StoreAboutPanel extends StatefulWidget {
-  const StoreAboutPanel({super.key, required this.profile});
+  const StoreAboutPanel({super.key, required this.profile, this.editing = false, this.onEdit});
   final TGStoreProfile profile;
+  final bool editing;
+  final ValueChanged<TGStoreEditSection>? onEdit;
 
   @override
   State<StoreAboutPanel> createState() => _StoreAboutPanelState();
@@ -318,24 +495,41 @@ class _StoreAboutPanelState extends State<StoreAboutPanel> {
 
     return LayoutBuilder(
       builder: (context, c) {
-        final stacked = c.maxWidth < 900;
+        final stacked = c.maxWidth < TGBreakpoints.desktop;
+        final descLines = stacked ? 4 : 8;
         final left = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (clipped.isNotEmpty) ...[
-              Text(
-                clipped,
-                maxLines: _more ? 80 : 8,
-                overflow: TextOverflow.ellipsis,
-                style: theme.bodyMedium.override(color: theme.primaryText, lineHeight: 1.55),
-              ),
-              if (clipped.length > 280 || clipped.split('\n').length > 8)
-                TextButton(
-                  onPressed: () => setState(() => _more = !_more),
-                  child: Text(_more ? context.t('ui_show_less') : context.t('ui_show_more')),
+            if (clipped.isNotEmpty)
+              StoreEditableRegion(
+                section: TGStoreEditSection.description,
+                editing: widget.editing,
+                onEdit: widget.onEdit ?? (_) {},
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      clipped,
+                      maxLines: _more ? 80 : descLines,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.bodyMedium.override(color: theme.primaryText, lineHeight: 1.55),
+                    ),
+                    if (clipped.length > 180 || clipped.split('\n').length > descLines)
+                      TextButton(
+                        onPressed: () => setState(() => _more = !_more),
+                        child: Text(_more ? context.t('ui_show_less') : context.t('ui_show_more')),
+                      ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
-              const SizedBox(height: 20),
-            ],
+              ),
+            StoreEditableRegion(
+              section: TGStoreEditSection.taxonomy,
+              editing: widget.editing,
+              onEdit: widget.onEdit ?? (_) {},
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             Text(context.t('ui_what_we_offer'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
             const SizedBox(height: 12),
             Wrap(
@@ -370,13 +564,26 @@ class _StoreAboutPanelState extends State<StoreAboutPanel> {
               ),
             if (showProjects) ...[
               const SizedBox(height: 24),
-              Text(context.t('ui_references'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
-              const SizedBox(height: 12),
-              _ProjectGallery(projects: p.projects),
+              StoreEditableRegion(
+                section: TGStoreEditSection.projects,
+                editing: widget.editing,
+                onEdit: widget.onEdit ?? (_) {},
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(context.t('ui_references'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 12),
+                    _ProjectGallery(projects: p.projects, carousel: stacked),
+                  ],
+                ),
+              ),
             ],
+                ],
+              ),
+            ),
           ],
         );
-        final right = _BusinessRail(profile: p);
+        final right = _BusinessRail(profile: p, accordionHours: stacked, mapHeight: stacked ? 160 : null, editing: widget.editing, onEdit: widget.onEdit);
         if (stacked) {
           return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [left, const SizedBox(height: 28), right]);
         }
@@ -394,8 +601,12 @@ class _StoreAboutPanelState extends State<StoreAboutPanel> {
 }
 
 class _BusinessRail extends StatelessWidget {
-  const _BusinessRail({required this.profile});
+  const _BusinessRail({required this.profile, this.accordionHours = false, this.mapHeight, this.editing = false, this.onEdit});
   final TGStoreProfile profile;
+  final bool accordionHours;
+  final double? mapHeight;
+  final bool editing;
+  final ValueChanged<TGStoreEditSection>? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -426,26 +637,66 @@ class _BusinessRail extends StatelessWidget {
           if (profile.address != null) ...[const SizedBox(height: 8), Text(profile.address!, style: theme.bodySmall.override(color: theme.secondaryText))],
         ]),
         const SizedBox(height: 14),
-        card(context.t('ui_opening_hours'), [
-          for (final day in kStoreDayKeys)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-              decoration: BoxDecoration(color: day == today ? theme.primary.withValues(alpha: 0.12) : null, borderRadius: BorderRadius.circular(8)),
-              child: Row(
-                children: [
-                  Expanded(child: Text(context.t('ui_day_$day'), style: theme.bodySmall.override(fontWeight: day == today ? FontWeight.w900 : FontWeight.w600))),
-                  Text(profile.hours.of(day) == 'closed' ? context.t('ui_hours_closed') : profile.hours.of(day), style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: profile.hours.of(day) == 'closed' ? theme.secondaryText : theme.primaryText)),
-                ],
-              ),
-            ),
-        ]),
+        StoreEditableRegion(
+          section: TGStoreEditSection.hours,
+          editing: editing,
+          onEdit: onEdit ?? (_) {},
+          child: accordionHours
+              ? Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: Text(context.t('ui_opening_hours'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+                    subtitle: Text(
+                      context.t('ui_today_hours', {
+                        'status': storeOpenState(profile.hours).open ? context.t('ui_open_now') : context.t('ui_hours_closed'),
+                      }),
+                    ),
+                    children: [
+                      for (final day in kStoreDayKeys)
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+                          decoration: BoxDecoration(color: day == today ? theme.primary.withValues(alpha: 0.12) : null, borderRadius: BorderRadius.circular(8)),
+                          child: Row(
+                            children: [
+                              Expanded(child: Text(context.t('ui_day_$day'), style: theme.bodySmall.override(fontWeight: day == today ? FontWeight.w900 : FontWeight.w600))),
+                              Text(profile.hours.of(day) == 'closed' ? context.t('ui_hours_closed') : profile.hours.of(day), style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: profile.hours.of(day) == 'closed' ? theme.secondaryText : theme.primaryText)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                )
+              : card(context.t('ui_opening_hours'), [
+                  for (final day in kStoreDayKeys)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+                      decoration: BoxDecoration(color: day == today ? theme.primary.withValues(alpha: 0.12) : null, borderRadius: BorderRadius.circular(8)),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(context.t('ui_day_$day'), style: theme.bodySmall.override(fontWeight: day == today ? FontWeight.w900 : FontWeight.w600))),
+                          Text(profile.hours.of(day) == 'closed' ? context.t('ui_hours_closed') : profile.hours.of(day), style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: profile.hours.of(day) == 'closed' ? theme.secondaryText : theme.primaryText)),
+                        ],
+                      ),
+                    ),
+                ]),
+        ),
         const SizedBox(height: 14),
-        card(context.t('ui_location'), [
-          TGMapCard(address: profile.address ?? '${profile.city}, ${profile.voivodeship}', mapsUri: maps, actionLabel: context.t('ui_get_directions')),
-        ]),
+        StoreEditableRegion(
+          section: TGStoreEditSection.address,
+          editing: editing,
+          onEdit: onEdit ?? (_) {},
+          child: card(context.t('ui_location'), [
+            TGMapCard(address: profile.address ?? '${profile.city}, ${profile.voivodeship}', mapsUri: maps, actionLabel: context.t('ui_get_directions'), mapHeight: mapHeight),
+          ]),
+        ),
         if (profile.website != null || !profile.social.isEmpty) ...[
           const SizedBox(height: 14),
-          card(context.t('ui_links'), [
+          StoreEditableRegion(
+            section: TGStoreEditSection.links,
+            editing: editing,
+            onEdit: onEdit ?? (_) {},
+            child: card(context.t('ui_links'), [
             if (profile.website != null)
               Link(
                 uri: Uri.parse(profile.website!),
@@ -466,6 +717,7 @@ class _BusinessRail extends StatelessWidget {
               ],
             ),
           ]),
+          ),
         ],
       ],
     );
@@ -487,11 +739,49 @@ class _Social extends StatelessWidget {
 }
 
 class _ProjectGallery extends StatelessWidget {
-  const _ProjectGallery({required this.projects});
+  const _ProjectGallery({required this.projects, this.carousel = false});
   final List<TGStoreProject> projects;
+  final bool carousel;
 
   @override
   Widget build(BuildContext context) {
+    Widget tile(TGStoreProject p, int i, {required bool expand}) {
+      final img = ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: AspectRatio(
+          aspectRatio: 4 / 3,
+          child: Image.asset(p.photos.first, fit: BoxFit.cover),
+        ),
+      );
+      return InkWell(
+        onTap: () => showStoreProjectLightbox(context, projects, i),
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (expand) Expanded(child: img) else img,
+            const SizedBox(height: 8),
+            Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w800)),
+            Text('${p.city} · ${p.year}', style: FlutterFlowTheme.of(context).bodySmall.override(color: FlutterFlowTheme.of(context).secondaryText)),
+          ],
+        ),
+      );
+    }
+
+    if (carousel) {
+      return SizedBox(
+        height: 248,
+        child: PageView.builder(
+          controller: PageController(viewportFraction: 0.88),
+          itemCount: projects.length,
+          itemBuilder: (context, i) => Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: tile(projects[i], i, expand: true),
+          ),
+        ),
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, c) {
         final cols = c.maxWidth >= 800 ? 3 : (c.maxWidth >= 520 ? 2 : 1);
@@ -505,30 +795,7 @@ class _ProjectGallery extends StatelessWidget {
             mainAxisSpacing: 16,
             childAspectRatio: 4 / 3.55,
           ),
-          itemBuilder: (context, i) {
-            final p = projects[i];
-            return InkWell(
-              onTap: () => showStoreProjectLightbox(context, projects, i),
-              borderRadius: BorderRadius.circular(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: AspectRatio(
-                        aspectRatio: 4 / 3,
-                        child: Image.asset(p.photos.first, fit: BoxFit.cover),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w800)),
-                  Text('${p.city} · ${p.year}', style: FlutterFlowTheme.of(context).bodySmall.override(color: FlutterFlowTheme.of(context).secondaryText)),
-                ],
-              ),
-            );
-          },
+          itemBuilder: (context, i) => tile(projects[i], i, expand: true),
         );
       },
     );
@@ -536,7 +803,7 @@ class _ProjectGallery extends StatelessWidget {
 }
 
 Future<void> showStoreProjectLightbox(BuildContext context, List<TGStoreProject> projects, int index) {
-  return showGeneralDialog<void>(
+  return withStoreOverlay(context, () => showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
     barrierLabel: context.t('ui_close'),
@@ -547,7 +814,7 @@ Future<void> showStoreProjectLightbox(BuildContext context, List<TGStoreProject>
       final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
       return FadeTransition(opacity: curved, child: ScaleTransition(scale: Tween(begin: 0.96, end: 1.0).animate(curved), child: child));
     },
-  );
+  ));
 }
 
 class _ProjectLightbox extends StatefulWidget {
@@ -562,6 +829,7 @@ class _ProjectLightbox extends StatefulWidget {
 class _ProjectLightboxState extends State<_ProjectLightbox> {
   late int _i = widget.index;
   late int _photo = 0;
+  double _drag = 0;
 
   TGStoreProject get project => widget.projects[_i];
   List<String> get photos => project.photos.take(8).toList();
@@ -581,6 +849,43 @@ class _ProjectLightboxState extends State<_ProjectLightbox> {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
+    final mobile = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
+    if (mobile) {
+      return Material(
+        color: Colors.black,
+        child: GestureDetector(
+          onVerticalDragUpdate: (d) => setState(() => _drag += d.delta.dy),
+          onVerticalDragEnd: (d) {
+            if (_drag > 90 || (d.primaryVelocity ?? 0) > 400) {
+              Navigator.pop(context);
+            } else {
+              setState(() => _drag = 0);
+            }
+          },
+          child: Transform.translate(
+            offset: Offset(0, _drag.clamp(0, 480)),
+            child: SafeArea(
+              child: Stack(
+                children: [
+                  Center(
+                    child: InteractiveViewer(
+                      minScale: 1,
+                      maxScale: 4,
+                      child: Image.asset(photos[_photo], fit: BoxFit.contain),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return FocusScope(
       autofocus: true,
       child: Shortcuts(
@@ -688,18 +993,6 @@ String _svcLabel(BuildContext context, TGStoreService s) => switch (s) {
       TGStoreService.fakturaVat => context.t('ui_svc_vat'),
       TGStoreService.warrantyService => context.t('ui_svc_warranty'),
     };
-
-class StoreReviewsPlaceholder extends StatelessWidget {
-  const StoreReviewsPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48),
-      child: Center(child: Text(context.t('ui_coming_next'), style: FlutterFlowTheme.of(context).titleMedium.override(color: FlutterFlowTheme.of(context).secondaryText))),
-    );
-  }
-}
 
 // silence unused math import if analyzer complains about window helpers later
 int storePageWindow(int current, int total) => math.max(1, current.clamp(1, total));

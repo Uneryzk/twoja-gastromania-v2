@@ -56,13 +56,41 @@ abstract final class TGNav {
 
   static void storeQuote(BuildContext context, int sellerId) => context.push('/special-order?seller=$sellerId');
 
-  static void dashboardListings(BuildContext context, {String? filter, String? renew}) {
+  static void dashboardListings(BuildContext context, {String? filter, String? renew, String? sold}) {
     final parts = <String>[
       if (filter != null && filter.isNotEmpty) 'filter=$filter',
       if (renew != null && renew.isNotEmpty) 'renew=$renew',
+      if (sold != null && sold.isNotEmpty) 'sold=$sold',
     ];
     context.go('/dashboard/listings${parts.isEmpty ? '' : '?${parts.join('&')}'}');
   }
+
+  static void dashboardDeals(BuildContext context, {String? tab}) {
+    context.go('/dashboard/deals${tab == null || tab.isEmpty || tab == 'all' ? '' : '?tab=$tab'}');
+  }
+
+  static void accountDeals(BuildContext context, {String? tab, String? dealId, bool confirm = false}) {
+    if (dealId != null && dealId.isNotEmpty) {
+      context.go('/account/deals/$dealId${confirm ? '?confirm=1' : ''}');
+      return;
+    }
+    context.go('/account/deals${tab == null || tab.isEmpty ? '' : '?tab=$tab'}');
+  }
+
+  static void accountReviews(BuildContext context, {String? tab, String? reviewId, bool evidence = false, bool compose = false, String? listingNo}) {
+    if (reviewId != null && reviewId.isNotEmpty) {
+      context.go('/account/reviews/$reviewId${evidence ? '?evidence=1' : ''}');
+      return;
+    }
+    final q = <String>[
+      if (tab != null && tab.isNotEmpty) 'tab=$tab',
+      if (compose) 'compose=1',
+      if (listingNo != null && listingNo.isNotEmpty) 'listingNo=$listingNo',
+    ];
+    context.go('/account/reviews${q.isEmpty ? '' : '?${q.join('&')}'}');
+  }
+
+  static void accountNotifications(BuildContext context) => context.go('/account/notifications');
 
   static void messages(BuildContext context, {String? threadId}) {
     final wide = MediaQuery.sizeOf(context).width >= TGBreakpoints.phone;
@@ -72,6 +100,8 @@ abstract final class TGNav {
     }
     context.go('/dashboard/messages${threadId == null || threadId.isEmpty ? '' : '?thread=$threadId'}');
   }
+
+  static void plans(BuildContext context) => context.go('/plans');
 
   static void restaurantsForSale(BuildContext context) => _comingSoon(context, 'Restaurants for Sale');
 

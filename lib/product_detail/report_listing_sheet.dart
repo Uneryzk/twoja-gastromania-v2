@@ -10,9 +10,11 @@ import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_review.dart';
+import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 
-const _kReasons = <TGReportReason>[
+const _kListingReasons = <TGReportReason>[
   TGReportReason.duplicate,
   TGReportReason.copied,
   TGReportReason.sold,
@@ -24,6 +26,54 @@ const _kReasons = <TGReportReason>[
   TGReportReason.other,
 ];
 
+const _kSellerReasons = <TGReportReason>[
+  TGReportReason.fakeStore,
+  TGReportReason.fraud,
+  TGReportReason.fakeReviews,
+  TGReportReason.harassment,
+  TGReportReason.prohibited,
+  TGReportReason.other,
+];
+
+const _kReviewReasons = <TGReportReason>[
+  TGReportReason.fakeReview,
+  TGReportReason.sellerOrCompetitor,
+  TGReportReason.offensive,
+  TGReportReason.personalData,
+  TGReportReason.other,
+];
+
+class TGReportSubject {
+  const TGReportSubject.listing(this.product)
+      : kind = TGReportTarget.listing,
+        seller = null,
+        review = null;
+  const TGReportSubject.seller(this.seller)
+      : kind = TGReportTarget.seller,
+        product = null,
+        review = null;
+  const TGReportSubject.review(this.review, this.seller)
+      : kind = TGReportTarget.review,
+        product = null;
+
+  final TGReportTarget kind;
+  final TGProduct? product;
+  final TGStoreProfile? seller;
+  final TGStoreReview? review;
+
+  String get targetId => switch (kind) {
+        TGReportTarget.listing => product?.listingNo ?? product?.id ?? '',
+        TGReportTarget.seller => seller?.sellerKey ?? '',
+        TGReportTarget.review => review?.id ?? '',
+      };
+
+  List<TGReportReason> get reasons => switch (kind) {
+        TGReportTarget.listing => _kListingReasons,
+        TGReportTarget.seller => _kSellerReasons,
+        TGReportTarget.review => _kReviewReasons,
+      };
+}
+
 const _kEvidencePool = <({String path, int bytes, bool video})>[
   (path: 'assets/images/image.png', bytes: 420000, video: false),
   (path: 'assets/images/images.jpeg', bytes: 380000, video: false),
@@ -33,9 +83,18 @@ const _kEvidencePool = <({String path, int bytes, bool video})>[
 
 const _kOversized = (path: 'mock/too-big.jpg', bytes: 6000000, video: false);
 
-Future<void> showReportListingFlow(BuildContext context, TGProduct product) {
-  TGAnalytics.track('report_open', TGAnalytics.listingProps(product));
-  TGAnalytics.track('report_listing', TGAnalytics.listingProps(product));
+Future<void> showReportListingFlow(BuildContext context, TGProduct product) =>
+    showReportFlow(context, TGReportSubject.listing(product));
+
+Future<void> showReportFlow(BuildContext context, TGReportSubject subject) {
+  if (subject.kind == TGReportTarget.listing && subject.product != null) {
+    TGAnalytics.track('report_open', TGAnalytics.listingProps(subject.product!));
+    TGAnalytics.track('report_listing', TGAnalytics.listingProps(subject.product!));
+  } else if (subject.kind == TGReportTarget.seller) {
+    TGAnalytics.track('seller_report_open', {'sellerId': subject.seller?.sellerKey, 'id': subject.seller?.publicId});
+  } else {
+    TGAnalytics.track('review_report', {'reviewId': subject.review?.id, 'sellerId': subject.seller?.sellerKey});
+  }
   final wide = MediaQuery.sizeOf(context).width >= TGBreakpoints.phone;
   if (wide) {
     return showGeneralDialog<void>(
@@ -44,7 +103,7 @@ Future<void> showReportListingFlow(BuildContext context, TGProduct product) {
       barrierLabel: context.t('ui_close'),
       barrierColor: Colors.black54,
       transitionDuration: tgAnim(context, const Duration(milliseconds: 200)),
-      pageBuilder: (ctx, _, __) => ReportListingFlow(product: product, desktop: true),
+      pageBuilder: (ctx, _, __) => ReportListingFlow(subject: subject, desktop: true),
       transitionBuilder: (ctx, anim, _, child) {
         final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
         return FadeTransition(
@@ -63,14 +122,15 @@ Future<void> showReportListingFlow(BuildContext context, TGProduct product) {
     sheetAnimationStyle: AnimationStyle(duration: tgAnim(context, const Duration(milliseconds: 250))),
     builder: (ctx) => SizedBox(
       height: MediaQuery.sizeOf(ctx).height * 0.9,
-      child: ReportListingFlow(product: product, desktop: false),
+      child: ReportListingFlow(subject: subject, desktop: false),
     ),
   );
 }
 
 class ReportListingFlow extends StatefulWidget {
-  const ReportListingFlow({super.key, required this.product, required this.desktop});
-  final TGProduct product;
+  const ReportListingFlow({super.key, required this.subject, required this.desktop});
+
+  final TGReportSubject subject;
   final bool desktop;
 
   @override
@@ -127,18 +187,20 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
 
   bool get _detailsOk {
     final t = _details.text.trim();
-    if (_reason == TGReportReason.other) return t.length >= 20 && t.length <= 1000;
+    if (!_isListing || _reason == TGReportReason.other) return t.length >= 20 && t.length <= 1000;
     if (t.isEmpty) return true;
     return t.length >= 20 && t.length <= 1000;
   }
 
+  bool get _isListing => widget.subject.kind == TGReportTarget.listing;
+
   bool get _step2Ok {
     if (_reason == null || !_detailsOk || !_confirm) return false;
-    if (_reason == TGReportReason.copied) {
+    if (_isListing && _reason == TGReportReason.copied) {
       if (_originalRef.text.trim().isEmpty || !_owner || _evidence.isEmpty) return false;
     }
-    if (_reason == TGReportReason.misleading && _part == null) return false;
-    if (_reason == TGReportReason.fraud && _fraud.isEmpty) return false;
+    if (_isListing && _reason == TGReportReason.misleading && _part == null) return false;
+    if (_isListing && _reason == TGReportReason.fraud && _fraud.isEmpty) return false;
     final auth = context.read<FakeAuthState>();
     if (!auth.isLoggedIn) {
       if (!_email.text.contains('@') || !_emailVerified) return false;
@@ -161,19 +223,24 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
     }
     if (!mounted) return;
     final auth = context.read<FakeAuthState>();
-    final result = ModerationService.instance.submitListingReport(
-      product: widget.product,
+    final subject = widget.subject;
+    final result = ModerationService.instance.submitReport(
+      target: subject.kind,
+      targetId: subject.targetId,
       reason: _reason!,
       email: _email.text.trim(),
       reporterId: auth.isLoggedIn ? auth.userId : 'guest',
       name: _name.text.trim().isEmpty ? null : _name.text.trim(),
       text: _details.text.trim(),
+      sellerId: subject.seller?.sellerKey ?? subject.product?.seller.id,
+      reviewId: subject.review?.id,
       otherListingRef: _otherRef.text.trim().isEmpty ? null : _otherRef.text.trim(),
       originalListingRef: _originalRef.text.trim().isEmpty ? null : _originalRef.text.trim(),
       isOriginalOwner: _owner,
       misleadingPart: _part,
       fraudSignals: _fraud.toList(),
       evidenceUrls: List.of(_evidence),
+      product: subject.product,
     );
     setState(() {
       _submitting = false;
@@ -229,7 +296,13 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
                     children: [
                       Expanded(
                         child: Text(
-                          _submitted != null ? context.t('ui_report_thanks') : context.t('ui_report_listing'),
+                          _submitted != null
+                              ? context.t('ui_report_thanks')
+                              : switch (widget.subject.kind) {
+                                  TGReportTarget.listing => context.t('ui_report_listing'),
+                                  TGReportTarget.seller => context.t('ui_report_seller'),
+                                  TGReportTarget.review => context.t('ui_report_review'),
+                                },
                           style: theme.titleMedium.override(fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -243,7 +316,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
                       style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800, fontSize: 12),
                     ),
                     const SizedBox(height: 10),
-                    _ListingSummary(product: widget.product),
+                    _TargetSummary(subject: widget.subject),
                   ],
                   const SizedBox(height: 12),
                   Expanded(
@@ -266,9 +339,11 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
                                 ? _Blocked(message: _liveError ?? '', reportNo: _duplicate?.reportNo)
                                 : (_step == 0
                                     ? _StepReasons(
+                                        reasons: widget.subject.reasons,
                                         selected: _reason,
+                                        target: widget.subject.kind,
                                         onSelect: (r) {
-                                          TGAnalytics.track('report_reason_selected', {'reason': r.name});
+                                          TGAnalytics.track('report_reason_selected', {'reason': r.name, 'target': widget.subject.kind.name});
                                           setState(() => _reason = r);
                                         },
                                       )
@@ -377,7 +452,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
           decoration: InputDecoration(
             hintText: context.t('ui_report_details_hint'),
             counterText: '$count / 1000',
-            errorText: _reason == TGReportReason.other && count > 0 && count < 20 ? context.t('ui_report_details_hint') : null,
+            errorText: (!_isListing || _reason == TGReportReason.other) && count > 0 && count < 20 ? context.t('ui_report_details_hint') : null,
           ),
         ),
         AnimatedSize(
@@ -387,11 +462,11 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_reason == TGReportReason.duplicate) ...[
+              if (_isListing && _reason == TGReportReason.duplicate) ...[
                 const SizedBox(height: 10),
                 TextField(controller: _otherRef, decoration: InputDecoration(labelText: context.t('ui_other_listing_ref'))),
               ],
-              if (_reason == TGReportReason.copied) ...[
+              if (_isListing && _reason == TGReportReason.copied) ...[
                 const SizedBox(height: 10),
                 TextField(key: const Key('report-original'), controller: _originalRef, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: context.t('ui_original_listing_ref'))),
                 CheckboxListTile(
@@ -402,7 +477,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
                   title: Text(context.t('ui_original_owner')),
                 ),
               ],
-              if (_reason == TGReportReason.misleading) ...[
+              if (_isListing && _reason == TGReportReason.misleading) ...[
                 const SizedBox(height: 10),
                 DropdownButtonFormField<TGMisleadingPart>(
                   key: const Key('report-misleading-part'),
@@ -417,7 +492,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
                   onChanged: (v) => setState(() => _part = v),
                 ),
               ],
-              if (_reason == TGReportReason.fraud) ...[
+              if (_isListing && _reason == TGReportReason.fraud) ...[
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
@@ -528,49 +603,77 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
   }
 }
 
-class _ListingSummary extends StatelessWidget {
-  const _ListingSummary({required this.product});
-  final TGProduct product;
+class _TargetSummary extends StatelessWidget {
+  const _TargetSummary({required this.subject});
+  final TGReportSubject subject;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    if (subject.kind == TGReportTarget.listing && subject.product != null) {
+      final product = subject.product!;
+      return Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 56,
+              height: 42,
+              child: product.imageUrl.isEmpty
+                  ? const ColoredBox(color: TGColors.border)
+                  : Image.asset(product.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.border)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(product.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                Text(product.price == null ? context.t('ui_price_on_request') : '${product.price} PLN', style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800, fontSize: 12)),
+              ],
+            ),
+          ),
+          if (product.listingNo != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), border: Border.all(color: TGColors.border)),
+              child: Text(context.t('ui_listing_no', {'n': product.listingNo!}), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+            ),
+        ],
+      );
+    }
+    if (subject.kind == TGReportTarget.seller && subject.seller != null) {
+      return Text(subject.seller!.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13));
+    }
+    final review = subject.review;
+    if (review == null) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            width: 56,
-            height: 42,
-            child: product.imageUrl.isEmpty
-                ? const ColoredBox(color: TGColors.border)
-                : Image.asset(product.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.border)),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(product.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-              Text(product.price == null ? context.t('ui_price_on_request') : '${product.price} PLN', style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800, fontSize: 12)),
-            ],
-          ),
-        ),
-        if (product.listingNo != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), border: Border.all(color: TGColors.border)),
-            child: Text(context.t('ui_listing_no', {'n': product.listingNo!}), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-          ),
+        Text(review.authorName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+        Text(review.text, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
       ],
     );
   }
 }
 
+String _reasonTitle(BuildContext context, TGReportReason reason, TGReportTarget target) {
+  if (reason == TGReportReason.other) return context.t('ui_other');
+  if (target == TGReportTarget.seller && reason == TGReportReason.fraud) {
+    return context.t('ui_rr_seller_fraud');
+  }
+  if (target == TGReportTarget.seller && reason == TGReportReason.prohibited) {
+    return context.t('ui_rr_prohibited_activity');
+  }
+  return context.t('ui_rr_${reason.name}');
+}
+
 class _StepReasons extends StatelessWidget {
-  const _StepReasons({required this.selected, required this.onSelect});
+  const _StepReasons({required this.reasons, required this.selected, required this.onSelect, required this.target});
+  final List<TGReportReason> reasons;
   final TGReportReason? selected;
   final ValueChanged<TGReportReason> onSelect;
+  final TGReportTarget target;
 
   @override
   Widget build(BuildContext context) {
@@ -583,7 +686,7 @@ class _StepReasons extends StatelessWidget {
         children: [
           Text(context.t('ui_whats_wrong'), style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
-          for (final reason in _kReasons)
+          for (final reason in reasons)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Semantics(
@@ -609,7 +712,7 @@ class _StepReasons extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                reason == TGReportReason.other ? context.t('ui_other') : context.t('ui_rr_${reason.name}'),
+                                _reasonTitle(context, reason, target),
                                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                               ),
                               Text(

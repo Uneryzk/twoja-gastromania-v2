@@ -28,7 +28,74 @@ enum TGEntitlementScenario {
   storeSubscriber,
 }
 
-enum TGUserRole { visitor, seller, storeSeller, moderator, admin }
+enum TGUserRole { visitor, seller, storeSeller, moderator, admin, buyer }
+
+class StoreOwnerDevPick {
+  const StoreOwnerDevPick({
+    required this.sellerKey,
+    required this.label,
+    required this.plan,
+    required this.planLabel,
+    this.promotedUsed = 0,
+  });
+
+  final String sellerKey;
+  final String label;
+  final TGStorePlanKind plan;
+  final String planLabel;
+  final int promotedUsed;
+
+  static const technica = StoreOwnerDevPick(
+    sellerKey: 'seller_technica',
+    label: 'Store owner (Technica)',
+    plan: TGStorePlanKind.basic,
+    planLabel: 'Basic Store',
+  );
+
+  static const gastroPro = StoreOwnerDevPick(
+    sellerKey: 'seller_gastropl',
+    label: 'Store owner (Gastrosilesia.pl, Pro)',
+    plan: TGStorePlanKind.pro,
+    planLabel: 'Pro Store',
+    promotedUsed: 2,
+  );
+
+  static const all = [technica, gastroPro];
+}
+
+class BuyerDevPick {
+  const BuyerDevPick({
+    required this.userId,
+    required this.label,
+    required this.displayName,
+    required this.phoneVerified,
+    required this.initials,
+  });
+
+  final String userId;
+  final String label;
+  final String displayName;
+  final bool phoneVerified;
+  final String initials;
+
+  static const marek = BuyerDevPick(
+    userId: 'buyer_marek',
+    label: 'Buyer (Marek K., verified phone)',
+    displayName: 'Marek K.',
+    phoneVerified: true,
+    initials: 'MK',
+  );
+
+  static const anna = BuyerDevPick(
+    userId: 'buyer_anna',
+    label: 'Buyer (Anna W., phone not verified)',
+    displayName: 'Anna W.',
+    phoneVerified: false,
+    initials: 'AW',
+  );
+
+  static const all = [marek, anna];
+}
 
 extension TGUserRoleLabel on TGUserRole {
   String get label => switch (this) {
@@ -37,6 +104,7 @@ extension TGUserRoleLabel on TGUserRole {
         TGUserRole.storeSeller => 'Store seller',
         TGUserRole.moderator => 'Moderator',
         TGUserRole.admin => 'Admin',
+        TGUserRole.buyer => 'Buyer',
       };
 
   bool get isStaff => this == TGUserRole.moderator || this == TGUserRole.admin;
@@ -59,6 +127,8 @@ class FakeAuthState extends ChangeNotifier {
 
   String userId = mockOwnerId;
   String userInitials = 'TG';
+  String displayName = 'TG Demo';
+  bool phoneVerified = false;
   TGUserRole role = TGUserRole.seller;
   TGSellerType sellerType = TGSellerType.private;
   int freeSlotsUsed = 0;
@@ -67,6 +137,9 @@ class FakeAuthState extends ChangeNotifier {
   String storePlanLabel = 'Basic Store';
   int storeActiveUsed = 11;
   int storeActiveLimit = 15;
+  int storePromotedUsed = 0;
+  int storePromotedLimit = 3;
+  DateTime storeRenewsOn = DateTime(2026, 10, 24);
 
   List<TGProduct> ownedListings = const [];
   TGCheckoutCart? checkoutCart;
@@ -141,11 +214,15 @@ class FakeAuthState extends ChangeNotifier {
         _isLoggedIn = false;
         userId = 'visitor';
         userInitials = 'V';
+        displayName = 'Visitor';
+        phoneVerified = false;
         break;
       case TGUserRole.seller:
         _isLoggedIn = true;
         userId = mockOwnerId;
         userInitials = 'TG';
+        displayName = 'TG Demo';
+        phoneVerified = false;
         if (sellerType == TGSellerType.store && storePlan == null) {
           sellerType = TGSellerType.private;
         }
@@ -154,16 +231,31 @@ class FakeAuthState extends ChangeNotifier {
         _isLoggedIn = true;
         setScenario(TGEntitlementScenario.storeSubscriber, notify: false);
         role = TGUserRole.storeSeller;
+        displayName = 'Gastrosilesia';
+        phoneVerified = true;
         break;
       case TGUserRole.moderator:
         _isLoggedIn = true;
         userId = 'staff_moderator';
         userInitials = 'MD';
+        displayName = 'Moderator';
+        phoneVerified = true;
         break;
       case TGUserRole.admin:
         _isLoggedIn = true;
         userId = 'staff_admin';
         userInitials = 'AD';
+        displayName = 'Admin';
+        phoneVerified = true;
+        break;
+      case TGUserRole.buyer:
+        _isLoggedIn = true;
+        userId = BuyerDevPick.marek.userId;
+        userInitials = BuyerDevPick.marek.initials;
+        displayName = BuyerDevPick.marek.displayName;
+        phoneVerified = BuyerDevPick.marek.phoneVerified;
+        ownedListings = const [];
+        storePlan = null;
         break;
     }
     if (notify) notifyListeners();
@@ -288,6 +380,32 @@ class FakeAuthState extends ChangeNotifier {
     userInitials = initials;
     role = TGUserRole.storeSeller;
     sellerType = TGSellerType.store;
+    notifyListeners();
+  }
+
+  /// Mock auth: browse as a buyer with (or without) a verified phone.
+  void actAsBuyer(BuyerDevPick pick) {
+    _isLoggedIn = true;
+    role = TGUserRole.buyer;
+    userId = pick.userId;
+    userInitials = pick.initials;
+    displayName = pick.displayName;
+    phoneVerified = pick.phoneVerified;
+    ownedListings = const [];
+    storePlan = null;
+    notifyListeners();
+  }
+
+  /// Mock auth: open `/seller/:id` as the store owner with plan chrome.
+  void actAsStoreOwner(StoreOwnerDevPick pick) {
+    actAsSeller(pick.sellerKey, initials: 'SO');
+    storePlan = pick.plan;
+    storePlanLabel = pick.planLabel;
+    storeActiveUsed = 11;
+    storeActiveLimit = 15;
+    storePromotedUsed = pick.promotedUsed;
+    storePromotedLimit = 3;
+    storeRenewsOn = DateTime(2026, 10, 24);
     notifyListeners();
   }
 

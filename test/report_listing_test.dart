@@ -17,7 +17,7 @@ void main() {
 
   test('seed has 8 public reports, 2 under-review seller listings (one hidden) and 1 removed', () {
     final mod = ModerationService.instance..ensureSeeded();
-    expect(mod.reports.where((r) => r.reportNo.startsWith('R-2026-')), hasLength(8));
+    expect(mod.reports.where((r) => r.reportNo.startsWith('R-2026-')), hasLength(15));
     expect(mod.sellerListings.where((p) => p.status.toString().contains('underReview')), hasLength(2));
     expect(mod.sellerListings.where((p) => p.isHidden && p.status.toString().contains('underReview')), hasLength(1));
     expect(mod.sellerListings.where((p) => p.status.toString().contains('removed')), hasLength(1));

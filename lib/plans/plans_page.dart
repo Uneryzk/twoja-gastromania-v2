@@ -35,9 +35,9 @@ class _PlansPageState extends State<PlansPage> {
   }
 
   static const _plans = [
-    (id: 'basic', name: 'Basic Store', monthly: 199, featured: false, features: ['15 active listings', 'Verified Seller badge', 'Store page']),
-    (id: 'pro', name: 'Pro Store', monthly: 499, featured: true, features: ['50 active listings', '3 featured listings', 'Customer quote tools']),
-    (id: 'enterprise', name: 'Enterprise Store', monthly: 899, featured: false, features: ['Unlimited listings', 'Banner ad slot', 'All Special Order leads']),
+    (id: 'basic', nameKey: 'ui_plan_basic_store', chooseKey: 'ui_choose_basic', monthly: 199, featured: false, featureKeys: ['ui_feat_15_listings', 'ui_feat_verified_badge', 'ui_feat_store_page']),
+    (id: 'pro', nameKey: 'ui_plan_pro_store', chooseKey: 'ui_choose_pro', monthly: 499, featured: true, featureKeys: ['ui_feat_50_listings', 'ui_feat_3_featured', 'ui_feat_quote_tools']),
+    (id: 'enterprise', nameKey: 'ui_plan_enterprise_store', chooseKey: 'ui_choose_enterprise', monthly: 899, featured: false, featureKeys: ['ui_feat_unlimited', 'ui_feat_banner', 'ui_feat_special_order']),
   ];
 
   @override
@@ -61,21 +61,21 @@ class _PlansPageState extends State<PlansPage> {
                       child: TGBreadcrumb(
                         items: [
                           TGBreadcrumbItem(label: context.t('ui_home'), onTap: () => TGNav.home(context)),
-                          const TGBreadcrumbItem(label: 'Store plans'),
+                          TGBreadcrumbItem(label: context.t('ui_store_plans')),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text('Store plans', style: theme.headlineMedium.override(fontWeight: FontWeight.w900)),
+                    Text(context.t('ui_store_plans'), style: theme.headlineMedium.override(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 8),
                     Text(context.t('ui_invoice_at_checkout'), style: theme.bodySmall.override(color: theme.secondaryText)),
                     const SizedBox(height: 16),
                     WizardSegmented(
                       value: _period,
-                      options: const [
-                        (TGBillingPeriod.monthly, 'Monthly'),
-                        (TGBillingPeriod.sixMonths, '6 months −10%'),
-                        (TGBillingPeriod.yearly, 'Yearly 2 months free'),
+                      options: [
+                        (TGBillingPeriod.monthly, context.t('ui_billing_monthly')),
+                        (TGBillingPeriod.sixMonths, context.t('ui_billing_six_months')),
+                        (TGBillingPeriod.yearly, context.t('ui_billing_yearly')),
                       ],
                       onChanged: (v) {
                         setState(() => _period = v);
@@ -120,7 +120,7 @@ class _PlansPageState extends State<PlansPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Auto-renewal is available with card only. With BLIK or Przelewy24 we\'ll remind you before your plan ends.',
+                      context.t('ui_auto_renew_note'),
                       style: theme.bodySmall.override(color: theme.secondaryText),
                       textAlign: TextAlign.center,
                     ),
@@ -145,7 +145,7 @@ class _PlansPageState extends State<PlansPage> {
 
 class _PlanCard extends StatelessWidget {
   const _PlanCard({required this.plan, required this.period, required this.onChoose});
-  final ({String id, String name, int monthly, bool featured, List<String> features}) plan;
+  final ({String id, String nameKey, String chooseKey, int monthly, bool featured, List<String> featureKeys}) plan;
   final TGBillingPeriod period;
   final VoidCallback onChoose;
 
@@ -168,9 +168,9 @@ class _PlanCard extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(color: TGColors.accent, borderRadius: BorderRadius.circular(99)),
-              child: const Text('Most popular', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
+              child: Text(context.t('ui_most_popular'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
             ),
-          Text(plan.name, style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+          Text(context.t(plan.nameKey), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: price),
@@ -180,23 +180,23 @@ class _PlanCard extends StatelessWidget {
           if (period != TGBillingPeriod.monthly)
             Text(formatMoneyPln(plan.monthly), style: theme.bodySmall.override(color: theme.secondaryText, decoration: TextDecoration.lineThrough)),
           if (eq != null)
-            Text('${formatMoneyPln(eq, forceCents: true)} / month', style: theme.bodySmall.override(color: theme.secondaryText)),
+            Text(context.t('ui_per_month_eq', {'price': formatMoneyPln(eq, forceCents: true)}), style: theme.bodySmall.override(color: theme.secondaryText)),
           const SizedBox(height: 12),
-          for (final f in plan.features)
+          for (final f in plan.featureKeys)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Row(
                 children: [
                   Icon(Icons.check, size: 16, color: theme.primary),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(f)),
+                  Expanded(child: Text(context.t(f))),
                 ],
               ),
             ),
           const SizedBox(height: 12),
           TGButton(
             onPressed: onChoose,
-            label: 'Choose ${plan.name.split(' ').first}',
+            label: context.t(plan.chooseKey),
             height: 48,
             borderRadius: BorderRadius.circular(TGRadius.pill),
             variant: plan.featured ? TGButtonVariant.primary : TGButtonVariant.outline,

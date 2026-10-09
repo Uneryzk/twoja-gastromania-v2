@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 
+enum TGReportTarget { listing, seller, review }
+
 enum TGReportReason {
   fraud,
   prohibited,
@@ -12,6 +14,12 @@ enum TGReportReason {
   misleading,
   fakePhotos,
   offensive,
+  fakeStore,
+  fakeReviews,
+  harassment,
+  fakeReview,
+  sellerOrCompetitor,
+  personalData,
   other,
 }
 
@@ -44,6 +52,7 @@ enum TGModerationActionType {
   undo,
   assign,
   appealDecision,
+  other,
 }
 
 enum TGRemoveReason { duplicate, stolenContent, fraud, prohibited, misleading, other }
@@ -60,6 +69,9 @@ class TGModerationReport {
     required this.reporterId,
     required this.text,
     required this.createdAt,
+    this.target = TGReportTarget.listing,
+    this.sellerId,
+    this.reviewId,
     this.reporterName,
     this.evidenceUrls = const [],
     this.status = TGReportStatus.new_,
@@ -73,6 +85,9 @@ class TGModerationReport {
 
   final String reportNo;
   final String listingNo;
+  final TGReportTarget target;
+  final String? sellerId;
+  final String? reviewId;
   final TGReportReason reason;
   final String reporterEmail;
   final String reporterId;
@@ -91,6 +106,9 @@ class TGModerationReport {
   TGModerationReport copyWith({TGReportStatus? status}) => TGModerationReport(
         reportNo: reportNo,
         listingNo: listingNo,
+        target: target,
+        sellerId: sellerId,
+        reviewId: reviewId,
         reason: reason,
         reporterEmail: reporterEmail,
         reporterId: reporterId,
@@ -383,6 +401,7 @@ class TGQueueCase {
   TGModerationReport get primary => reports.first;
   int get reportCount => reports.length;
   Set<String> get reporterIds => reports.map((r) => r.reporterId).toSet();
+  TGReportTarget get target => reports.isEmpty ? TGReportTarget.listing : reports.first.target;
 
   Duration age([DateTime? now]) => (now ?? DateTime.now()).difference(firstReportedAt);
 
@@ -414,6 +433,12 @@ extension TGReportReasonLabel on TGReportReason {
         TGReportReason.misleading => 'Misleading',
         TGReportReason.fakePhotos => 'Fake photos',
         TGReportReason.offensive => 'Offensive',
+        TGReportReason.fakeStore => 'Fake store',
+        TGReportReason.fakeReviews => 'Fake reviews',
+        TGReportReason.harassment => 'Harassment',
+        TGReportReason.fakeReview => 'Fake review',
+        TGReportReason.sellerOrCompetitor => 'Seller or competitor',
+        TGReportReason.personalData => 'Personal data',
         TGReportReason.other => 'Other',
       };
 

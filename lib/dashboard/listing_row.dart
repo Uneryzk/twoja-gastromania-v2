@@ -9,6 +9,7 @@ import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/dashboard/seller_moderation_sheets.dart';
+import 'package:twoja_gastromania/deals/sold_flow_sheet.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 
@@ -117,6 +118,11 @@ class ListingRow extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(context.t('ui_still_for_sale'), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+          TextButton(
+            key: Key('dashboard-did-you-sell-${product.id}'),
+            onPressed: () => showSoldFlow(context, product, mode: SoldFlowMode.markSold),
+            child: Text(context.t('ui_did_you_sell')),
+          ),
           TGButton(
             key: Key('dashboard-keep-live-${product.id}'),
             onPressed: () => ModerationService.instance.keepListingLive(product.listingNo ?? product.id, actorId: auth.userId),
@@ -127,7 +133,7 @@ class ListingRow extends StatelessWidget {
           ),
           TGButton(
             key: Key('dashboard-mark-sold-${product.id}'),
-            onPressed: () => ModerationService.instance.markListingSold(product.listingNo ?? product.id, actorId: auth.userId),
+            onPressed: () => showSoldFlow(context, product, mode: SoldFlowMode.markSold),
             label: context.t('ui_mark_sold'),
             height: 40,
             borderRadius: BorderRadius.circular(TGRadius.pill),
@@ -166,6 +172,20 @@ class ListingRow extends StatelessWidget {
         ],
       );
     }
+    final more = product.status == TGListingStatus.active || product.status == TGListingStatus.expired
+        ? PopupMenuButton<String>(
+            key: Key('listing-more-${product.id}'),
+            tooltip: context.t('ui_more'),
+            onSelected: (v) {
+              if (v == 'sold') showSoldFlow(context, product, mode: SoldFlowMode.markSold);
+              if (v == 'remove') showSoldFlow(context, product, mode: SoldFlowMode.removeListing);
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'sold', child: Text(context.t('ui_mark_sold'))),
+              PopupMenuItem(value: 'remove', child: Text(context.t('ui_remove_listing'))),
+            ],
+          )
+        : null;
     final narrow = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     if (narrow) {
       return Padding(
@@ -197,7 +217,13 @@ class ListingRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (action != null) ...[const SizedBox(height: 10), action],
+              if (action != null || more != null)
+                Row(
+                  children: [
+                    if (action != null) Expanded(child: action) else const Spacer(),
+                    if (more != null) more,
+                  ],
+                ),
             ],
           ),
           ),
@@ -213,6 +239,7 @@ class ListingRow extends StatelessWidget {
           children: [
             Expanded(child: info),
             if (action != null) ...[const SizedBox(width: 8), action],
+            if (more != null) more,
           ],
         ),
       ),

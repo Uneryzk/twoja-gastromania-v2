@@ -165,6 +165,8 @@ class TGProduct {
     this.listingNo,
     this.isHidden = false,
     this.extra = const {},
+    this.soldReason,
+    this.soldDealId,
   });
 
   final String id;
@@ -205,6 +207,10 @@ class TGProduct {
   final bool isHidden;
   /// Extra specification rows shown on the PDP table (brand, kW, mm, …).
   final Map<String, String> extra;
+  /// Why the listing left the public catalogue (`sold` / `rented` / `no_longer_selling` / `other`).
+  final String? soldReason;
+  /// Linked deal id when the owner marked a platform buyer.
+  final String? soldDealId;
 
   bool get isActive => status == TGListingStatus.active;
 
@@ -280,6 +286,8 @@ class TGProduct {
     String? listingNo,
     bool? isHidden,
     Map<String, String>? extra,
+    String? soldReason,
+    String? soldDealId,
   }) =>
       TGProduct(
         id: id ?? this.id,
@@ -316,6 +324,8 @@ class TGProduct {
         listingNo: listingNo ?? this.listingNo,
         isHidden: isHidden ?? this.isHidden,
         extra: extra ?? this.extra,
+        soldReason: soldReason ?? this.soldReason,
+        soldDealId: soldDealId ?? this.soldDealId,
       );
 
   Map<String, dynamic> toJson() => {
@@ -353,6 +363,8 @@ class TGProduct {
         'listingNo': listingNo,
         'isHidden': isHidden,
         'extra': extra,
+        'soldReason': soldReason,
+        'soldDealId': soldDealId,
       };
 
   static TGProduct fromJson(Map<String, dynamic> json) {
@@ -405,6 +417,8 @@ class TGProduct {
       listingNo: json['listingNo']?.toString(),
       isHidden: json['isHidden'] == true,
       extra: _stringMap(json['extra']),
+      soldReason: json['soldReason']?.toString(),
+      soldDealId: json['soldDealId']?.toString(),
     );
   }
 

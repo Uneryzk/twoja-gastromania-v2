@@ -6,7 +6,11 @@ import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_review.dart';
+import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/review_service.dart';
+import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 
 class TGPendingRemove {
   TGPendingRemove({
@@ -172,6 +176,9 @@ class ModerationService extends ChangeNotifier {
     final reasons = listingReports.map((r) => r.reason).toSet();
     if (reasons.contains(TGReportReason.fraud) ||
         reasons.contains(TGReportReason.prohibited) ||
+        reasons.contains(TGReportReason.fakeStore) ||
+        reasons.contains(TGReportReason.fakeReview) ||
+        reasons.contains(TGReportReason.harassment) ||
         recentReporters.length >= 3 ||
         promoted) {
       return TGModerationPriority.high;
@@ -303,9 +310,78 @@ class ModerationService extends ChangeNotifier {
     );
     _audit(actorId: actorId, actorRole: actorRole, action: TGModerationActionType.dismiss, listingNo: listingNo, reason: note, summary: 'Dismissed — no violation');
     _event(listingNo, 'Dismissed (no violation)', mail.subject);
-    TGAnalytics.track('admin_action', {'type': 'dismiss', 'listingNo': listingNo});
+    TGAnalytics.track('admin_action', {'type': 'dismiss', 'listingNo': listingNo, 'target': _targetOf(listingNo).name});
     TGAnalytics.track('admin_template_sent', {'template': 'reporter_no_violation', 'listingNo': listingNo});
     notifyListeners();
+  }
+
+  TGReportTarget _targetOf(String listingNo) {
+    if (listingNo.startsWith('s:')) return TGReportTarget.seller;
+    if (listingNo.startsWith('r:')) return TGReportTarget.review;
+    return cases[listingNo]?.target ?? TGReportTarget.listing;
+  }
+
+  Future<void> hideReview({
+    required String reviewId,
+    required String actorId,
+    required String actorRole,
+  }) async {
+    final key = caseKeyFor(TGReportTarget.review, reviewId);
+    TGReviewService.instance.setStatus(reviewId, TGReviewStatus.underReview);
+    _resolve(key, TGReportStatus.inReview);
+    final review = TGReviewService.instance.byId(reviewId);
+    _enqueue(
+      templateId: 'hide_review',
+      lang: 'en',
+      to: review?.authorEmail ?? 'author@example.com',
+      vars: {'listingNo': reviewId, 'seller': review?.authorName ?? 'reviewer', 'to': review?.authorEmail ?? 'author@example.com'},
+      sendNow: true,
+    );
+    _audit(actorId: actorId, actorRole: actorRole, action: TGModerationActionType.hide, listingNo: key, summary: 'Review hidden temporarily');
+    _event(key, 'Review hidden');
+    TGAnalytics.track('admin_action', {'type': 'hide', 'reviewId': reviewId, 'target': 'review'});
+    notifyListeners();
+  }
+
+  Future<void> removeReview({
+    required String reviewId,
+    required String actorId,
+    required String actorRole,
+    required String reason,
+    String description = '',
+  }) async {
+    final key = caseKeyFor(TGReportTarget.review, reviewId);
+    TGReviewService.instance.setStatus(reviewId, TGReviewStatus.removed, recordUndo: true);
+    _resolve(key, TGReportStatus.resolvedRemoved);
+    final review = TGReviewService.instance.byId(reviewId);
+    _enqueue(
+      templateId: 'remove_review',
+      lang: 'en',
+      to: review?.authorEmail ?? 'author@example.com',
+      vars: {
+        'listingNo': reviewId,
+        'reason': reason,
+        'description': description,
+        'seller': review?.authorName ?? 'reviewer',
+        'to': review?.authorEmail ?? 'author@example.com',
+      },
+      sendNow: true,
+    );
+    _audit(actorId: actorId, actorRole: actorRole, action: TGModerationActionType.remove, listingNo: key, reason: reason, summary: 'Review removed');
+    _event(key, 'Review removed', reason);
+    TGAnalytics.track('admin_action', {'type': 'remove', 'reviewId': reviewId, 'target': 'review', 'reason': reason});
+    notifyListeners();
+  }
+
+  bool undoRemoveReview(String reviewId, {required String actorId, required String actorRole}) {
+    final ok = TGReviewService.instance.undoStatus(reviewId);
+    if (!ok) return false;
+    final key = caseKeyFor(TGReportTarget.review, reviewId);
+    _resolve(key, TGReportStatus.inReview);
+    _audit(actorId: actorId, actorRole: actorRole, action: TGModerationActionType.undo, listingNo: key, summary: 'Undo review removal');
+    TGAnalytics.track('admin_action', {'type': 'undo', 'reviewId': reviewId, 'target': 'review'});
+    notifyListeners();
+    return true;
   }
 
   Future<void> requestInfo({
@@ -342,7 +418,7 @@ class ModerationService extends ChangeNotifier {
       summary: 'Requested more information ($days days)',
     );
     _event(listingNo, 'Requested information ($days days)', mail.subject);
-    TGAnalytics.track('admin_action', {'type': 'request_info', 'listingNo': listingNo, 'days': days, 'hide': hideWhileWaiting});
+    TGAnalytics.track('admin_action', {'type': 'request_info', 'listingNo': listingNo, 'days': days, 'hide': hideWhileWaiting, 'target': _targetOf(listingNo).name});
     TGAnalytics.track('admin_template_sent', {'template': 'request_info', 'listingNo': listingNo});
     notifyListeners();
   }
@@ -362,7 +438,7 @@ class ModerationService extends ChangeNotifier {
     final mail = _enqueue(templateId: 'hide_notice', lang: 'en', to: _sellerEmail(listingNo), vars: _vars(listingNo), sendNow: true);
     _audit(actorId: actorId, actorRole: actorRole, action: TGModerationActionType.hide, listingNo: listingNo, summary: 'Hidden temporarily');
     _event(listingNo, 'Hidden temporarily', mail.subject);
-    TGAnalytics.track('admin_action', {'type': 'hide', 'listingNo': listingNo});
+    TGAnalytics.track('admin_action', {'type': 'hide', 'listingNo': listingNo, 'target': _targetOf(listingNo).name});
     notifyListeners();
   }
 
@@ -429,7 +505,7 @@ class ModerationService extends ChangeNotifier {
       sc.removalRule ??= reason.label;
       sc.removalExplanation ??= description;
     }
-    TGAnalytics.track('admin_action', {'type': 'remove', 'listingNo': listingNo, 'reason': reason.name});
+    TGAnalytics.track('admin_action', {'type': 'remove', 'listingNo': listingNo, 'reason': reason.name, 'target': _targetOf(listingNo).name});
     notifyListeners();
   }
 
@@ -504,7 +580,7 @@ class ModerationService extends ChangeNotifier {
     final type = seller ? TGModerationActionType.contactSeller : TGModerationActionType.contactReporter;
     _audit(actorId: actorId, actorRole: actorRole, action: type, listingNo: listingNo, summary: seller ? 'Contacted seller' : 'Contacted reporter');
     _event(listingNo, seller ? 'Seller contacted' : 'Reporter contacted', subject);
-    TGAnalytics.track('admin_action', {'type': seller ? 'contact_seller' : 'contact_reporter', 'listingNo': listingNo});
+    TGAnalytics.track('admin_action', {'type': seller ? 'contact_seller' : 'contact_reporter', 'listingNo': listingNo, 'target': _targetOf(listingNo).name});
     TGAnalytics.track('admin_template_sent', {'template': seller ? 'contact_seller' : 'contact_reporter', 'listingNo': listingNo});
     notifyListeners();
   }
@@ -529,6 +605,10 @@ class ModerationService extends ChangeNotifier {
           return x.copyWith(isHidden: true, status: TGListingStatus.underReview);
         });
       }
+      final store = TGSellerProfileService.instance.bySellerKey(sellerId);
+      if (store != null) {
+        TGSellerProfileService.instance.patch(store.publicId, (p) => p.copyWith(status: TGStoreStatus.suspended));
+      }
     }
     _enqueue(
       templateId: suspend ? 'suspend_notice' : 'warn_notice',
@@ -545,7 +625,7 @@ class ModerationService extends ChangeNotifier {
       summary: suspend ? 'Account suspended' : 'Account warned',
     );
     if (listingNo.isNotEmpty) _event(listingNo, suspend ? 'Seller account suspended' : 'Seller warned');
-    TGAnalytics.track('admin_action', {'type': suspend ? 'suspend' : 'warn', 'sellerId': sellerId});
+    TGAnalytics.track('admin_action', {'type': suspend ? 'suspend' : 'warn', 'sellerId': sellerId, 'target': 'seller'});
     notifyListeners();
   }
 
@@ -735,6 +815,12 @@ class ModerationService extends ChangeNotifier {
     return sellerCases[listingNo];
   }
 
+  static String caseKeyFor(TGReportTarget target, String id) => switch (target) {
+        TGReportTarget.listing => id,
+        TGReportTarget.seller => 's:$id',
+        TGReportTarget.review => 'r:$id',
+      };
+
   TGPublicReportResult submitListingReport({
     required TGProduct product,
     required TGReportReason reason,
@@ -748,19 +834,58 @@ class ModerationService extends ChangeNotifier {
     TGMisleadingPart? misleadingPart,
     List<TGFraudSignal> fraudSignals = const [],
     List<String> evidenceUrls = const [],
+  }) =>
+      submitReport(
+        target: TGReportTarget.listing,
+        targetId: product.listingNo ?? product.id,
+        reason: reason,
+        email: email,
+        reporterId: reporterId,
+        text: text,
+        name: name,
+        otherListingRef: otherListingRef,
+        originalListingRef: originalListingRef,
+        isOriginalOwner: isOriginalOwner,
+        misleadingPart: misleadingPart,
+        fraudSignals: fraudSignals,
+        evidenceUrls: evidenceUrls,
+        product: product,
+        sellerId: product.seller.id,
+      );
+
+  TGPublicReportResult submitReport({
+    required TGReportTarget target,
+    required String targetId,
+    required TGReportReason reason,
+    required String email,
+    required String reporterId,
+    String text = '',
+    String? name,
+    String? sellerId,
+    String? reviewId,
+    String? otherListingRef,
+    String? originalListingRef,
+    bool isOriginalOwner = false,
+    TGMisleadingPart? misleadingPart,
+    List<TGFraudSignal> fraudSignals = const [],
+    List<String> evidenceUrls = const [],
+    TGProduct? product,
   }) {
     ensureSeeded();
-    final listingNo = product.listingNo ?? product.id;
+    final listingNo = caseKeyFor(target, targetId);
     final id = reporterId.startsWith('guest') ? 'guest:${email.trim().toLowerCase()}' : reporterId;
-    final existing = reports.where((r) => r.listingNo == listingNo && (r.reporterId == id || r.reporterEmail.toLowerCase() == email.trim().toLowerCase())).firstOrNull;
+    final existing = reports
+        .where((r) =>
+            r.listingNo == listingNo && (r.reporterId == id || r.reporterEmail.toLowerCase() == email.trim().toLowerCase()))
+        .firstOrNull;
     if (existing != null) {
-      TGAnalytics.track('report_duplicate_attempt', {'listingNo': listingNo, 'reportNo': existing.reportNo});
+      TGAnalytics.track('report_duplicate_attempt', {'listingNo': listingNo, 'reportNo': existing.reportNo, 'target': target.name});
       return TGPublicReportResult(duplicateOf: existing);
     }
     final hourAgo = now.subtract(const Duration(hours: 1));
     final recent = reports.where((r) => r.reporterId == id && r.createdAt.isAfter(hourAgo)).length;
     if (recent >= 5) {
-      TGAnalytics.track('report_duplicate_attempt', {'listingNo': listingNo, 'reason': 'rate_limit'});
+      TGAnalytics.track('report_duplicate_attempt', {'listingNo': listingNo, 'reason': 'rate_limit', 'target': target.name});
       return const TGPublicReportResult(rateLimited: true);
     }
     final no = 'R-2026-${_publicSeq.toString().padLeft(6, '0')}';
@@ -768,6 +893,9 @@ class ModerationService extends ChangeNotifier {
     final report = TGModerationReport(
       reportNo: no,
       listingNo: listingNo,
+      target: target,
+      sellerId: sellerId,
+      reviewId: reviewId ?? (target == TGReportTarget.review ? targetId : null),
       reason: reason,
       reporterEmail: email,
       reporterId: id,
@@ -783,7 +911,7 @@ class ModerationService extends ChangeNotifier {
       confirmed: true,
     );
     reports.add(report);
-    if (reason == TGReportReason.sold) {
+    if (target == TGReportTarget.listing && reason == TGReportReason.sold && product != null) {
       _openSoldHold(product: product, reporterId: id);
     }
     _rebuildCases(promoted: {'10482137'});
@@ -794,9 +922,14 @@ class ModerationService extends ChangeNotifier {
       listingNo: report.listingNo,
       reportNo: no,
       summary: 'Public report $no (${reason.label})',
+      details: {'target': target.name},
     );
-    TGAnalytics.track('report_submit', {'listingNo': report.listingNo, 'reason': reason.name, 'reportNo': no});
-    TGAnalytics.track('report_listing_submit', {'listingNo': report.listingNo, 'reason': reason.name, 'reportNo': no});
+    TGAnalytics.track('report_submit', {'listingNo': report.listingNo, 'reason': reason.name, 'reportNo': no, 'target': target.name});
+    if (target == TGReportTarget.listing) {
+      TGAnalytics.track('report_listing_submit', {'listingNo': report.listingNo, 'reason': reason.name, 'reportNo': no});
+    } else if (target == TGReportTarget.review) {
+      TGAnalytics.track('review_report', {'reviewId': report.reviewId, 'reportNo': no, 'reason': reason.name});
+    }
     notifyListeners();
     return TGPublicReportResult(report: report);
   }
@@ -1005,6 +1138,42 @@ class ModerationService extends ChangeNotifier {
     add(no: 'R-2026-000407', listingNo: '20491837', reason: TGReportReason.wrongCategory, email: 'cat.g@example.com', reporterId: 'r_pub7', text: 'This belongs in refrigeration, not cooking.', ago: const Duration(hours: 7));
     add(no: 'R-2026-000408', listingNo: '21503948', reason: TGReportReason.other, email: 'other.h@example.com', reporterId: 'r_pub8', text: 'The voltage listed looks impossible for this model.', ago: const Duration(hours: 13));
 
+    void addTargeted({
+      required String no,
+      required TGReportTarget target,
+      required String targetId,
+      required TGReportReason reason,
+      required String email,
+      required String reporterId,
+      required String text,
+      required Duration ago,
+      String? sellerId,
+      String? reviewId,
+      TGReportStatus status = TGReportStatus.new_,
+    }) {
+      reports.add(TGModerationReport(
+        reportNo: no,
+        listingNo: caseKeyFor(target, targetId),
+        target: target,
+        sellerId: sellerId,
+        reviewId: reviewId,
+        reason: reason,
+        reporterEmail: email,
+        reporterId: reporterId,
+        text: text,
+        createdAt: t.subtract(ago),
+        status: status,
+      ));
+    }
+
+    addTargeted(no: 'R-2026-000409', target: TGReportTarget.seller, targetId: 'seller_technica', sellerId: 'seller_technica', reason: TGReportReason.fakeStore, email: 'watch.store@example.com', reporterId: 'r_s1', text: 'This shop copies Technica branding from another company in Katowice.', ago: const Duration(hours: 9));
+    addTargeted(no: 'R-2026-000410', target: TGReportTarget.seller, targetId: 'seller_primegastro', sellerId: 'seller_primegastro', reason: TGReportReason.fraud, email: 'buyer.s2@example.com', reporterId: 'r_s2', text: 'The store asked for a BLIK transfer before any visit to the showroom.', ago: const Duration(hours: 15));
+    addTargeted(no: 'R-2026-000411', target: TGReportTarget.seller, targetId: 'seller_ek', sellerId: 'seller_ek', reason: TGReportReason.fakeReviews, email: 'mod.watch@example.com', reporterId: 'r_s3', text: 'Several five-star reviews appeared on the same afternoon from similar names.', ago: const Duration(hours: 28));
+    addTargeted(no: 'R-2026-000412', target: TGReportTarget.review, targetId: 'rv_tech_01', sellerId: 'seller_technica', reviewId: 'rv_tech_01', reason: TGReportReason.fakeReview, email: 'seller.rival@example.com', reporterId: 'r_rv1', text: 'This reviewer never collected anything — we have no matching invoice or visit.', ago: const Duration(hours: 5));
+    addTargeted(no: 'R-2026-000413', target: TGReportTarget.review, targetId: 'rv_gs_02', sellerId: 'seller_gastropl', reviewId: 'rv_gs_02', reason: TGReportReason.sellerOrCompetitor, email: 'buyer.rv@example.com', reporterId: 'r_rv2', text: 'The wording matches the store’s own catalogue copy. Looks written in-house.', ago: const Duration(hours: 11));
+    addTargeted(no: 'R-2026-000414', target: TGReportTarget.review, targetId: 'rv_pg_01', sellerId: 'seller_primegastro', reviewId: 'rv_pg_01', reason: TGReportReason.offensive, email: 'reader.x@example.com', reporterId: 'r_rv3', text: 'The review uses abusive language about staff that should not stay public.', ago: const Duration(hours: 7));
+    addTargeted(no: 'R-2026-000415', target: TGReportTarget.review, targetId: 'rv_ek_08', sellerId: 'seller_ek', reviewId: 'rv_ek_08', reason: TGReportReason.personalData, email: 'privacy@example.com', reporterId: 'r_rv4', text: 'The text includes a private mobile number and a home address.', ago: const Duration(hours: 19));
+
     appeals.addAll([
       TGModerationAppeal(id: 'ap-01', listingNo: '16038472', sellerId: mateusz.id, createdAt: t.subtract(const Duration(days: 2)), statement: 'The listing was marked sold by mistake. Please restore.'),
       TGModerationAppeal(id: 'ap-02', listingNo: '21503948', sellerId: technica.id, createdAt: t.subtract(const Duration(days: 1)), statement: 'We renewed the unit photos and ask for a second review.'),
@@ -1130,7 +1299,7 @@ class ModerationService extends ChangeNotifier {
         status: status,
         firstReportedAt: first,
         slaDeadline: slaDeadlineFor(priority, first),
-        sellerId: kListingSellers[listingNo],
+        sellerId: list.first.sellerId ?? kListingSellers[listingNo],
       );
     });
     for (final a in appeals) {
@@ -1200,6 +1369,10 @@ List<TGEmailTemplate> _seedTemplates() {
     TGEmailTemplate(id: 'suspend_notice', name: 'Konto zawieszone', lang: 'pl', subject: 'Konto zawieszone — Twoja Gastromania', body: 'Dzień dobry {seller},\n\nKonto zostało zawieszone. Ogłoszenia są ukryte. Można złożyć odwołanie.\n\n$platform'),
     TGEmailTemplate(id: 'sold_nudge', name: 'Sold check', lang: 'en', subject: 'Is listing {listingNo} still for sale?', body: 'Hello {seller},\n\nA buyer asked whether listing {listingNo} is still for sale. Please confirm from your dashboard: keep it live, or mark it sold. We do not share who asked.\n\n$platform'),
     TGEmailTemplate(id: 'sold_nudge', name: 'Kontrola sprzedaży', lang: 'pl', subject: 'Czy ogłoszenie {listingNo} jest nadal na sprzedaż?', body: 'Dzień dobry {seller},\n\nKupujący zapytał, czy ogłoszenie {listingNo} jest nadal na sprzedaż. Potwierdź w panelu: zostaw aktywne albo oznacz jako sprzedane. Nie podajemy, kto zapytał.\n\n$platform'),
+    TGEmailTemplate(id: 'remove_review', name: 'Remove review · statement of reasons', lang: 'en', subject: 'Your review was removed', body: 'Hello {seller},\n\nYour review was removed. Reason: {reason}.\n{description}\n\n$platform'),
+    TGEmailTemplate(id: 'remove_review', name: 'Usunięcie opinii', lang: 'pl', subject: 'Twoja opinia została usunięta', body: 'Dzień dobry {seller},\n\nTwoja opinia została usunięta. Powód: {reason}.\n{description}\n\n$platform'),
+    TGEmailTemplate(id: 'hide_review', name: 'Hide review', lang: 'en', subject: 'Your review is hidden while we review a report', body: 'Hello {seller},\n\nYour review is temporarily hidden while we review a report.\n\n$platform'),
+    TGEmailTemplate(id: 'hide_review', name: 'Ukrycie opinii', lang: 'pl', subject: 'Twoja opinia jest ukryta', body: 'Dzień dobry {seller},\n\nTwoja opinia jest tymczasowo ukryta na czas weryfikacji.\n\n$platform'),
   ];
 }
 

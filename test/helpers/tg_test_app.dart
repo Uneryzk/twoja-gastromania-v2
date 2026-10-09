@@ -19,7 +19,11 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/account_identity_service.dart';
 import 'package:twoja_gastromania/tg_services/invoicing_service.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
+import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/review_service.dart';
+import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:url_launcher_platform_interface/link.dart' show LinkDelegate;
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -190,6 +194,10 @@ Future<TGApp> pumpTgApp(
   MessagingService.instance.reset();
   InvoicingService.instance.reset();
   ModerationService.instance.reset();
+  DealService.instance.reset();
+  DealModerationService.instance.reset();
+  TGSellerProfileService.instance.reset();
+  TGReviewService.instance.reset();
   AccountIdentityService.instance.reset();
   AdminLocaleState.instance.reset(to: locale.languageCode);
   final auth = FakeAuthState(isLoggedIn: signedIn);
@@ -206,6 +214,8 @@ Future<TGApp> pumpTgApp(
         ChangeNotifierProvider<FakeAuthState>.value(value: auth),
         ChangeNotifierProvider<ModerationService>.value(value: ModerationService.instance),
         ChangeNotifierProvider<AdminLocaleState>.value(value: AdminLocaleState.instance),
+        ChangeNotifierProvider<DealService>.value(value: DealService.instance),
+        ChangeNotifierProvider<DealModerationService>.value(value: DealModerationService.instance),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,

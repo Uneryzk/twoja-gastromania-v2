@@ -339,7 +339,8 @@ class _CompactListBody extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: SizedBox(
-                    width: 116,
+                    width: 128,
+                    height: 128,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [

@@ -1,11 +1,11 @@
 import 'package:emoji_flag_converter/emoji_flag_converter.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 // Also provides `intl` (DateFormat), `FFLocalizations` and `setAppLanguage`.
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_util.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/deals/notifications_page.dart';
 import 'package:twoja_gastromania/tg_components/tg_account_sheets.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_chat_dock.dart';
@@ -98,11 +98,13 @@ class TGHeader extends StatelessWidget implements PreferredSizeWidget {
     // squeezed by Flex); exactly one slot (brand on phones, search on desktop)
     // is `Expanded`, so nothing is starved and nothing overflows.
     final right = <Widget>[
+      const TGNotificationBell(),
+      const SizedBox(width: 4),
       _LanguageMenu(compact: compactRight),
       const SizedBox(width: 8),
       if (!auth.isLoggedIn)
         GestureDetector(
-          onLongPress: kDebugMode ? () => showTGDevSwitch(context, auth) : null,
+          onLongPress: () => showTGDevSwitch(context, auth),
           child: isPhone
               ? TGIconButton(icon: Icons.person, tooltip: context.t('ui_login'), onPressed: () => TGNav.login(context))
               : TGButton(
@@ -350,7 +352,11 @@ class _AccountPill extends StatelessWidget {
     }
     return switch (kind) {
       TGHeaderPillKind.store => context.t('ui_pill_store', {
-          'plan': auth.storePlanLabel,
+          'plan': context.t(switch (auth.storePlanLabel) {
+            'Pro Store' => 'ui_plan_pro_store',
+            'Enterprise Store' => 'ui_plan_enterprise_store',
+            _ => 'ui_plan_basic_store',
+          }),
           'used': '${auth.storeActiveUsed}',
           'limit': '${auth.storeActiveLimit}',
         }),
@@ -383,7 +389,15 @@ class _AccountPill extends StatelessWidget {
           'fee': '${TGPricing.listingFeePln}',
           'days': '${TGPricing.listingPeriodDays}',
         }),
-      TGHeaderPillKind.store => '${auth.storePlanLabel}: ${auth.storeActiveUsed} of ${auth.storeActiveLimit} listings active',
+      TGHeaderPillKind.store => context.t('ui_store_listings_active', {
+          'plan': context.t(switch (auth.storePlanLabel) {
+            'Pro Store' => 'ui_plan_pro_store',
+            'Enterprise Store' => 'ui_plan_enterprise_store',
+            _ => 'ui_plan_basic_store',
+          }),
+          'used': '${auth.storeActiveUsed}',
+          'limit': '${auth.storeActiveLimit}',
+        }),
       TGHeaderPillKind.needsAttention || TGHeaderPillKind.expiredListings || TGHeaderPillKind.expiringListings => listings,
     };
     if (auth.pillKind == TGHeaderPillKind.store || listings.isEmpty) return head;
@@ -430,7 +444,7 @@ class _AccountPill extends StatelessWidget {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _onTap(context),
-            onLongPress: kDebugMode ? () => showTGDevSwitch(context, auth) : null,
+            onLongPress: () => showTGDevSwitch(context, auth),
             child: Container(
               height: 40,
               constraints: BoxConstraints(maxWidth: phone ? 148 : compact ? 240 : 300),

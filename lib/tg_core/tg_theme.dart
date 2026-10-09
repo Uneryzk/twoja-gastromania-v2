@@ -56,7 +56,7 @@ ThemeData buildTGDarkTheme() {
       hintStyle: const TextStyle(color: TGColors.textSecondary),
       border: inputBorder(TGColors.border),
       enabledBorder: inputBorder(TGColors.border),
-      focusedBorder: inputBorder(TGColors.cta, 1.6),
+      focusedBorder: inputBorder(TGColors.cta, 2),
       errorBorder: inputBorder(TGColors.error),
       focusedErrorBorder: inputBorder(TGColors.error, 1.6),
     ),

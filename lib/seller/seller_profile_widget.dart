@@ -8,8 +8,12 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/product_detail/pdp_message_sheet.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
+import 'package:twoja_gastromania/product_detail/report_listing_sheet.dart';
 import 'package:twoja_gastromania/seller/seller_profile_panels.dart';
+import 'package:twoja_gastromania/seller/store_reviews_panel.dart';
 import 'package:twoja_gastromania/seller/seller_profile_query.dart';
+import 'package:twoja_gastromania/seller/store_mobile_layout.dart';
+import 'package:twoja_gastromania/seller/store_owner_edit.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_badges.dart';
 import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
@@ -25,6 +29,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/tg_services/review_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -44,6 +49,7 @@ class _SellerProfilePageWidgetState extends State<SellerProfilePageWidget> {
   late Future<({TGStoreProfile? profile, List<TGProduct> listings})> _future;
   final _scroll = ScrollController();
   final _identityKey = GlobalKey();
+  final _chrome = StoreChromeController();
   bool _compact = false;
   bool _copied = false;
 
@@ -66,6 +72,7 @@ class _SellerProfilePageWidgetState extends State<SellerProfilePageWidget> {
   void dispose() {
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
+    _chrome.dispose();
     super.dispose();
   }
 
@@ -100,7 +107,7 @@ class _SellerProfilePageWidgetState extends State<SellerProfilePageWidget> {
     final pad = MediaQuery.sizeOf(context).width < TGBreakpoints.phone ? 16.0 : 24.0;
     return TGPageScaffold(
       body: ListenableBuilder(
-        listenable: TGSellerProfileService.instance,
+        listenable: Listenable.merge([TGSellerProfileService.instance, TGReviewService.instance]),
         builder: (context, _) => FutureBuilder<({TGStoreProfile? profile, List<TGProduct> listings})>(
         future: _future,
         builder: (context, snap) {
@@ -117,17 +124,21 @@ class _SellerProfilePageWidgetState extends State<SellerProfilePageWidget> {
           if (profile.status == TGStoreStatus.suspended) {
             return _Suspended(pad: pad);
           }
-          return _StoreBody(
-            profile: profile,
-            listings: listings,
-            query: _query,
-            pad: pad,
-            scroll: _scroll,
-            identityKey: _identityKey,
-            compact: _compact,
-            copied: _copied,
-            onCopied: (v) => setState(() => _copied = v),
-            onQuery: (q) => _go(q, profile.path),
+          return StoreChromeScope(
+            notifier: _chrome,
+            child: _StoreBody(
+              profile: profile,
+              listings: listings,
+              query: _query,
+              pad: pad,
+              scroll: _scroll,
+              identityKey: _identityKey,
+              compact: _compact,
+              copied: _copied,
+              chrome: _chrome,
+              onCopied: (v) => setState(() => _copied = v),
+              onQuery: (q) => _go(q, profile.path),
+            ),
           );
         },
       ),
@@ -146,6 +157,7 @@ class _StoreBody extends StatelessWidget {
     required this.identityKey,
     required this.compact,
     required this.copied,
+    required this.chrome,
     required this.onCopied,
     required this.onQuery,
   });
@@ -158,13 +170,27 @@ class _StoreBody extends StatelessWidget {
   final GlobalKey identityKey;
   final bool compact;
   final bool copied;
+  final StoreChromeController chrome;
   final ValueChanged<bool> onCopied;
   final ValueChanged<TGStoreQuery> onQuery;
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: chrome,
+      builder: (context, _) => _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     final auth = context.watch<FakeAuthState>();
     final isStore = profile.isStore;
+    final width = MediaQuery.sizeOf(context).width;
+    final mobile = width < TGBreakpoints.desktop;
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final owner = storeIsOwner(auth, profile);
+    final ownerUi = owner && !chrome.previewVisitor;
+    final contactLooksOn = profile.isLive && (!ownerUi || chrome.previewVisitor);
     final tabs = <TGStoreTab>[
       TGStoreTab.products,
       if (isStore && profile.showAbout) TGStoreTab.about,
@@ -172,52 +198,143 @@ class _StoreBody extends StatelessWidget {
     ];
     var tab = query.tab;
     if (!tabs.contains(tab)) tab = TGStoreTab.products;
+    final bottomPad = mobile && isStore && profile.isLive ? 88.0 : 64.0;
 
-    return CustomScrollView(
+    void selectTab(TGStoreTab t) {
+      TGAnalytics.track('store_tab_change', {'tab': t.name, 'seller': profile.publicId});
+      onQuery(query.copyWith(tab: t, page: 1));
+    }
+
+    Future<void> onCall() async {
+      if (chrome.previewVisitor) {
+        showTGToast(context, context.t('ui_preview_only'));
+        return;
+      }
+      await withStoreOverlay(context, () => _call(context, profile, onCopied));
+    }
+
+    Future<void> onMessage() async {
+      if (chrome.previewVisitor) {
+        showTGToast(context, context.t('ui_preview_only'));
+        return;
+      }
+      await withStoreOverlay(context, () => _message(context, profile, listings));
+    }
+
+    final scroller = CustomScrollView(
       controller: scroll,
       slivers: [
+        if (owner)
+          SliverToBoxAdapter(
+            child: StoreOwnerBar(
+              profile: profile,
+              preview: chrome.previewVisitor,
+              onPreview: chrome.setPreview,
+              onEdit: () {
+                if (mobile) {
+                  showStoreEditFlow(context, profile);
+                } else {
+                  chrome.setEditing(!chrome.editing);
+                }
+              },
+            ),
+          ),
         SliverToBoxAdapter(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1280),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(pad, 20, pad, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (auth.isAdmin) _AdminBar(profile: profile),
-                    if (auth.isLoggedIn && auth.userId == profile.sellerKey && profile.incompleteSetup) _OnboardingBanner(),
-                    TGBreadcrumb(
-                      items: [
-                        TGBreadcrumbItem(label: context.t('ui_home'), onTap: () => TGNav.home(context)),
-                        TGBreadcrumbItem(label: context.t('ui_sellers'), onTap: () => TGNav.verifiedSellers(context)),
-                        TGBreadcrumbItem(label: profile.name),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1280),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(pad, 20, pad, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (auth.isAdmin) _AdminBar(profile: profile),
+                        if (owner && profile.incompleteSetup) _OnboardingBanner(),
+                        TGBreadcrumb(
+                          items: [
+                            TGBreadcrumbItem(label: context.t('ui_home'), onTap: () => TGNav.home(context)),
+                            TGBreadcrumbItem(label: context.t('ui_sellers'), onTap: () => TGNav.verifiedSellers(context)),
+                            TGBreadcrumbItem(label: profile.name),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        if (!profile.isLive) ...[
+                          _StatusBanner(text: context.t('ui_store_inactive')),
+                          const SizedBox(height: 16),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 18),
-                    if (!profile.isLive) ...[
-                      _StatusBanner(text: context.t('ui_store_inactive')),
-                      const SizedBox(height: 16),
-                    ],
-                    if (isStore)
-                      _CoverIdentity(
+                  ),
+                ),
+              ),
+              if (isStore && mobile)
+                StoreEditableRegion(
+                  section: TGStoreEditSection.cover,
+                  editing: chrome.editing,
+                  onEdit: (s) => showStoreEditFlow(context, profile, section: s),
+                  child: StoreMobileCoverIdentity(
+                    profile: profile,
+                    identityKey: identityKey,
+                    onQuote: profile.showQuote
+                        ? () {
+                            TGAnalytics.track('store_quote_click', {'seller': profile.publicId});
+                            TGNav.storeQuote(context, profile.publicId);
+                          }
+                        : null,
+                  ),
+                )
+              else if (isStore)
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1280),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: pad),
+                      child: _CoverIdentity(
                         profile: profile,
                         listings: listings,
                         identityKey: identityKey,
                         copied: copied,
                         onCopied: onCopied,
-                      )
-                    else
-                      _PrivateHeader(
+                        editing: chrome.editing,
+                        ownerUi: ownerUi,
+                        contactEnabled: contactLooksOn,
+                        onEdit: (s) => showStoreEditFlow(context, profile, section: s),
+                        onCall: onCall,
+                        onMessage: onMessage,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1280),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: pad),
+                      child: _PrivateHeader(
                         profile: profile,
                         listings: listings,
                         copied: copied,
                         onCopied: onCopied,
                       ),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              if (ownerUi && mobile)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Column(
+                    children: [
+                      StoreCompletenessCard(profile: profile),
+                      const SizedBox(height: 12),
+                      StorePlanCard(profile: profile),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
         if (isStore && profile.isLive)
@@ -226,52 +343,117 @@ class _StoreBody extends StatelessWidget {
             delegate: _TabsDelegate(
               tabs: tabs,
               active: tab,
-              compact: compact,
+              compact: !mobile && compact,
+              mobile: mobile,
               profile: profile,
               listingsCount: listings.length,
-              onSelect: (t) {
-                TGAnalytics.track('store_tab_change', {'tab': t.name, 'seller': profile.publicId});
-                onQuery(query.copyWith(tab: t, page: 1));
-              },
-              onCall: profile.isLive ? () => _call(context, profile, onCopied) : null,
+              onSelect: selectTab,
+              onCall: !mobile && contactLooksOn ? onCall : null,
             ),
           ),
-        SliverToBoxAdapter(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1280),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(pad, 24, pad, 64),
-                child: AnimatedSwitcher(
-                  duration: tgAnim(context, TGMotion.fade),
-                  child: KeyedSubtree(
-                    key: ValueKey(tab),
-                    child: !profile.isLive
-                        ? _InactiveExtras(profile: profile)
-                        : switch (tab) {
-                            TGStoreTab.products => StoreProductsPanel(profile: profile, listings: listings, query: query, onQuery: onQuery, hideSeller: isStore),
-                            TGStoreTab.about => StoreAboutPanel(profile: profile),
-                            TGStoreTab.reviews => const StoreReviewsPlaceholder(),
-                          },
+        if (tab == TGStoreTab.reviews && width >= 1024)
+          SliverFillRemaining(
+            hasScrollBody: true,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1280),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(pad, 24, pad, 24),
+                  child: StoreReviewsPanel(profile: profile, stickySummary: true),
+                ),
+              ),
+            ),
+          )
+        else
+          SliverToBoxAdapter(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1280),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(pad, 24, pad, bottomPad),
+                  child: GestureDetector(
+                    onHorizontalDragEnd: (d) {
+                      final v = d.primaryVelocity ?? 0;
+                      final i = tabs.indexOf(tab);
+                      if (v < -200 && i < tabs.length - 1) selectTab(tabs[i + 1]);
+                      if (v > 200 && i > 0) selectTab(tabs[i - 1]);
+                    },
+                    child: AnimatedSwitcher(
+                      duration: tgAnim(context, TGMotion.fade),
+                      child: KeyedSubtree(
+                        key: ValueKey(tab),
+                        child: !profile.isLive
+                            ? _InactiveExtras(profile: profile)
+                            : switch (tab) {
+                                TGStoreTab.products => StoreProductsPanel(profile: profile, listings: listings, query: query, onQuery: onQuery, hideSeller: isStore),
+                                TGStoreTab.about => StoreAboutPanel(profile: profile, editing: chrome.editing, onEdit: (s) => showStoreEditFlow(context, profile, section: s)),
+                                TGStoreTab.reviews => StoreReviewsPanel(profile: profile),
+                              },
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
         const SliverToBoxAdapter(child: TGFooter()),
       ],
+    );
+
+    final showBar = mobile && isStore && profile.isLive && !chrome.overlayOpen && !keyboard;
+    return GestureDetector(
+      onHorizontalDragEnd: (d) {
+        final v = d.primaryVelocity ?? 0;
+        final i = tabs.indexOf(tab);
+        if (v < -220 && i < tabs.length - 1) selectTab(tabs[i + 1]);
+        if (v > 220 && i > 0) selectTab(tabs[i - 1]);
+      },
+      child: Stack(
+        children: [
+          scroller,
+          if (showBar)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: StoreMobileContactBar(
+                profile: profile,
+                enabled: contactLooksOn,
+                onCall: onCall,
+                onMessage: onMessage,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
 class _CoverIdentity extends StatelessWidget {
-  const _CoverIdentity({required this.profile, required this.listings, required this.identityKey, required this.copied, required this.onCopied});
+  const _CoverIdentity({
+    required this.profile,
+    required this.listings,
+    required this.identityKey,
+    required this.copied,
+    required this.onCopied,
+    required this.editing,
+    required this.ownerUi,
+    required this.contactEnabled,
+    required this.onEdit,
+    required this.onCall,
+    required this.onMessage,
+  });
   final TGStoreProfile profile;
   final List<TGProduct> listings;
   final GlobalKey identityKey;
   final bool copied;
   final ValueChanged<bool> onCopied;
+  final bool editing;
+  final bool ownerUi;
+  final bool contactEnabled;
+  final ValueChanged<TGStoreEditSection> onEdit;
+  final VoidCallback onCall;
+  final VoidCallback onMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -279,20 +461,48 @@ class _CoverIdentity extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Opacity(
-          opacity: muted ? 0.45 : 1,
-          child: _Cover(url: profile.coverUrl),
+        StoreEditableRegion(
+          section: TGStoreEditSection.cover,
+          editing: editing,
+          onEdit: onEdit,
+          child: Opacity(
+            opacity: muted ? 0.45 : 1,
+            child: _Cover(url: profile.coverUrl),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.only(top: 184),
           child: LayoutBuilder(
             builder: (context, c) {
-              final stacked = c.maxWidth < 900;
+              final stacked = c.maxWidth < TGBreakpoints.desktop;
               final identity = KeyedSubtree(
                 key: identityKey,
-                child: Opacity(opacity: muted ? 0.7 : 1, child: _IdentityBlock(profile: profile)),
+                child: StoreEditableRegion(
+                  section: TGStoreEditSection.logo,
+                  editing: editing,
+                  onEdit: onEdit,
+                  child: Opacity(opacity: muted ? 0.7 : 1, child: _IdentityBlock(profile: profile)),
+                ),
               );
-              final contact = _ContactCard(profile: profile, listings: listings, copied: copied, onCopied: onCopied, enabled: profile.isLive);
+              final contact = Column(
+                children: [
+                  if (ownerUi) ...[
+                    StoreCompletenessCard(profile: profile),
+                    const SizedBox(height: 12),
+                    StorePlanCard(profile: profile),
+                    const SizedBox(height: 12),
+                  ],
+                  _ContactCard(
+                    profile: profile,
+                    listings: listings,
+                    copied: copied,
+                    onCopied: onCopied,
+                    enabled: contactEnabled,
+                    onCall: onCall,
+                    onMessage: onMessage,
+                  ),
+                ],
+              );
               if (stacked) {
                 return Column(children: [identity, const SizedBox(height: 16), contact]);
               }
@@ -497,12 +707,22 @@ class _Logo extends StatelessWidget {
 }
 
 class _ContactCard extends StatelessWidget {
-  const _ContactCard({required this.profile, required this.listings, required this.copied, required this.onCopied, required this.enabled});
+  const _ContactCard({
+    required this.profile,
+    required this.listings,
+    required this.copied,
+    required this.onCopied,
+    required this.enabled,
+    this.onCall,
+    this.onMessage,
+  });
   final TGStoreProfile profile;
   final List<TGProduct> listings;
   final bool copied;
   final ValueChanged<bool> onCopied;
   final bool enabled;
+  final VoidCallback? onCall;
+  final VoidCallback? onMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -517,7 +737,7 @@ class _ContactCard extends StatelessWidget {
             phone: profile.phone,
             copied: copied,
             enabled: enabled,
-            onPressed: enabled ? () => _call(context, profile, onCopied) : null,
+            onPressed: enabled ? (onCall ?? () => _call(context, profile, onCopied)) : null,
           ),
           if (enabled) ...[
             const SizedBox(height: 10),
@@ -526,7 +746,7 @@ class _ContactCard extends StatelessWidget {
                 Expanded(child: Text(profile.phone, style: theme.titleSmall.override(fontSize: 20, fontWeight: FontWeight.w800))),
                 IconButton(
                   tooltip: context.t('ui_call_now'),
-                  onPressed: () => _call(context, profile, onCopied),
+                  onPressed: onCall ?? () => _call(context, profile, onCopied),
                   icon: const Icon(Icons.copy_outlined, size: 18),
                 ),
               ],
@@ -534,7 +754,7 @@ class _ContactCard extends StatelessWidget {
           ],
           const SizedBox(height: 10),
           TGButton(
-            onPressed: enabled ? () => _message(context, profile, listings) : null,
+            onPressed: enabled ? (onMessage ?? () => _message(context, profile, listings)) : null,
             label: context.t('ui_message'),
             variant: TGButtonVariant.outline,
             height: 48,
@@ -557,14 +777,7 @@ class _ContactCard extends StatelessWidget {
             children: [
               _ShareButton(profile: profile),
               const Spacer(),
-              PopupMenuButton<String>(
-                tooltip: context.t('ui_report_seller'),
-                onSelected: (v) {
-                  if (v == 'report') showTGToast(context, context.t('ui_coming_next'));
-                },
-                itemBuilder: (_) => [PopupMenuItem(value: 'report', child: Text(context.t('ui_report_seller')))],
-                child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.more_horiz)),
-              ),
+              _ReportSellerMenu(profile: profile),
             ],
           ),
         ],
@@ -708,11 +921,7 @@ class _PrivateHeader extends StatelessWidget {
                     width: 160,
                     child: TGButton(onPressed: () => _message(context, profile, listings), label: context.t('ui_message'), variant: TGButtonVariant.outline, height: 48, borderRadius: BorderRadius.circular(TGRadius.pill)),
                   ),
-                  PopupMenuButton<String>(
-                    onSelected: (_) => showTGToast(context, context.t('ui_coming_next')),
-                    itemBuilder: (_) => [PopupMenuItem(value: 'report', child: Text(context.t('ui_report_seller')))],
-                    child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.more_horiz)),
-                  ),
+                  _ReportSellerMenu(profile: profile),
                 ],
               ),
             ],
@@ -724,11 +933,12 @@ class _PrivateHeader extends StatelessWidget {
 }
 
 class _TabsDelegate extends SliverPersistentHeaderDelegate {
-  _TabsDelegate({required this.tabs, required this.active, required this.compact, required this.profile, required this.listingsCount, required this.onSelect, this.onCall});
+  _TabsDelegate({required this.tabs, required this.active, required this.compact, required this.profile, required this.listingsCount, required this.onSelect, this.onCall, this.mobile = false});
 
   final List<TGStoreTab> tabs;
   final TGStoreTab active;
   final bool compact;
+  final bool mobile;
   final TGStoreProfile profile;
   final int listingsCount;
   final ValueChanged<TGStoreTab> onSelect;
@@ -761,7 +971,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
                         Flexible(child: Text(profile.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
                         if (profile.verified) ...[const SizedBox(width: 8), const TGVerifiedSellerBadge()],
                         const SizedBox(width: 16),
-                        Expanded(child: _TabList(tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect)),
+                        Expanded(child: _TabList(tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect, short: mobile)),
                         if (onCall != null)
                           TGButton(
                             onPressed: onCall,
@@ -771,7 +981,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
                           ),
                       ],
                     )
-                  : _TabList(key: const ValueKey('full'), tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect),
+                  : _TabList(key: const ValueKey('full'), tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect, short: mobile),
             ),
           ),
         ),
@@ -780,25 +990,28 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant _TabsDelegate old) => old.active != active || old.compact != compact || old.listingsCount != listingsCount;
+  bool shouldRebuild(covariant _TabsDelegate old) => old.active != active || old.compact != compact || old.listingsCount != listingsCount || old.mobile != mobile;
 }
 
 class _TabList extends StatelessWidget {
-  const _TabList({super.key, required this.tabs, required this.active, required this.listingsCount, required this.reviewsCount, required this.onSelect});
+  const _TabList({super.key, required this.tabs, required this.active, required this.listingsCount, required this.reviewsCount, required this.onSelect, this.short = false});
   final List<TGStoreTab> tabs;
   final TGStoreTab active;
   final int listingsCount;
   final int reviewsCount;
   final ValueChanged<TGStoreTab> onSelect;
+  final bool short;
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    String label(TGStoreTab t) => switch (t) {
-          TGStoreTab.products => '${context.t('ui_active_products')} ($listingsCount)',
-          TGStoreTab.about => context.t('ui_about_business'),
-          TGStoreTab.reviews => '${context.t('ui_reviews')} ($reviewsCount)',
-        };
+    String label(TGStoreTab t) => short
+        ? storeMobileTabLabel(context, name: t.name, products: listingsCount, reviews: reviewsCount)
+        : switch (t) {
+            TGStoreTab.products => '${context.t('ui_active_products')} ($listingsCount)',
+            TGStoreTab.about => context.t('ui_about_business'),
+            TGStoreTab.reviews => '${context.t('ui_reviews')} ($reviewsCount)',
+          };
     return Focus(
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent) return KeyEventResult.ignored;
@@ -1066,6 +1279,25 @@ class _Suspended extends StatelessWidget {
         ),
         const TGFooter(),
       ],
+    );
+  }
+}
+
+class _ReportSellerMenu extends StatelessWidget {
+  const _ReportSellerMenu({required this.profile});
+  final TGStoreProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    if (storeOwnerUi(context, profile)) return const SizedBox.shrink();
+    return PopupMenuButton<String>(
+      key: const Key('report-seller-menu'),
+      tooltip: context.t('ui_report_seller'),
+      onSelected: (v) {
+        if (v == 'report') withStoreOverlay(context, () => showReportFlow(context, TGReportSubject.seller(profile)));
+      },
+      itemBuilder: (_) => [PopupMenuItem(value: 'report', child: Text(context.t('ui_report_seller')))],
+      child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.more_horiz)),
     );
   }
 }

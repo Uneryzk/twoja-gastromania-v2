@@ -23,6 +23,8 @@ class TGStoreHours {
   String of(String day) => byDay[day] ?? 'closed';
 
   static String dayKey(int weekday) => kStoreDayKeys[(weekday - 1).clamp(0, 6)];
+
+  TGStoreHours withDay(String day, String value) => TGStoreHours({...byDay, day: value});
 }
 
 /// Europe/Warsaw wall clock from UTC (CET/CEST).
@@ -115,6 +117,15 @@ class TGStoreProject {
   final int year;
   final List<String> photos;
   final String description;
+
+  TGStoreProject copyWith({String? title, String? city, int? year, List<String>? photos, String? description}) =>
+      TGStoreProject(
+        title: title ?? this.title,
+        city: city ?? this.city,
+        year: year ?? this.year,
+        photos: photos ?? this.photos,
+        description: description ?? this.description,
+      );
 }
 
 @immutable
@@ -126,6 +137,14 @@ class TGStoreSocial {
   final String? youtube;
 
   bool get isEmpty => facebook == null && instagram == null && linkedin == null && youtube == null;
+
+  TGStoreSocial copyWith({String? facebook, String? instagram, String? linkedin, String? youtube, bool clearFacebook = false, bool clearInstagram = false, bool clearLinkedin = false, bool clearYoutube = false}) =>
+      TGStoreSocial(
+        facebook: clearFacebook ? null : (facebook ?? this.facebook),
+        instagram: clearInstagram ? null : (instagram ?? this.instagram),
+        linkedin: clearLinkedin ? null : (linkedin ?? this.linkedin),
+        youtube: clearYoutube ? null : (youtube ?? this.youtube),
+      );
 }
 
 @immutable
@@ -213,6 +232,21 @@ class TGStoreProfile {
     String? coverUrl,
     String? nip,
     List<TGStoreProject>? projects,
+    double? rating,
+    int? reviewsCount,
+    TGStoreStatus? status,
+    List<TGCategory>? categories,
+    List<String>? brands,
+    List<TGStoreService>? services,
+    TGStoreHours? hours,
+    String? address,
+    String? city,
+    String? voivodeship,
+    String? website,
+    TGStoreSocial? social,
+    bool? acceptsSpecialOrder,
+    double? lat,
+    double? lng,
   }) =>
       TGStoreProfile(
         publicId: publicId,
@@ -225,27 +259,27 @@ class TGStoreProfile {
         nipVerifiedAt: nipVerifiedAt,
         verified: verified,
         plan: plan,
-        status: status,
+        status: status ?? this.status,
         coverUrl: coverUrl ?? this.coverUrl,
         logoUrl: logoUrl ?? this.logoUrl,
         description: description ?? this.description,
-        categories: categories,
-        brands: brands,
-        services: services,
-        hours: hours,
-        address: address,
-        city: city,
-        voivodeship: voivodeship,
+        categories: categories ?? this.categories,
+        brands: brands ?? this.brands,
+        services: services ?? this.services,
+        hours: hours ?? this.hours,
+        address: address ?? this.address,
+        city: city ?? this.city,
+        voivodeship: voivodeship ?? this.voivodeship,
         phone: phone,
-        website: website,
-        social: social,
+        website: website ?? this.website,
+        social: social ?? this.social,
         memberSince: memberSince,
-        rating: rating,
-        reviewsCount: reviewsCount,
-        acceptsSpecialOrder: acceptsSpecialOrder,
+        rating: rating ?? this.rating,
+        reviewsCount: reviewsCount ?? this.reviewsCount,
+        acceptsSpecialOrder: acceptsSpecialOrder ?? this.acceptsSpecialOrder,
         projects: projects ?? this.projects,
         managedByAdmin: managedByAdmin,
-        lat: lat,
-        lng: lng,
+        lat: lat ?? this.lat,
+        lng: lng ?? this.lng,
       );
 }

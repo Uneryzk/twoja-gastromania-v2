@@ -7,7 +7,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 import 'package:provider/provider.dart';
 
-enum TGDashboardSection { listings, messages }
+enum TGDashboardSection { listings, messages, deals }
 
 class TGDashboardNav extends StatelessWidget {
   const TGDashboardNav({super.key, required this.current});
@@ -39,6 +39,13 @@ class TGDashboardNav extends StatelessWidget {
               label: context.t('ui_messages'),
               badge: unread,
               onTap: () => TGNav.messages(context),
+            ),
+            _chip(
+              context,
+              theme,
+              selected: current == TGDashboardSection.deals,
+              label: context.t('ui_deals'),
+              onTap: () => TGNav.dashboardDeals(context),
             ),
           ],
         );

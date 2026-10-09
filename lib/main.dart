@@ -12,7 +12,10 @@ import 'package:twoja_gastromania/flutter_flow/nav/nav.dart';
 import 'package:twoja_gastromania/state/admin_locale_state.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_theme.dart';
+import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/notification_service.dart';
 
 import 'package:provider/provider.dart';
 
@@ -109,6 +112,9 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => FakeAuthState(isLoggedIn: kMockSignedInByDefault)),
         ChangeNotifierProvider<ModerationService>.value(value: ModerationService.instance),
         ChangeNotifierProvider<AdminLocaleState>.value(value: AdminLocaleState.instance),
+        ChangeNotifierProvider<DealService>.value(value: DealService.instance),
+        ChangeNotifierProvider<DealModerationService>.value(value: DealModerationService.instance),
+        ChangeNotifierProvider<NotificationService>.value(value: NotificationService.instance),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,

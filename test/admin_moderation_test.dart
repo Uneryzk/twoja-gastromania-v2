@@ -18,7 +18,7 @@ void main() {
   test('seed has 14 reports, 3 copy matches, 1 fraud high case, 2 appeals', () {
     final mod = ModerationService.instance..ensureSeeded();
     expect(mod.reports.where((r) => r.reportNo.startsWith('RP-')), hasLength(14));
-    expect(mod.reports.where((r) => r.reportNo.startsWith('R-2026-')), hasLength(8));
+    expect(mod.reports.where((r) => r.reportNo.startsWith('R-2026-')), hasLength(15));
     expect(mod.photoMatches, hasLength(3));
     expect(mod.appeals.where((a) => !a.resolved), hasLength(2));
     final fraud = mod.caseFor('10482137')!;

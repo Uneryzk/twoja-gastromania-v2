@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -11,8 +10,10 @@ import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_deal_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 
 abstract final class TGAdminNav {
@@ -21,14 +22,33 @@ abstract final class TGAdminNav {
   static const sellers = '/admin/sellers';
   static const audit = '/admin/audit';
   static const templates = '/admin/templates';
-  static String casePath(String listingNo) => '/admin/l/$listingNo';
+  static const deals = '/admin/deals';
+  static String casePath(String listingNo) {
+    if (listingNo.startsWith('s:')) return '/admin/s/${listingNo.substring(2)}';
+    if (listingNo.startsWith('r:')) return '/admin/r/${listingNo.substring(2)}';
+    return '/admin/l/$listingNo';
+  }
+
+  static String sellerCasePath(String sellerId) => '/admin/s/$sellerId';
+  static String reviewCasePath(String reviewId) => '/admin/r/$reviewId';
+  static String dealCasePath(String dealNo) => '/admin/d/$dealNo';
+  static String dealsQueuePath(TGDealQueueKind kind) =>
+      kind == TGDealQueueKind.objection ? deals : '$deals?queue=${kind.name}';
 
   static void queuePage(BuildContext context, {String? filter}) =>
       context.go(filter == null ? queue : '$queue?filter=$filter');
 
+  static void dealsQueue(BuildContext context, [TGDealQueueKind kind = TGDealQueueKind.objection]) =>
+      context.go(dealsQueuePath(kind));
+
   static void openCase(BuildContext context, String listingNo) {
     ModerationService.instance.openCaseTracked(listingNo);
     context.go(casePath(listingNo));
+  }
+
+  static void openDeal(BuildContext context, String dealNo) {
+    DealModerationService.instance.openTracked(dealNo);
+    context.go(dealCasePath(dealNo));
   }
 }
 
@@ -50,11 +70,13 @@ class _AdminShellState extends State<AdminShell> {
   void initState() {
     super.initState();
     ModerationService.instance.ensureSeeded();
+    DealModerationService.instance.ensureSeeded();
   }
 
   @override
   Widget build(BuildContext context) {
     context.watch<AdminLocaleState>();
+    context.watch<DealModerationService>();
     return AdminL10nScope(
       child: Builder(builder: (context) => _buildBody(context)),
     );
@@ -109,6 +131,11 @@ class _AdminTopBarState extends State<AdminTopBar> {
   }
 
   void _go(String raw) {
+    final dealNo = DealModerationService.instance.resolveSearch(raw);
+    if (dealNo != null) {
+      TGAdminNav.openDeal(context, dealNo);
+      return;
+    }
     final listingNo = ModerationService.instance.resolveSearch(raw);
     if (listingNo == null) return;
     TGAdminNav.openCase(context, listingNo);
@@ -244,6 +271,13 @@ class AdminSideMenu extends StatelessWidget {
           ),
           _NavTile(selected: section == 'listings', icon: Icons.search, label: context.t('ui_admin_listings'), onTap: () => context.go(TGAdminNav.listings)),
           _NavTile(selected: section == 'sellers', icon: Icons.storefront_outlined, label: context.t('ui_admin_sellers'), onTap: () => context.go(TGAdminNav.sellers)),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
+            child: Text(context.t('ui_admin_deals'), style: theme.labelSmall.override(color: theme.secondaryText, fontWeight: FontWeight.w900, fontSize: 10)),
+          ),
+          _DealsNavGroup(section: section),
+          const SizedBox(height: 8),
           _NavTile(selected: section == 'audit', icon: Icons.receipt_long_outlined, label: context.t('ui_admin_audit'), onTap: () => context.go(TGAdminNav.audit)),
           if (isAdmin)
             _NavTile(selected: section == 'templates', icon: Icons.email_outlined, label: context.t('ui_admin_templates'), onTap: () => context.go(TGAdminNav.templates)),
@@ -251,6 +285,46 @@ class AdminSideMenu extends StatelessWidget {
           Text(context.t('ui_platform_principles'), style: theme.labelSmall.override(color: theme.secondaryText, fontSize: 10, lineHeight: 1.35)),
         ],
       ),
+    );
+  }
+}
+
+class _DealsNavGroup extends StatelessWidget {
+  const _DealsNavGroup({required this.section});
+  final String section;
+
+  @override
+  Widget build(BuildContext context) {
+    final deals = context.watch<DealModerationService>();
+    final uri = GoRouterState.of(context).uri;
+    final onDeals = section == 'deals' || uri.path.startsWith('/admin/deals') || uri.path.startsWith('/admin/d/');
+    final queue = uri.queryParameters['queue'] ?? (uri.path == '/admin/deals' ? 'objection' : '');
+    Widget item(TGDealQueueKind kind, String key) {
+      final n = deals.count(kind);
+      final selected = onDeals && ((kind == TGDealQueueKind.objection && (queue.isEmpty || queue == 'objection') && !uri.path.startsWith('/admin/d/')) || queue == kind.name);
+      return _NavTile(
+        selected: selected,
+        icon: switch (kind) {
+          TGDealQueueKind.objection => Icons.gavel_outlined,
+          TGDealQueueKind.flagged => Icons.flag_outlined,
+          TGDealQueueKind.dispute => Icons.report_outlined,
+          TGDealQueueKind.appeal => Icons.replay_outlined,
+          TGDealQueueKind.all => Icons.list_alt_outlined,
+        },
+        label: '${context.t(key)}${kind == TGDealQueueKind.all ? '' : ' ($n)'}',
+        onTap: () => TGAdminNav.dealsQueue(context, kind),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        item(TGDealQueueKind.objection, 'ui_admin_objections'),
+        item(TGDealQueueKind.flagged, 'ui_admin_flagged_reviews'),
+        item(TGDealQueueKind.dispute, 'ui_admin_disputes'),
+        item(TGDealQueueKind.appeal, 'ui_admin_deal_appeals'),
+        item(TGDealQueueKind.all, 'ui_admin_all_deals'),
+      ],
     );
   }
 }
@@ -316,6 +390,7 @@ class _MobileAdminTabs extends StatelessWidget {
               _tab(context, 'queue', Icons.inbox_outlined, TGAdminNav.queue),
               _tab(context, 'listings', Icons.search, TGAdminNav.listings),
               _tab(context, 'sellers', Icons.storefront_outlined, TGAdminNav.sellers),
+              _tab(context, 'deals', Icons.handshake_outlined, TGAdminNav.deals),
               _tab(context, 'audit', Icons.receipt_long_outlined, TGAdminNav.audit),
               if (isAdmin) _tab(context, 'templates', Icons.email_outlined, TGAdminNav.templates),
             ],
@@ -326,7 +401,7 @@ class _MobileAdminTabs extends StatelessWidget {
   }
 
   Widget _tab(BuildContext context, String id, IconData icon, String path) {
-    final on = section == id;
+    final on = section == id || (id == 'deals' && section.startsWith('deals'));
     return Expanded(
       child: InkWell(
         onTap: () => context.go(path),
@@ -368,22 +443,20 @@ class AdminForbiddenPage extends StatelessWidget {
                 Text(context.t('ui_admin_403'), textAlign: TextAlign.center, style: theme.bodyMedium.override(color: theme.secondaryText)),
                 const SizedBox(height: 18),
                 TGButton(onPressed: () => TGNav.home(context), label: context.t('ui_home'), height: 44),
-                if (kDebugMode) ...[
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      for (final r in TGUserRole.values)
-                        ChoiceChip(
-                          label: Text(adminRoleLabel(context, r)),
-                          selected: auth.role == r,
-                          onSelected: (_) => auth.setRole(r),
-                        ),
-                    ],
-                  ),
-                ],
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final r in TGUserRole.values)
+                      ChoiceChip(
+                        label: Text(adminRoleLabel(context, r)),
+                        selected: auth.role == r,
+                        onSelected: (_) => auth.setRole(r),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -432,6 +505,31 @@ class AdminSlaChip extends StatelessWidget {
     if (d.inHours < 1) return '${d.inMinutes}m';
     if (d.inHours < 48) return '${d.inHours}h';
     return '${d.inDays}d';
+  }
+}
+
+class AdminDeadlineChip extends StatelessWidget {
+  const AdminDeadlineChip({super.key, required this.label, required this.tone});
+  final String label;
+  final TGSlaTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (tone) {
+      TGSlaTone.ok => TGColors.textSecondary,
+      TGSlaTone.warning => TGColors.slaAmber,
+      TGSlaTone.overdue => TGColors.error,
+    };
+    return AnimatedContainer(
+      duration: tgAnim(context, const Duration(milliseconds: 280)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(TGRadius.pill),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 11)),
+    );
   }
 }
 
@@ -605,6 +703,7 @@ String adminRoleLabel(BuildContext context, TGUserRole role) => switch (role) {
       TGUserRole.storeSeller => context.t('ui_role_store_seller'),
       TGUserRole.moderator => context.t('ui_role_moderator'),
       TGUserRole.admin => context.t('ui_role_admin'),
+      TGUserRole.buyer => context.t('ui_role_buyer'),
     };
 
 String adminReasonLabel(BuildContext context, TGReportReason reason) => context.t('ui_reason_${reason.name}');

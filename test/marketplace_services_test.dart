@@ -9,6 +9,7 @@ import 'package:twoja_gastromania/tg_models/tg_invoice.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/invoicing_service.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
+import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/profanity_filter.dart';
 import 'package:twoja_gastromania/tg_services/translation_service.dart';
@@ -145,6 +146,35 @@ void main() {
     await tester.pump();
     expect(app.location, contains('/product-detail/'));
     expect(find.text('Is this still available?'), findsWidgets);
+    _expectNoErrors(app);
+  });
+
+  testWidgets('phone PDP message stays on the listing overlay and notifies the other party', (tester) async {
+    final app = await pumpTgApp(tester, location: '/product-detail/p001', size: TGSizes.phone);
+    await tester.tap(find.text('Message').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('pdp-chat-sheet')), findsOneWidget);
+    expect(app.location, contains('/product-detail/'));
+    expect(find.text('Messages'), findsNothing);
+    await tester.tap(find.byKey(const Key('pdp-quick-ui_quick_available')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('pdp-message-send')));
+    await tester.pump();
+    expect(app.location, contains('/product-detail/'));
+    expect(find.byKey(const Key('pdp-chat-sheet')), findsOneWidget);
+    expect(find.text('Is this still available?'), findsWidgets);
+    expect(NotificationService.instance.forUser('seller_primegastro').where((n) => n.type == 'new_message'), isNotEmpty);
+    final product = await TGProductService.instance.getById('p001');
+    MessagingService.instance.send(
+      product: product!,
+      senderId: 'seller_primegastro',
+      senderName: 'PrimeGastro',
+      body: 'Yes, still available.',
+    );
+    await tester.pump();
+    expect(find.text('Yes, still available.'), findsWidgets);
+    expect(NotificationService.instance.forUser(FakeAuthState.mockOwnerId).where((n) => n.type == 'new_message'), isNotEmpty);
     _expectNoErrors(app);
   });
 

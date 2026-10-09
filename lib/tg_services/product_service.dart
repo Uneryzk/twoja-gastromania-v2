@@ -14,6 +14,8 @@ class TGProductService {
 
   List<TGProduct>? _cache;
 
+  TGProduct? cachedByNo(String no) => _cache?.where((p) => p.listingNo == no).firstOrNull;
+
   static const Duration _prefsTimeout = Duration(seconds: 2);
 
   Future<List<TGProduct>> getAll() async {

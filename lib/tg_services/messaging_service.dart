@@ -7,6 +7,7 @@ import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_models/tg_message.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/profanity_filter.dart';
 
 class MessagingService extends ChangeNotifier {
@@ -187,6 +188,21 @@ class MessagingService extends ChangeNotifier {
       ..remove(thread)
       ..insert(0, thread);
     TGAnalytics.emit('message_sent', {'listingId': product.id, 'threadId': thread.id, 'kind': kind.name});
+    if (receiverId.isNotEmpty && receiverId != senderId) {
+      NotificationService.instance.add(
+        userId: receiverId,
+        type: 'new_message',
+        dealId: thread.id,
+        title: 'new_message',
+        body: trimmed,
+        deepLink: '/dashboard/messages?thread=${thread.id}',
+        params: {
+          'title': thread.listingTitle,
+          'name': senderName,
+          'preview': trimmed,
+        },
+      );
+    }
     _persist();
     notifyListeners();
     return TGSendResult(ok: true, threadId: thread.id, message: message);
@@ -203,8 +219,10 @@ class MessagingService extends ChangeNotifier {
     final thread = byId(threadId);
     if (thread == null) return;
     if (userId == thread.buyerId) {
+      if (thread.unreadBuyer == 0) return;
       thread.unreadBuyer = 0;
     } else {
+      if (thread.unreadSeller == 0) return;
       thread.unreadSeller = 0;
     }
     notifyListeners();

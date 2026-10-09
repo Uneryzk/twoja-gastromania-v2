@@ -69,7 +69,7 @@ class TGVerifiedSellerBadge extends StatelessWidget {
         children: [
           Icon(Icons.verified_user, size: 16, color: theme.success),
           const SizedBox(width: 6),
-          Text('Verified Seller', style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w700)),
+          Text(context.t('ui_verified_seller'), style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w700)),
         ],
       ),
     );

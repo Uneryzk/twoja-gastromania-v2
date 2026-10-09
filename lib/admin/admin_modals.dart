@@ -198,6 +198,106 @@ Future<void> showAdminRemove(BuildContext context, String listingNo) async {
   }
 }
 
+Future<void> showAdminHideReview(BuildContext context, String reviewId) async {
+  final auth = context.read<FakeAuthState>();
+  var lang = 'pl';
+  final ok = await showAdminDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
+      final preview = ModerationService.instance.previewEmail(templateId: 'hide_review', lang: lang, vars: {'listingNo': reviewId, 'seller': 'reviewer', 'to': 'author@example.com'});
+      return AdminDialogScaffold(
+        title: ctx.t('ui_hide_temporarily'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t('ui_cancel'))),
+          const SizedBox(width: 8),
+          TGButton(onPressed: () => Navigator.pop(ctx, true), label: ctx.t('ui_hide'), height: 40),
+        ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _LangToggle(value: lang, onChanged: (v) => setSt(() => lang = v)),
+            const SizedBox(height: 8),
+            EmailPreviewBlock(email: preview),
+          ],
+        ),
+      );
+    }),
+  );
+  if (ok == true && context.mounted) {
+    await ModerationService.instance.hideReview(reviewId: reviewId, actorId: auth.userId, actorRole: auth.role.name);
+  }
+}
+
+Future<void> showAdminRemoveReview(BuildContext context, String reviewId) async {
+  final auth = context.read<FakeAuthState>();
+  var reason = TGRemoveReason.other;
+  var description = '';
+  var lang = 'pl';
+  final ok = await showAdminDialog<bool>(
+    context: context,
+    builder: (ctx) {
+      return StatefulBuilder(builder: (ctx, setSt) {
+        final preview = ModerationService.instance.previewEmail(
+          templateId: 'remove_review',
+          lang: lang,
+          vars: {'listingNo': reviewId, 'reason': reason.label, 'description': description, 'seller': 'reviewer', 'to': 'author@example.com'},
+        );
+        return AdminDialogScaffold(
+          title: ctx.t('ui_remove_review'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t('ui_cancel'))),
+            const SizedBox(width: 8),
+            TGButton(key: const Key('admin-remove-review-confirm'), onPressed: () => Navigator.pop(ctx, true), label: ctx.t('ui_remove'), height: 40),
+          ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final r in TGRemoveReason.values)
+                    ChoiceChip(label: Text(ctx.t('ui_reason_${r.name}')), selected: reason == r, onSelected: (_) => setSt(() => reason = r)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                maxLines: 3,
+                onChanged: (v) => setSt(() => description = v),
+                decoration: InputDecoration(hintText: ctx.t('ui_statement_of_reasons')),
+              ),
+              _LangToggle(value: lang, onChanged: (v) => setSt(() => lang = v)),
+              const SizedBox(height: 8),
+              EmailPreviewBlock(email: preview),
+            ],
+          ),
+        );
+      });
+    },
+  );
+  if (ok == true && context.mounted) {
+    await ModerationService.instance.removeReview(
+      reviewId: reviewId,
+      actorId: auth.userId,
+      actorRole: auth.role.name,
+      reason: reason.label,
+      description: description,
+    );
+    if (context.mounted) {
+      showTGToast(
+        context,
+        context.t('ui_review_removed_undo'),
+        duration: ModerationService.instance.undoWindow,
+        action: SnackBarAction(
+          label: context.t('ui_undo'),
+          textColor: TGColors.cta,
+          onPressed: () => ModerationService.instance.undoRemoveReview(reviewId, actorId: auth.userId, actorRole: auth.role.name),
+        ),
+      );
+    }
+  }
+}
+
 Future<void> showAdminRequestProof(BuildContext context, String listingNo) async {
   final auth = context.read<FakeAuthState>();
   var lang = 'pl';

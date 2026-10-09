@@ -10,6 +10,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_util.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'serialization_util.dart';
 
+import 'package:twoja_gastromania/admin/admin_target_pages.dart';
 import 'package:twoja_gastromania/index.dart';
 
 export 'package:go_router/go_router.dart';
@@ -142,7 +143,53 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
             filter: params.state.uri.queryParameters['filter'],
             renewId: params.state.uri.queryParameters['renew'],
             renewedId: params.state.uri.queryParameters['renewed'],
+            soldId: params.state.uri.queryParameters['sold'],
           ),
+        ),
+        FFRoute(
+          name: SellerDealsPage.routeName,
+          path: SellerDealsPage.routePath,
+          builder: (context, params) => SellerDealsPage(tab: params.state.uri.queryParameters['tab']),
+        ),
+        FFRoute(
+          name: BuyerDealsPage.routeName,
+          path: BuyerDealsPage.routePath,
+          builder: (context, params) => BuyerDealsPage(
+            tab: params.state.uri.queryParameters['tab'],
+            confirm: params.state.uri.queryParameters['confirm'] == '1',
+          ),
+        ),
+        FFRoute(
+          name: 'BuyerDealDetail',
+          path: '/account/deals/:id',
+          builder: (context, params) => BuyerDealsPage(
+            dealId: params.state.pathParameters['id'],
+            confirm: params.state.uri.queryParameters['confirm'] == '1',
+            tab: params.state.uri.queryParameters['tab'],
+          ),
+        ),
+        FFRoute(
+          name: BuyerReviewsPage.routeName,
+          path: BuyerReviewsPage.routePath,
+          builder: (context, params) => BuyerReviewsPage(
+            tab: params.state.uri.queryParameters['tab'],
+            compose: params.state.uri.queryParameters['compose'] == '1',
+            listingNo: params.state.uri.queryParameters['listingNo'],
+          ),
+        ),
+        FFRoute(
+          name: 'BuyerReviewDetail',
+          path: '/account/reviews/:id',
+          builder: (context, params) => BuyerReviewsPage(
+            reviewId: params.state.pathParameters['id'],
+            evidence: params.state.uri.queryParameters['evidence'] == '1',
+            tab: params.state.uri.queryParameters['tab'],
+          ),
+        ),
+        FFRoute(
+          name: NotificationsPage.routeName,
+          path: NotificationsPage.routePath,
+          builder: (context, params) => const NotificationsPage(),
         ),
         FFRoute(
           name: MessagesPage.routeName,
@@ -198,6 +245,26 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           name: 'AdminCase',
           path: '/admin/l/:listingNo',
           builder: (context, params) => AdminCaseHost(listingNo: params.state.pathParameters['listingNo'] ?? ''),
+        ),
+        FFRoute(
+          name: 'AdminSellerCase',
+          path: '/admin/s/:sellerId',
+          builder: (context, params) => AdminSellerCaseHost(sellerId: params.state.pathParameters['sellerId'] ?? ''),
+        ),
+        FFRoute(
+          name: 'AdminReviewCase',
+          path: '/admin/r/:reviewId',
+          builder: (context, params) => AdminReviewCaseHost(reviewId: params.state.pathParameters['reviewId'] ?? ''),
+        ),
+        FFRoute(
+          name: 'AdminDeals',
+          path: '/admin/deals',
+          builder: (context, params) => AdminDealsHost(queue: params.state.uri.queryParameters['queue']),
+        ),
+        FFRoute(
+          name: 'AdminDealCase',
+          path: '/admin/d/:dealNo',
+          builder: (context, params) => AdminDealCaseHost(dealNo: params.state.pathParameters['dealNo'] ?? ''),
         ),
       ].map((r) => r.toRoute(appStateNotifier)).toList()
         ..add(GoRoute(path: '/checkout', redirect: (_, __) => CheckoutPage.routePath))

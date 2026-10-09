@@ -3,7 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_case_page.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
+import 'package:twoja_gastromania/admin/admin_deal_case_page.dart';
+import 'package:twoja_gastromania/admin/admin_deal_queue_page.dart';
 import 'package:twoja_gastromania/admin/admin_queue_page.dart';
+import 'package:twoja_gastromania/tg_models/tg_deal_moderation.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
@@ -87,6 +90,7 @@ class AdminSellersPage extends StatelessWidget {
                 title: Text('${s.seller.name} · ${adminSellerKindL10n(context, s.seller.type, verified: s.seller.verified)}'),
                 subtitle: Text('${s.phone}${s.nip == null ? '' : ' · NIP ${s.nip}'}\n${context.t('ui_past_reports', {'r': '${s.pastReports}', 'm': '${s.pastRemovals}'})} · ${fmt.format(s.accountCreatedAt)}'),
                 trailing: s.suspended ? Text(context.t('ui_suspended'), style: const TextStyle(color: TGColors.error, fontWeight: FontWeight.w900)) : null,
+                onTap: () => TGAdminNav.openCase(context, ModerationService.caseKeyFor(TGReportTarget.seller, s.seller.id)),
               ),
             ),
           ),
@@ -264,4 +268,22 @@ class AdminCaseHost extends StatelessWidget {
   final String listingNo;
   @override
   Widget build(BuildContext context) => AdminShell(section: 'queue', child: AdminCasePage(listingNo: listingNo));
+}
+
+class AdminDealsHost extends StatelessWidget {
+  const AdminDealsHost({super.key, this.queue});
+  final String? queue;
+
+  @override
+  Widget build(BuildContext context) {
+    final kind = TGDealQueueKind.values.where((e) => e.name == queue).firstOrNull ?? TGDealQueueKind.objection;
+    return AdminShell(section: 'deals', child: AdminDealQueuePage(queue: kind));
+  }
+}
+
+class AdminDealCaseHost extends StatelessWidget {
+  const AdminDealCaseHost({super.key, required this.dealNo});
+  final String dealNo;
+  @override
+  Widget build(BuildContext context) => AdminShell(section: 'deals', child: AdminDealCasePage(dealNo: dealNo));
 }

@@ -6,6 +6,7 @@ import 'package:twoja_gastromania/add_product/add_product_fields.dart';
 import 'package:twoja_gastromania/dashboard/dashboard_nav.dart';
 import 'package:twoja_gastromania/dashboard/listing_row.dart';
 import 'package:twoja_gastromania/dashboard/renew_sheet.dart';
+import 'package:twoja_gastromania/deals/sold_flow_sheet.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
@@ -46,7 +47,7 @@ int compareDashboardListings(TGProduct a, TGProduct b) {
 }
 
 class ListingsDashboardPage extends StatefulWidget {
-  const ListingsDashboardPage({super.key, this.filter, this.renewId, this.renewedId});
+  const ListingsDashboardPage({super.key, this.filter, this.renewId, this.renewedId, this.soldId});
 
   static const routeName = 'ListingsDashboard';
   static const routePath = '/dashboard/listings';
@@ -54,6 +55,7 @@ class ListingsDashboardPage extends StatefulWidget {
   final String? filter;
   final String? renewId;
   final String? renewedId;
+  final String? soldId;
 
   @override
   State<ListingsDashboardPage> createState() => _ListingsDashboardPageState();
@@ -69,7 +71,7 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
   @override
   void didUpdateWidget(covariant ListingsDashboardPage old) {
     super.didUpdateWidget(old);
-    if (old.renewId != widget.renewId || old.renewedId != widget.renewedId) {
+    if (old.renewId != widget.renewId || old.renewedId != widget.renewedId || old.soldId != widget.soldId) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _handleQuery());
     }
   }
@@ -82,6 +84,14 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
       final p = auth.ownedListings.where((e) => e.id == renewed).firstOrNull;
       final until = DateFormat('d MMM y').format(p?.expiresAt ?? DateTime.now());
       showTGToast(context, 'Live again until $until');
+    }
+    final sold = widget.soldId;
+    if (sold != null && sold.isNotEmpty) {
+      final listing = auth.ownedListings.where((p) => p.id == sold || p.listingNo == sold).firstOrNull;
+      if (listing != null) {
+        showSoldFlow(context, listing, mode: SoldFlowMode.markSold);
+        return;
+      }
     }
     final id = widget.renewId;
     if (id == null || id.isEmpty) return;

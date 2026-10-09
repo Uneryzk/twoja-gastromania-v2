@@ -65,6 +65,34 @@ void main() {
     _expectNoErrors(app);
   });
 
+  testWidgets('plans page is fully Polish when locale is pl', (tester) async {
+    final app = await pumpTgApp(tester, location: '/plans', locale: const Locale('pl'));
+    expect(find.text('Plany sklepu'), findsWidgets);
+    expect(find.text('Miesięcznie'), findsOneWidget);
+    expect(find.text('6 miesięcy −10%'), findsOneWidget);
+    expect(find.text('Rocznie, 2 miesiące gratis'), findsOneWidget);
+    expect(find.text('Sklep Basic'), findsOneWidget);
+    expect(find.text('Sklep Pro'), findsOneWidget);
+    expect(find.text('Sklep Enterprise'), findsOneWidget);
+    expect(find.text('Najpopularniejszy'), findsOneWidget);
+    expect(find.text('15 aktywnych ogłoszeń'), findsOneWidget);
+    expect(find.text('Odznaka zweryfikowanego sprzedawcy'), findsOneWidget);
+    expect(find.text('Strona sklepu'), findsOneWidget);
+    expect(find.text('50 aktywnych ogłoszeń'), findsOneWidget);
+    expect(find.text('3 wyróżnione ogłoszenia'), findsOneWidget);
+    expect(find.text('Narzędzia wyceny dla klientów'), findsOneWidget);
+    expect(find.text('Nieograniczone ogłoszenia'), findsOneWidget);
+    expect(find.text('Miejsce na baner'), findsOneWidget);
+    expect(find.text('Wszystkie zapytania Special Order'), findsOneWidget);
+    expect(find.text('Wybierz Basic'), findsOneWidget);
+    expect(find.text('Wybierz Pro'), findsOneWidget);
+    expect(find.text('Wybierz Enterprise'), findsOneWidget);
+    expect(find.text('Store plans'), findsNothing);
+    expect(find.text('Choose Basic'), findsNothing);
+    expect(find.textContaining('Automatyczne odnowienie'), findsOneWidget);
+    _expectNoErrors(app);
+  });
+
   testWidgets('plans page Choose Basic opens checkout', (tester) async {
     final app = await pumpTgApp(tester, location: '/plans');
     expect(find.text('Basic Store'), findsOneWidget);

@@ -8,15 +8,56 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 /// Location card: a stylised dark street map with a glowing turquoise pin, the
 /// address, and an "Open in Maps" button that deep-links to the real map.
 class TGMapCard extends StatelessWidget {
-  const TGMapCard({super.key, required this.address, required this.mapsUri, this.actionLabel});
+  const TGMapCard({super.key, required this.address, required this.mapsUri, this.actionLabel, this.mapHeight});
 
   final String address;
   final Uri mapsUri;
   final String? actionLabel;
+  final double? mapHeight;
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
+    final art = Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(
+          painter: _MapPainter(
+            land: theme.alternate,
+            street: theme.tertiary,
+            park: theme.success,
+            pin: theme.primary,
+          ),
+        ),
+        Positioned(
+          left: 10,
+          right: 10,
+          bottom: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.secondaryBackground.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: theme.tertiary),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.location_on, size: 16, color: theme.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    address,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.bodySmall.override(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -37,49 +78,9 @@ class TGMapCard extends StatelessWidget {
                 onTap: () => openExternalUrl(context, mapsUri, failMessage: 'Could not open Maps'),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(TGRadius.input),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 10,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CustomPaint(
-                          painter: _MapPainter(
-                            land: theme.alternate,
-                            street: theme.tertiary,
-                            park: theme.success,
-                            pin: theme.primary,
-                          ),
-                        ),
-                        Positioned(
-                          left: 10,
-                          right: 10,
-                          bottom: 10,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: theme.secondaryBackground.withValues(alpha: 0.92),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: theme.tertiary),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.location_on, size: 16, color: theme.primary),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    address,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.bodySmall.override(fontWeight: FontWeight.w700),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: mapHeight != null
+                      ? SizedBox(height: mapHeight, width: double.infinity, child: art)
+                      : AspectRatio(aspectRatio: 16 / 10, child: art),
                 ),
               ),
             ),

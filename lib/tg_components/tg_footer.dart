@@ -475,7 +475,7 @@ class _BottomStrip extends StatelessWidget {
       spacing: 16,
       children: [
         Text('© ${DateTime.now().year} ${TGCompany.name}', style: style),
-        Text('Regulamin · Privacy Policy · Cookies', style: style),
+        Text(context.t('ui_legal_strip'), style: style),
       ],
     );
   }

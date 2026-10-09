@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/dashboard/renew_sheet.dart';
+import 'package:twoja_gastromania/deals/sold_flow_sheet.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/product_detail/pdp_gallery.dart';
 import 'package:twoja_gastromania/product_detail/pdp_message_sheet.dart';
@@ -604,44 +605,56 @@ class _SellerStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final s = product.seller;
+    final name = s.type == TGSellerType.private ? context.t('ui_private') : s.name;
     return InkWell(
       onTap: () => context.push(TGSellerProfileService.instance.pathForSellerId(s.id)),
       borderRadius: BorderRadius.circular(12),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 44),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: theme.alternate,
-              child: Text(s.name.isEmpty ? '?' : s.name[0], style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.type == TGSellerType.private ? context.t('ui_private') : s.name, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final tight = box.maxWidth < 480;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: theme.alternate,
+                  child: Text(s.name.isEmpty ? '?' : s.name[0], style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (s.verified) const TGVerifiedSellerBadge(),
-                      TGRatingStars(rating: s.rating, size: 14),
+                      Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (s.verified) const TGVerifiedSellerBadge(),
+                          TGRatingStars(rating: s.rating, size: 14),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(context.t('ui_visit_store'), style: theme.labelSmall.override(color: theme.primary, fontWeight: FontWeight.w800)),
-                Icon(Icons.chevron_right, color: theme.secondaryText),
+                ),
+                const SizedBox(width: 8),
+                if (tight)
+                  Icon(Icons.chevron_right, color: theme.secondaryText)
+                else
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(context.t('ui_visit_store'), style: theme.labelSmall.override(color: theme.primary, fontWeight: FontWeight.w800)),
+                      Icon(Icons.chevron_right, color: theme.secondaryText, size: 20),
+                    ],
+                  ),
               ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -1058,6 +1071,20 @@ class _OwnerBar extends StatelessWidget {
                     height: 44,
                     borderRadius: BorderRadius.circular(TGRadius.pill),
                   ),
+                TGButton(
+                  onPressed: () => showSoldFlow(context, product, mode: SoldFlowMode.markSold),
+                  label: context.t('ui_mark_sold'),
+                  variant: TGButtonVariant.outline,
+                  height: 44,
+                  borderRadius: BorderRadius.circular(TGRadius.pill),
+                ),
+                TGButton(
+                  onPressed: () => showSoldFlow(context, product, mode: SoldFlowMode.removeListing),
+                  label: context.t('ui_remove_listing'),
+                  variant: TGButtonVariant.ghost,
+                  height: 44,
+                  borderRadius: BorderRadius.circular(TGRadius.pill),
+                ),
               ],
             ),
         ],
