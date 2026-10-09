@@ -74,6 +74,7 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<FakeAuthState>();
     final profile = TGSellerProfileService.instance.bySellerKey(widget.profile.sellerKey) ?? widget.profile;
     return ListenableBuilder(
       listenable: Listenable.merge([DealService.instance, TGSellerProfileService.instance]),
@@ -114,6 +115,8 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
           sort: _sort,
           starFilter: _starFilter,
           onlyCounted: _onlyCounted,
+          compact: !wide,
+          ownerUi: ownerUi,
           onSort: (s) => setState(() => _sort = s),
           onStarFilter: (s) => setState(() {
             _starFilter = s;
@@ -132,7 +135,7 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
             children: [
               summary,
               const SizedBox(height: 12),
-              TGButton(key: const Key('write-review'), onPressed: writeEnabled ? _write : null, label: context.t('ui_write_review'), height: 44),
+              TGButton(key: const Key('write-review'), onPressed: writeEnabled ? _write : null, label: context.t('ui_write_review'), height: 48),
               const SizedBox(height: 20),
               list,
             ],
@@ -423,6 +426,8 @@ class _ReviewsList extends StatelessWidget {
     required this.onOnlyCounted,
     required this.onMore,
     required this.empty,
+    this.compact = false,
+    this.ownerUi = false,
   });
 
   final TGStoreProfile profile;
@@ -436,6 +441,67 @@ class _ReviewsList extends StatelessWidget {
   final ValueChanged<bool> onOnlyCounted;
   final VoidCallback onMore;
   final bool empty;
+  final bool compact;
+  final bool ownerUi;
+
+  Future<void> _openFilters(BuildContext context) {
+    var sortDraft = sort;
+    int? starDraft = starFilter;
+    return withStoreOverlay(context, () => showModalBottomSheet<void>(
+          context: context,
+          backgroundColor: TGColors.surface,
+          sheetAnimationStyle: AnimationStyle(duration: tgAnim(context, const Duration(milliseconds: 250))),
+          builder: (ctx) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: StatefulBuilder(
+                builder: (context, setLocal) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(context.t('ui_sort_and_filter'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                      const SizedBox(height: 12),
+                      DropdownButton<TGReviewSort>(
+                        value: sortDraft,
+                        isExpanded: true,
+                        items: [
+                          DropdownMenuItem(value: TGReviewSort.newest, child: Text(context.t('ui_sort_newest'))),
+                          DropdownMenuItem(value: TGReviewSort.highest, child: Text(context.t('ui_sort_highest'))),
+                          DropdownMenuItem(value: TGReviewSort.lowest, child: Text(context.t('ui_sort_lowest'))),
+                          DropdownMenuItem(value: TGReviewSort.helpful, child: Text(context.t('ui_sort_helpful'))),
+                        ],
+                        onChanged: (v) => setLocal(() => sortDraft = v ?? sortDraft),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButton<int?>(
+                        value: starDraft,
+                        isExpanded: true,
+                        hint: Text(context.t('ui_filter_stars')),
+                        items: [
+                          DropdownMenuItem(value: null, child: Text(context.t('ui_all_stars'))),
+                          for (var s = 5; s >= 1; s--) DropdownMenuItem(value: s, child: Text('$s')),
+                        ],
+                        onChanged: (v) => setLocal(() => starDraft = v),
+                      ),
+                      const SizedBox(height: 16),
+                      TGButton(
+                        onPressed: () {
+                          onSort(sortDraft);
+                          onStarFilter(starDraft);
+                          Navigator.pop(ctx);
+                        },
+                        label: context.t('ui_done'),
+                        height: 48,
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -447,32 +513,42 @@ class _ReviewsList extends StatelessWidget {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            DropdownButtonHideUnderline(
-              child: DropdownButton<TGReviewSort>(
+            if (compact)
+              TGButton(
                 key: const Key('review-sort'),
-                value: sort,
-                items: [
-                  DropdownMenuItem(value: TGReviewSort.newest, child: Text(context.t('ui_sort_newest'))),
-                  DropdownMenuItem(value: TGReviewSort.highest, child: Text(context.t('ui_sort_highest'))),
-                  DropdownMenuItem(value: TGReviewSort.lowest, child: Text(context.t('ui_sort_lowest'))),
-                  DropdownMenuItem(value: TGReviewSort.helpful, child: Text(context.t('ui_sort_helpful'))),
-                ],
-                onChanged: (v) {
-                  if (v != null) onSort(v);
-                },
+                onPressed: () => _openFilters(context),
+                label: context.t('ui_sort_and_filter'),
+                variant: TGButtonVariant.outline,
+                height: 44,
+              )
+            else ...[
+              DropdownButtonHideUnderline(
+                child: DropdownButton<TGReviewSort>(
+                  key: const Key('review-sort'),
+                  value: sort,
+                  items: [
+                    DropdownMenuItem(value: TGReviewSort.newest, child: Text(context.t('ui_sort_newest'))),
+                    DropdownMenuItem(value: TGReviewSort.highest, child: Text(context.t('ui_sort_highest'))),
+                    DropdownMenuItem(value: TGReviewSort.lowest, child: Text(context.t('ui_sort_lowest'))),
+                    DropdownMenuItem(value: TGReviewSort.helpful, child: Text(context.t('ui_sort_helpful'))),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) onSort(v);
+                  },
+                ),
               ),
-            ),
-            DropdownButtonHideUnderline(
-              child: DropdownButton<int?>(
-                value: starFilter,
-                hint: Text(context.t('ui_filter_stars')),
-                items: [
-                  DropdownMenuItem(value: null, child: Text(context.t('ui_all_stars'))),
-                  for (var s = 5; s >= 1; s--) DropdownMenuItem(value: s, child: Text('$s')),
-                ],
-                onChanged: onStarFilter,
+              DropdownButtonHideUnderline(
+                child: DropdownButton<int?>(
+                  value: starFilter,
+                  hint: Text(context.t('ui_filter_stars')),
+                  items: [
+                    DropdownMenuItem(value: null, child: Text(context.t('ui_all_stars'))),
+                    for (var s = 5; s >= 1; s--) DropdownMenuItem(value: s, child: Text('$s')),
+                  ],
+                  onChanged: onStarFilter,
+                ),
               ),
-            ),
+            ],
             FilterChip(
               key: const Key('review-only-counted'),
               label: Text(context.t('ui_only_counted')),
@@ -499,7 +575,7 @@ class _ReviewsList extends StatelessWidget {
             child: const SizedBox.shrink(),
           ),
           for (final r in reviews) ...[
-            _ReviewCard(profile: profile, review: r),
+            _ReviewCard(profile: profile, review: r, ownerUi: ownerUi),
             const SizedBox(height: 12),
           ],
           if (reviews.length < total)
@@ -520,9 +596,10 @@ class _ReviewsList extends StatelessWidget {
 }
 
 class _ReviewCard extends StatefulWidget {
-  const _ReviewCard({required this.profile, required this.review});
+  const _ReviewCard({required this.profile, required this.review, this.ownerUi = false});
   final TGStoreProfile profile;
   final TGPurchaseReview review;
+  final bool ownerUi;
 
   @override
   State<_ReviewCard> createState() => _ReviewCardState();
@@ -546,7 +623,7 @@ class _ReviewCardState extends State<_ReviewCard> {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final r = widget.review;
-    final isOwner = storeOwnerUi(context, widget.profile);
+    final isOwner = widget.ownerUi;
     final fmt = DateFormat('d MMM yyyy', Localizations.localeOf(context).languageCode);
     final month = DateFormat('MMM yyyy', Localizations.localeOf(context).languageCode).format(r.dealMonth);
     return Container(

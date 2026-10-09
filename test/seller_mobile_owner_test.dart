@@ -103,7 +103,7 @@ void main() {
     expect(app.errors.distinct, isEmpty, reason: app.errors.distinct.join('\n'));
   });
 
-  testWidgets('390px store categories collapse to hamburger', (tester) async {
+  testWidgets('390px store categories scroll as chips', (tester) async {
     final app = await pumpTgApp(
       tester,
       location: '/seller/1847-gastrosilesia',
@@ -112,20 +112,15 @@ void main() {
     );
     expect(find.byKey(const Key('store-categories-menu')), findsOneWidget);
     expect(find.byKey(const Key('store-listings-filter-menu')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('store-categories-menu')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.byKey(const Key('store-category-cookingEquipment')), findsOneWidget);
-    expect(find.byKey(const Key('store-category-stainlessSteelFurniture')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('store-category-stainlessSteelFurniture')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('store-category-cookingEquipment')), findsWidgets);
+    expect(find.byKey(const Key('store-category-stainlessSteelFurniture')), findsWidgets);
     await tester.tap(find.byKey(const Key('store-listings-filter-menu')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('Paslanmaz Çelik Mobilya'), findsWidgets);
-    expect(find.text('Tümü'), findsWidgets);
     await tester.tap(find.textContaining('Paslanmaz Çelik Mobilya').last);
+    await tester.pump();
+    await tester.tap(find.textContaining('sonucu göster'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(app.location, contains('cat=stainless'));
@@ -136,5 +131,27 @@ void main() {
   testWidgets('dev switch lists store owner roles', (tester) async {
     expect(StoreOwnerDevPick.technica.label, 'Store owner (Technica)');
     expect(StoreOwnerDevPick.gastroPro.label, 'Store owner (Gastrosilesia.pl, Pro)');
+  });
+
+  testWidgets('390px reviews tab is a single column with write CTA', (tester) async {
+    final app = await pumpTgApp(tester, location: '/seller/2931-technica?tab=reviews', size: TGSizes.phone);
+    expect(find.text('4.0'), findsWidgets);
+    expect(find.text('28 reviews'), findsWidgets);
+    expect(find.byKey(const Key('write-review')), findsOneWidget);
+    expect(find.byKey(const Key('how-reviews-work')), findsOneWidget);
+    expect(find.byKey(const Key('review-sort')), findsOneWidget);
+    expect(find.textContaining('Confirmed deal'), findsWidgets);
+    app.errors.stop();
+    expect(app.errors.distinct, isEmpty, reason: app.errors.distinct.join('\n'));
+  });
+
+  testWidgets('owner reviews tab shows review-check badge and disables write', (tester) async {
+    final app = await pumpTgApp(tester, location: '/seller/2931-technica?tab=reviews');
+    app.auth.actAsStoreOwner(StoreOwnerDevPick.technica);
+    await tester.pump();
+    expect(storeIsOwner(app.auth, TGSellerProfileService.instance.bySellerKey('seller_technica')!), isTrue);
+    expect(find.byKey(const Key('store-review-checks-badge')), findsOneWidget);
+    app.errors.stop();
+    expect(app.errors.distinct, isEmpty, reason: app.errors.distinct.join('\n'));
   });
 }

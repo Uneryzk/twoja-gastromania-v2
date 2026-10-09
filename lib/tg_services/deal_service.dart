@@ -515,6 +515,9 @@ class DealService extends ChangeNotifier {
 
   int notInRatingCount(String sellerKey) => publicReviewsFor(sellerKey).where((r) => !r.countsTowardRating).length;
 
+  int pendingSellerChecksFor(String sellerKey) =>
+      reviewsForSeller(sellerKey).where((r) => r.state == TGPurchaseReviewState.awaitingSeller).length;
+
   void syncStoreRatings() {
     for (final p in TGSellerProfileService.instance.all) {
       final counted = countedReviewsFor(p.sellerKey);

@@ -1361,6 +1361,8 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'ui_review_about_month': _d('About: {title} · {m}', pl: 'Dotyczy: {title} · {m}', tr: 'Hakkında: {title} · {m}'),
   'ui_respond_review_check': _d('Respond to this review check', pl: 'Odpowiedz na weryfikację opinii', tr: 'Bu yorum kontrolüne yanıt ver'),
   'ui_active_listings': _d('Active listings', pl: 'Aktywne ogłoszenia', tr: 'Aktif ilanlar'),
+  'ui_listings_short': _d('Listings', pl: 'Ogłoszenia', tr: 'İlanlar'),
+  'ui_sort_and_filter': _d('Sort & filter', pl: 'Sortuj i filtruj', tr: 'Sırala ve filtrele'),
 };
 
 /// Merges FlutterFlow groups with [kUiTranslations] and copies full-language

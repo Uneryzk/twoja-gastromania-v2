@@ -29,6 +29,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/review_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -176,13 +177,14 @@ class _StoreBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: chrome,
+    return ListenableBuilder(
+      listenable: Listenable.merge([chrome, DealService.instance]),
       builder: (context, _) => _build(context),
     );
   }
 
   Widget _build(BuildContext context) {
+    DealService.instance.ensureSeeded();
     final auth = context.watch<FakeAuthState>();
     final isStore = profile.isStore;
     final width = MediaQuery.sizeOf(context).width;
@@ -347,6 +349,7 @@ class _StoreBody extends StatelessWidget {
               mobile: mobile,
               profile: profile,
               listingsCount: listings.length,
+              pendingChecks: ownerUi ? DealService.instance.pendingSellerChecksFor(profile.sellerKey) : 0,
               onSelect: selectTab,
               onCall: !mobile && contactLooksOn ? onCall : null,
             ),
@@ -933,7 +936,7 @@ class _PrivateHeader extends StatelessWidget {
 }
 
 class _TabsDelegate extends SliverPersistentHeaderDelegate {
-  _TabsDelegate({required this.tabs, required this.active, required this.compact, required this.profile, required this.listingsCount, required this.onSelect, this.onCall, this.mobile = false});
+  _TabsDelegate({required this.tabs, required this.active, required this.compact, required this.profile, required this.listingsCount, required this.onSelect, this.onCall, this.mobile = false, this.pendingChecks = 0});
 
   final List<TGStoreTab> tabs;
   final TGStoreTab active;
@@ -941,6 +944,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
   final bool mobile;
   final TGStoreProfile profile;
   final int listingsCount;
+  final int pendingChecks;
   final ValueChanged<TGStoreTab> onSelect;
   final VoidCallback? onCall;
 
@@ -956,7 +960,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
       color: const Color(0xFF252525),
       child: Container(
         decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFF3A3A3A)))),
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: EdgeInsets.symmetric(horizontal: mobile ? 16 : 24),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1280),
@@ -971,7 +975,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
                         Flexible(child: Text(profile.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
                         if (profile.verified) ...[const SizedBox(width: 8), const TGVerifiedSellerBadge()],
                         const SizedBox(width: 16),
-                        Expanded(child: _TabList(tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect, short: mobile, isStore: profile.isStore)),
+                        Expanded(child: _TabList(tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, pendingChecks: pendingChecks, onSelect: onSelect, short: mobile, isStore: profile.isStore)),
                         if (onCall != null)
                           TGButton(
                             onPressed: onCall,
@@ -981,7 +985,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
                           ),
                       ],
                     )
-                  : _TabList(key: const ValueKey('full'), tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, onSelect: onSelect, short: mobile, isStore: profile.isStore),
+                  : _TabList(key: const ValueKey('full'), tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, pendingChecks: pendingChecks, onSelect: onSelect, short: mobile, isStore: profile.isStore),
             ),
           ),
         ),
@@ -990,15 +994,16 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant _TabsDelegate old) => old.active != active || old.compact != compact || old.listingsCount != listingsCount || old.mobile != mobile;
+  bool shouldRebuild(covariant _TabsDelegate old) => old.active != active || old.compact != compact || old.listingsCount != listingsCount || old.mobile != mobile || old.pendingChecks != pendingChecks;
 }
 
 class _TabList extends StatelessWidget {
-  const _TabList({super.key, required this.tabs, required this.active, required this.listingsCount, required this.reviewsCount, required this.onSelect, this.short = false, this.isStore = true});
+  const _TabList({super.key, required this.tabs, required this.active, required this.listingsCount, required this.reviewsCount, required this.onSelect, this.short = false, this.isStore = true, this.pendingChecks = 0});
   final List<TGStoreTab> tabs;
   final TGStoreTab active;
   final int listingsCount;
   final int reviewsCount;
+  final int pendingChecks;
   final ValueChanged<TGStoreTab> onSelect;
   final bool short;
   final bool isStore;
@@ -1008,7 +1013,7 @@ class _TabList extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     String label(TGStoreTab t) => short
         ? (t == TGStoreTab.products && !isStore
-            ? context.t('ui_active_listings')
+            ? context.t('ui_listings_short')
             : storeMobileTabLabel(context, name: t.name, products: listingsCount, reviews: reviewsCount))
         : switch (t) {
             TGStoreTab.products => isStore
@@ -1050,11 +1055,25 @@ class _TabList extends StatelessWidget {
                         duration: tgAnim(context, TGMotion.slide),
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         decoration: BoxDecoration(
-                          border: Border(bottom: BorderSide(color: t == active ? theme.primary : Colors.transparent, width: 2)),
+                          border: Border(bottom: BorderSide(color: t == active ? TGColors.cta : Colors.transparent, width: 2)),
                         ),
                         alignment: Alignment.center,
                         height: 52,
-                        child: Text(label(t), style: theme.bodyMedium.override(fontWeight: FontWeight.w800, color: t == active ? theme.primaryText : theme.secondaryText)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(label(t), style: theme.bodyMedium.override(fontWeight: FontWeight.w800, color: t == active ? theme.primaryText : theme.secondaryText)),
+                            if (t == TGStoreTab.reviews && pendingChecks > 0) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                key: const Key('store-review-checks-badge'),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(color: TGColors.slaAmber, borderRadius: BorderRadius.circular(99)),
+                                child: Text('$pendingChecks', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A))),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

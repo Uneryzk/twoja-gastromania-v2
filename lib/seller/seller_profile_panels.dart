@@ -9,9 +9,9 @@ import 'package:twoja_gastromania/products/products_logic.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/products/products_results.dart' show TGSortDropdown, TGViewToggle;
 import 'package:twoja_gastromania/seller/seller_profile_query.dart';
+import 'package:twoja_gastromania/seller/store_mobile_layout.dart';
 import 'package:twoja_gastromania/seller/store_owner_edit.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
-import 'package:twoja_gastromania/tg_components/tg_filter_menu.dart';
 import 'package:twoja_gastromania/tg_components/tg_map_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_search_field.dart';
@@ -57,15 +57,17 @@ class _StoreProductsPanelState extends State<StoreProductsPanel> {
     widget.onQuery(next);
   }
 
-  Future<void> _openFilters(BuildContext context, int resultCount) async {
+  Future<void> _openFilters(BuildContext context, Map<TGCategory, int> cats, List<TGProduct> listings) async {
     await withStoreOverlay(context, () => showModalBottomSheet<void>(
           context: context,
           isScrollControlled: true,
           backgroundColor: TGColors.surface,
           barrierColor: Colors.black54,
+          sheetAnimationStyle: AnimationStyle(duration: tgAnim(context, const Duration(milliseconds: 250))),
           builder: (ctx) => _StoreFilterSheet(
             query: query,
-            resultCount: resultCount,
+            cats: cats,
+            listings: listings,
             onApply: (q) {
               apply(q);
               Navigator.pop(ctx);
@@ -119,30 +121,17 @@ class _StoreProductsPanelState extends State<StoreProductsPanel> {
                 icon: const Icon(Icons.search),
               ),
               Expanded(
-                child: TGFilterMenu(
-                  menuKey: const Key('store-listings-filter-menu'),
-                  title: context.t('ui_categories'),
-                  currentId: query.category?.name ?? '',
-                  options: [
-                    TGFilterOption(id: '', label: context.t('ui_all')),
-                    for (final e in cats.entries)
-                      TGFilterOption(
-                        id: e.key.name,
-                        label: '${categoryLabel(e.key, t: (k) => context.t(k))} (${e.value})',
-                      ),
-                  ],
-                  onSelect: (id) {
-                    if (id.isEmpty) {
-                      apply(query.copyWith(categoryToNull: true, page: 1));
-                    } else {
-                      apply(query.copyWith(category: TGCategory.values.byName(id), page: 1));
-                    }
-                  },
+                child: StoreCategoriesMenu(
+                  menuKey: const Key('store-listings-cats'),
+                  categories: cats.keys.toList(),
+                  selected: query.category,
+                  onSelect: (cat) => apply(query.copyWith(category: cat, categoryToNull: query.category == cat, page: 1)),
                 ),
               ),
               const SizedBox(width: 8),
               TGButton(
-                onPressed: () => _openFilters(context, organic.length),
+                key: const Key('store-listings-filter-menu'),
+                onPressed: () => _openFilters(context, cats, listings),
                 label: context.t('ui_filters_sort'),
                 variant: TGButtonVariant.outline,
                 height: 44,
@@ -240,10 +229,19 @@ class _StoreProductsPanelState extends State<StoreProductsPanel> {
 }
 
 class _StoreFilterSheet extends StatelessWidget {
-  const _StoreFilterSheet({required this.query, required this.resultCount, required this.onApply});
+  const _StoreFilterSheet({required this.query, required this.cats, required this.listings, required this.onApply});
   final TGStoreQuery query;
-  final int resultCount;
+  final Map<TGCategory, int> cats;
+  final List<TGProduct> listings;
   final ValueChanged<TGStoreQuery> onApply;
+
+  int _count(TGStoreQuery q) {
+    return listings.where((p) {
+      if (q.category != null && p.category != q.category) return false;
+      if (q.conditions.isNotEmpty && !q.conditions.contains(p.condition)) return false;
+      return true;
+    }).length;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -277,6 +275,22 @@ class _StoreFilterSheet extends StatelessWidget {
                           onChanged: (s) => setLocal(() => draft = draft.copyWith(sort: s, page: 1)),
                         ),
                         const SizedBox(height: 16),
+                        Text(context.t('ui_categories'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final e in cats.entries)
+                              _FilterChip(
+                                label: '${categoryLabel(e.key, t: (k) => context.t(k))} (${e.value})',
+                                selected: draft.category == e.key,
+                                accent: true,
+                                onTap: () => setLocal(() => draft = draft.copyWith(category: e.key, categoryToNull: draft.category == e.key, page: 1)),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                         _FilterChip(
                           label: conditionLabel(TGCondition.newItem, t: (k) => context.t(k)),
                           selected: draft.conditions.contains(TGCondition.newItem),
@@ -303,7 +317,7 @@ class _StoreFilterSheet extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     child: TGButton(
                       onPressed: () => onApply(draft),
-                      label: context.t('ui_show_n_results', {'n': '$resultCount'}),
+                      label: context.t('ui_show_n_results', {'n': '${_count(draft)}'}),
                       height: 48,
                     ),
                   ),
@@ -455,7 +469,7 @@ class _FilterChip extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 36,
+          height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: bg,

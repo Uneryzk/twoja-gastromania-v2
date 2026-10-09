@@ -140,104 +140,56 @@ class StoreMobileCoverIdentity extends StatelessWidget {
   }
 }
 
-/// Compact hamburger for long store-category labels on phones.
+/// Horizontally scrolling category chips (phone identity + listings).
 class StoreCategoriesMenu extends StatelessWidget {
-  const StoreCategoriesMenu({super.key, required this.categories});
+  const StoreCategoriesMenu({super.key, required this.categories, this.selected, this.onSelect, this.menuKey});
 
   final List<TGCategory> categories;
+  final TGCategory? selected;
+  final ValueChanged<TGCategory>? onSelect;
+  final Key? menuKey;
 
   @override
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
     final theme = FlutterFlowTheme.of(context);
-    final title = context.t('ui_categories');
-    return Tooltip(
-      message: title,
-      child: Material(
-        color: theme.secondary.withValues(alpha: 0.16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(TGRadius.pill),
-          side: BorderSide(color: theme.secondary.withValues(alpha: 0.45)),
-        ),
-        child: InkWell(
-          key: const Key('store-categories-menu'),
-          borderRadius: BorderRadius.circular(TGRadius.pill),
-          onTap: () => _open(context),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
-            child: Row(
-              children: [
-                Icon(Icons.menu, size: 20, color: theme.secondary),
-                const SizedBox(width: 10),
-                Expanded(
+    return SizedBox(
+      key: menuKey ?? const Key('store-categories-menu'),
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final cat = categories[i];
+          final on = selected == cat;
+          return Material(
+            color: on ? theme.secondary : theme.secondary.withValues(alpha: 0.16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TGRadius.pill),
+              side: BorderSide(color: theme.secondary.withValues(alpha: on ? 0.9 : 0.45)),
+            ),
+            child: InkWell(
+              key: Key('store-category-${cat.name}'),
+              borderRadius: BorderRadius.circular(TGRadius.pill),
+              onTap: onSelect == null ? null : () => onSelect!(cat),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Center(
                   child: Text(
-                    title,
+                    categoryLabel(cat, t: (k) => context.t(k)),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.bodyMedium.override(color: theme.secondary, fontWeight: FontWeight.w800),
+                    style: theme.labelSmall.override(
+                      color: on ? const Color(0xFF1A1A1A) : theme.secondary,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-                Text(
-                  '${categories.length}',
-                  style: theme.labelSmall.override(color: theme.secondary, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.expand_more, color: theme.secondary),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _open(BuildContext context) async {
-    final theme = FlutterFlowTheme.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: theme.secondaryBackground,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return SafeArea(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.72),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(context.t('ui_categories'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 12),
-                  for (final cat in categories) ...[
-                    Material(
-                      color: theme.alternate,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(TGRadius.card),
-                        side: BorderSide(color: theme.tertiary),
-                      ),
-                      child: InkWell(
-                        key: Key('store-category-${cat.name}'),
-                        borderRadius: BorderRadius.circular(TGRadius.card),
-                        onTap: () => Navigator.pop(ctx),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                          child: Text(
-                            categoryLabel(cat, t: (k) => context.t(k)),
-                            style: theme.bodyMedium.override(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ],
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

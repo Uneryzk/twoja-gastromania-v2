@@ -49,8 +49,9 @@ Future<void> showReviewComposer(
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
+    sheetAnimationStyle: AnimationStyle(duration: tgAnim(context, const Duration(milliseconds: 250))),
     builder: (ctx) => SizedBox(
-      height: MediaQuery.sizeOf(ctx).height * (MediaQuery.sizeOf(ctx).width <= 400 ? 1 : 0.9),
+      height: MediaQuery.sizeOf(ctx).height * 0.9,
       child: ReviewComposerSheet(sellerId: sellerId, sellerName: sellerName, listingNo: listingNo, sellerVerified: sellerVerified, desktop: false),
     ),
   );
