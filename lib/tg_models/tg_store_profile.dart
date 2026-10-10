@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 
 enum TGStoreStatus { active, inactive, suspended }
 
@@ -182,6 +183,11 @@ class TGStoreProfile {
     this.managedByAdmin = false,
     this.lat = 50.2649,
     this.lng = 19.0238,
+    this.specialties = const [],
+    this.serviceRegions = const [],
+    this.installation = false,
+    this.leadTimeWeeks,
+    this.responseHours,
   });
 
   final int publicId;
@@ -216,6 +222,11 @@ class TGStoreProfile {
   final bool managedByAdmin;
   final double lat;
   final double lng;
+  final List<TGStoreSpecialty> specialties;
+  final List<String> serviceRegions;
+  final bool installation;
+  final TGLeadTimeWeeks? leadTimeWeeks;
+  final int? responseHours;
 
   String get path => '/seller/$publicId-$slug';
 
@@ -225,6 +236,8 @@ class TGStoreProfile {
   bool get showAbout => description.trim().isNotEmpty || projects.isNotEmpty;
   bool get incompleteSetup => isStore && (description.trim().isEmpty || logoUrl == null);
   bool get showQuote => isLive && acceptsSpecialOrder && (plan == TGStorePlanKind.pro || plan == TGStorePlanKind.enterprise);
+  bool get isSpecialOrderManufacturer =>
+      isStore && isLive && acceptsSpecialOrder && (plan == TGStorePlanKind.pro || plan == TGStorePlanKind.enterprise);
 
   TGStoreProfile copyWith({
     String? description,
@@ -247,6 +260,11 @@ class TGStoreProfile {
     bool? acceptsSpecialOrder,
     double? lat,
     double? lng,
+    List<TGStoreSpecialty>? specialties,
+    List<String>? serviceRegions,
+    bool? installation,
+    TGLeadTimeWeeks? leadTimeWeeks,
+    int? responseHours,
   }) =>
       TGStoreProfile(
         publicId: publicId,
@@ -281,5 +299,10 @@ class TGStoreProfile {
         managedByAdmin: managedByAdmin,
         lat: lat ?? this.lat,
         lng: lng ?? this.lng,
+        specialties: specialties ?? this.specialties,
+        serviceRegions: serviceRegions ?? this.serviceRegions,
+        installation: installation ?? this.installation,
+        leadTimeWeeks: leadTimeWeeks ?? this.leadTimeWeeks,
+        responseHours: responseHours ?? this.responseHours,
       );
 }

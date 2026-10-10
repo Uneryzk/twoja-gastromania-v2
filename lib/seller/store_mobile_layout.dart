@@ -164,10 +164,10 @@ class StoreCategoriesMenu extends StatelessWidget {
           final cat = categories[i];
           final on = selected == cat;
           return Material(
-            color: on ? theme.secondary : theme.secondary.withValues(alpha: 0.16),
+            color: on ? TGColors.cta.withValues(alpha: 0.16) : theme.alternate,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(TGRadius.pill),
-              side: BorderSide(color: theme.secondary.withValues(alpha: on ? 0.9 : 0.45)),
+              side: BorderSide(color: on ? TGColors.cta : theme.tertiary),
             ),
             child: InkWell(
               key: Key('store-category-${cat.name}'),
@@ -180,7 +180,7 @@ class StoreCategoriesMenu extends StatelessWidget {
                     categoryLabel(cat, t: (k) => context.t(k)),
                     maxLines: 1,
                     style: theme.labelSmall.override(
-                      color: on ? const Color(0xFF1A1A1A) : theme.secondary,
+                      color: theme.primaryText,
                       fontWeight: FontWeight.w800,
                     ),
                   ),

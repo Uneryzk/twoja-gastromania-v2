@@ -645,8 +645,8 @@ class _IdentityBlock extends StatelessWidget {
             for (final cat in profile.categories.take(4))
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: theme.secondary.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(TGRadius.pill), border: Border.all(color: theme.secondary.withValues(alpha: 0.45))),
-                child: Text(categoryLabel(cat, t: (k) => context.t(k)), style: theme.labelSmall.override(color: theme.secondary, fontWeight: FontWeight.w800)),
+                decoration: BoxDecoration(color: theme.alternate, borderRadius: BorderRadius.circular(TGRadius.pill), border: Border.all(color: theme.tertiary)),
+                child: Text(categoryLabel(cat, t: (k) => context.t(k)), style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w800)),
               ),
             if (extraCats > 0)
               Container(

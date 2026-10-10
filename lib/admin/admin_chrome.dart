@@ -13,8 +13,10 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_deal_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 
 abstract final class TGAdminNav {
   static const queue = '/admin';
@@ -23,6 +25,11 @@ abstract final class TGAdminNav {
   static const audit = '/admin/audit';
   static const templates = '/admin/templates';
   static const deals = '/admin/deals';
+  static const specialOrders = '/admin/special-orders';
+  static String soCasePath(String requestNo) => '$specialOrders/$requestNo';
+  static String soQueuePath(TGSoAdminQueue queue) =>
+      queue == TGSoAdminQueue.needsMatching ? specialOrders : '$specialOrders?queue=${queue.name}';
+
   static String casePath(String listingNo) {
     if (listingNo.startsWith('s:')) return '/admin/s/${listingNo.substring(2)}';
     if (listingNo.startsWith('r:')) return '/admin/r/${listingNo.substring(2)}';
@@ -49,6 +56,14 @@ abstract final class TGAdminNav {
   static void openDeal(BuildContext context, String dealNo) {
     DealModerationService.instance.openTracked(dealNo);
     context.go(dealCasePath(dealNo));
+  }
+
+  static void soQueue(BuildContext context, [TGSoAdminQueue queue = TGSoAdminQueue.needsMatching]) =>
+      context.go(soQueuePath(queue));
+
+  static void openSoCase(BuildContext context, String requestNo) {
+    TGSpecialOrderService.instance.ensureSeeded();
+    context.go(soCasePath(requestNo));
   }
 }
 
@@ -131,6 +146,11 @@ class _AdminTopBarState extends State<AdminTopBar> {
   }
 
   void _go(String raw) {
+    final soNo = TGSpecialOrderService.instance.resolveAdminSearch(raw);
+    if (soNo != null) {
+      TGAdminNav.openSoCase(context, soNo);
+      return;
+    }
     final dealNo = DealModerationService.instance.resolveSearch(raw);
     if (dealNo != null) {
       TGAdminNav.openDeal(context, dealNo);
@@ -278,6 +298,12 @@ class AdminSideMenu extends StatelessWidget {
           ),
           _DealsNavGroup(section: section),
           const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
+            child: Text(context.t('ui_so_admin_group'), style: theme.labelSmall.override(color: theme.secondaryText, fontWeight: FontWeight.w900, fontSize: 10)),
+          ),
+          _SoNavGroup(section: section),
+          const SizedBox(height: 8),
           _NavTile(selected: section == 'audit', icon: Icons.receipt_long_outlined, label: context.t('ui_admin_audit'), onTap: () => context.go(TGAdminNav.audit)),
           if (isAdmin)
             _NavTile(selected: section == 'templates', icon: Icons.email_outlined, label: context.t('ui_admin_templates'), onTap: () => context.go(TGAdminNav.templates)),
@@ -325,6 +351,52 @@ class _DealsNavGroup extends StatelessWidget {
         item(TGDealQueueKind.appeal, 'ui_admin_deal_appeals'),
         item(TGDealQueueKind.all, 'ui_admin_all_deals'),
       ],
+    );
+  }
+}
+
+class _SoNavGroup extends StatelessWidget {
+  const _SoNavGroup({required this.section});
+  final String section;
+
+  @override
+  Widget build(BuildContext context) {
+    final svc = TGSpecialOrderService.instance..ensureSeeded();
+    final uri = GoRouterState.of(context).uri;
+    final onSo = section == 'special_orders' || uri.path.startsWith('/admin/special-orders');
+    final queue = uri.queryParameters['queue'] ?? (uri.path == '/admin/special-orders' ? 'needsMatching' : '');
+    Widget item(TGSoAdminQueue kind, String key) {
+      final n = svc.adminCount(kind);
+      final onCase = uri.pathSegments.length >= 3 && uri.pathSegments[2].startsWith('SO-');
+      final selected = onSo &&
+          !onCase &&
+          ((kind == TGSoAdminQueue.needsMatching && (queue.isEmpty || queue == 'needsMatching')) || queue == kind.name);
+      return _NavTile(
+        selected: selected,
+        icon: switch (kind) {
+          TGSoAdminQueue.needsMatching => Icons.hub_outlined,
+          TGSoAdminQueue.held => Icons.pause_circle_outline,
+          TGSoAdminQueue.noQuotes => Icons.hourglass_empty,
+          TGSoAdminQueue.reported => Icons.flag_outlined,
+          TGSoAdminQueue.all => Icons.list_alt_outlined,
+        },
+        label: kind == TGSoAdminQueue.all ? context.t(key) : '${context.t(key)} ($n)',
+        onTap: () => TGAdminNav.soQueue(context, kind),
+      );
+    }
+
+    return ListenableBuilder(
+      listenable: svc,
+      builder: (context, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          item(TGSoAdminQueue.needsMatching, 'ui_so_admin_needs_matching'),
+          item(TGSoAdminQueue.held, 'ui_so_admin_held'),
+          item(TGSoAdminQueue.noQuotes, 'ui_so_admin_no_quotes'),
+          item(TGSoAdminQueue.reported, 'ui_so_admin_reported'),
+          item(TGSoAdminQueue.all, 'ui_so_admin_all'),
+        ],
+      ),
     );
   }
 }
@@ -391,6 +463,7 @@ class _MobileAdminTabs extends StatelessWidget {
               _tab(context, 'listings', Icons.search, TGAdminNav.listings),
               _tab(context, 'sellers', Icons.storefront_outlined, TGAdminNav.sellers),
               _tab(context, 'deals', Icons.handshake_outlined, TGAdminNav.deals),
+              _tab(context, 'special_orders', Icons.precision_manufacturing_outlined, TGAdminNav.specialOrders),
               _tab(context, 'audit', Icons.receipt_long_outlined, TGAdminNav.audit),
               if (isAdmin) _tab(context, 'templates', Icons.email_outlined, TGAdminNav.templates),
             ],
@@ -401,7 +474,7 @@ class _MobileAdminTabs extends StatelessWidget {
   }
 
   Widget _tab(BuildContext context, String id, IconData icon, String path) {
-    final on = section == id || (id == 'deals' && section.startsWith('deals'));
+    final on = section == id || (id == 'deals' && section.startsWith('deals')) || (id == 'special_orders' && section == 'special_orders');
     return Expanded(
       child: InkWell(
         onTap: () => context.go(path),

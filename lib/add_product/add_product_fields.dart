@@ -209,7 +209,7 @@ class WizardSegmented<T> extends StatelessWidget {
   }
 }
 
-class WizardRadioCard extends StatelessWidget {
+class WizardRadioCard extends StatefulWidget {
   const WizardRadioCard({
     super.key,
     required this.selected,
@@ -228,33 +228,53 @@ class WizardRadioCard extends StatelessWidget {
   final bool compact;
 
   @override
+  State<WizardRadioCard> createState() => _WizardRadioCardState();
+}
+
+class _WizardRadioCardState extends State<WizardRadioCard> {
+  bool _focused = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: TGMotion.quick,
-        padding: EdgeInsets.all(compact ? 10 : 14),
-        decoration: BoxDecoration(
-          color: TGColors.surfaceHover,
-          borderRadius: BorderRadius.circular(TGRadius.card),
-          border: Border.all(color: selected ? theme.primary : TGColors.border, width: selected ? 2 : 1),
-        ),
-        child: Row(
-          children: [
-            if (leading != null) ...[leading!, SizedBox(width: compact ? 8 : 12)],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800, fontSize: compact ? 13 : null)),
-                  if (subtitle != null)
-                    Text(subtitle!, maxLines: compact ? 1 : 2, overflow: TextOverflow.ellipsis, style: theme.bodySmall.override(color: theme.secondaryText, fontSize: compact ? 11 : null)),
-                ],
-              ),
+    return FocusableActionDetector(
+      mouseCursor: SystemMouseCursors.click,
+      onShowFocusHighlight: (v) => setState(() => _focused = v),
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
+          widget.onTap();
+          return null;
+        }),
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: TGMotion.quick,
+          padding: EdgeInsets.all(widget.compact ? 10 : 14),
+          decoration: BoxDecoration(
+            color: TGColors.surfaceHover,
+            borderRadius: BorderRadius.circular(TGRadius.card),
+            border: Border.all(
+              color: _focused ? TGColors.cta : (widget.selected ? theme.primary : TGColors.border),
+              width: _focused || widget.selected ? 2 : 1,
             ),
-            if (selected) Icon(Icons.check_circle, size: compact ? 18 : 24, color: theme.primary),
-          ],
+          ),
+          child: Row(
+            children: [
+              if (widget.leading != null) ...[widget.leading!, SizedBox(width: widget.compact ? 8 : 12)],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800, fontSize: widget.compact ? 13 : null)),
+                    if (widget.subtitle != null)
+                      Text(widget.subtitle!, maxLines: widget.compact ? 1 : 2, overflow: TextOverflow.ellipsis, style: theme.bodySmall.override(color: theme.secondaryText, fontSize: widget.compact ? 11 : null)),
+                  ],
+                ),
+              ),
+              if (widget.selected) Icon(Icons.check_circle, size: widget.compact ? 18 : 24, color: theme.primary),
+            ],
+          ),
         ),
       ),
     );

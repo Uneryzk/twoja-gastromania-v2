@@ -13,7 +13,11 @@ export 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 
 export 'package:twoja_gastromania/product_detail/product_detail_widget.dart' show ProductDetailPageWidget;
 export 'package:twoja_gastromania/seller/seller_profile_widget.dart' show SellerProfilePageWidget;
-export 'package:twoja_gastromania/seller/special_order_placeholder.dart' show SpecialOrderPlaceholderPage;
+export 'package:twoja_gastromania/special_order/special_order_hub_page.dart' show SpecialOrderHubPage;
+export 'package:twoja_gastromania/special_order/special_order_new_page.dart' show SpecialOrderNewPage;
+export 'package:twoja_gastromania/special_order/special_order_success_page.dart' show SpecialOrderSuccessPage;
+export 'package:twoja_gastromania/special_order/buyer_requests_page.dart' show BuyerRequestsPage;
+export 'package:twoja_gastromania/special_order/seller_leads_page.dart' show SellerLeadsPage;
 
 export 'package:twoja_gastromania/products/products_widget.dart' show ProductsPageWidget;
 export 'package:twoja_gastromania/dashboard/listings_dashboard_widget.dart' show ListingsDashboardPage;
@@ -27,5 +31,5 @@ export 'package:twoja_gastromania/add_product/publish_success_page.dart' show Pu
 export 'package:twoja_gastromania/checkout/checkout_page.dart' show CheckoutPage;
 export 'package:twoja_gastromania/plans/plans_page.dart' show PlansPage;
 export 'package:twoja_gastromania/admin/admin_pages.dart'
-    show AdminQueueHost, AdminListingsHost, AdminSellersHost, AdminAuditHost, AdminTemplatesHost, AdminCaseHost, AdminDealsHost, AdminDealCaseHost;
+    show AdminQueueHost, AdminListingsHost, AdminSellersHost, AdminAuditHost, AdminTemplatesHost, AdminCaseHost, AdminDealsHost, AdminDealCaseHost, AdminSoHost, AdminSoCaseHost;
 export 'package:twoja_gastromania/admin/admin_target_pages.dart' show AdminSellerCaseHost, AdminReviewCaseHost;

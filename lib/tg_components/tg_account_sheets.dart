@@ -13,6 +13,7 @@ import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
+import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 
 Future<void> _showTGSheet(BuildContext context, WidgetBuilder builder) {
   return showModalBottomSheet<void>(
@@ -68,7 +69,9 @@ Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
       const PopupMenuItem(value: 2, child: Text('Advance time +2 days')),
       const PopupMenuItem(value: 3, child: Text('Advance time +3 days')),
       const PopupMenuItem(value: 5, child: Text('Advance time +5 days')),
+      const PopupMenuItem(value: 10, child: Text('Advance time +10 days')),
       const PopupMenuItem(value: 14, child: Text('Advance time +14 days')),
+      const PopupMenuItem(value: 25, child: Text('Advance time +25 days')),
     ],
   );
   if (picked is TGUserRole) auth.setRole(picked);
@@ -78,9 +81,11 @@ Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
   if (picked is int) {
     DealService.instance.ensureSeeded();
     DealModerationService.instance.ensureSeeded();
+    TGSpecialOrderService.instance.ensureSeeded();
     TGClock.advance(Duration(days: picked));
     DealService.instance.onClockAdvanced();
     DealModerationService.instance.onClockAdvanced();
+    TGSpecialOrderService.instance.onClockAdvanced();
   }
 }
 

@@ -196,7 +196,7 @@ class _StoreProductsPanelState extends State<StoreProductsPanel> {
           ),
         const SizedBox(height: 22),
         if (featured.isNotEmpty) ...[
-          Text(context.t('ui_promoted_badge'), style: theme.titleMedium.override(fontWeight: FontWeight.w900, color: theme.secondary)),
+          Text(context.t('ui_promoted_badge'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           _StoreGrid(items: featured, layout: mobile ? TGProductCardLayout.list : query.view, hideSeller: hideSeller),
           const SizedBox(height: 28),
@@ -461,8 +461,8 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    final bg = selected ? (accent ? theme.secondary : theme.primary) : theme.secondaryBackground;
-    final fg = selected ? (accent ? const Color(0xFF1A1A1A) : TGColors.onCta) : theme.primaryText;
+    final bg = selected ? (accent ? TGColors.cta.withValues(alpha: 0.16) : theme.primary) : theme.secondaryBackground;
+    final fg = selected ? (accent ? theme.primaryText : TGColors.onCta) : theme.primaryText;
     return Semantics(
       button: true,
       selected: selected,
@@ -474,7 +474,7 @@ class _FilterChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(TGRadius.pill),
-            border: Border.all(color: selected ? bg : theme.tertiary),
+            border: Border.all(color: selected ? (accent ? TGColors.cta : bg) : theme.tertiary),
           ),
           child: Center(
             widthFactor: 1,
@@ -553,8 +553,8 @@ class _StoreAboutPanelState extends State<StoreAboutPanel> {
                 for (final cat in p.categories)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: theme.secondary.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(TGRadius.pill), border: Border.all(color: theme.secondary.withValues(alpha: 0.5))),
-                    child: Text(categoryLabel(cat, t: (k) => context.t(k)), style: theme.labelSmall.override(color: theme.secondary, fontWeight: FontWeight.w800)),
+                    decoration: BoxDecoration(color: theme.alternate, borderRadius: BorderRadius.circular(TGRadius.pill), border: Border.all(color: theme.tertiary)),
+                    child: Text(categoryLabel(cat, t: (k) => context.t(k)), style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w800)),
                   ),
                 for (final b in p.brands)
                   Container(

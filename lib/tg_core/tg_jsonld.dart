@@ -4,3 +4,7 @@ void setStoreAggregateRating({required String name, required double rating, requ
     applyStoreAggregateRating(name: name, rating: rating, count: count);
 
 void clearStoreAggregateRatingSeo() => clearStoreAggregateRating();
+
+void setFaqPageSeo(List<({String q, String a})> items) => applyFaqPage(items);
+
+void clearFaqPageSeo() => clearFaqPage();

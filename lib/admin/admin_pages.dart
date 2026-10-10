@@ -6,7 +6,10 @@ import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/admin/admin_deal_case_page.dart';
 import 'package:twoja_gastromania/admin/admin_deal_queue_page.dart';
 import 'package:twoja_gastromania/admin/admin_queue_page.dart';
+import 'package:twoja_gastromania/admin/admin_so_case_page.dart';
+import 'package:twoja_gastromania/admin/admin_so_queue_page.dart';
 import 'package:twoja_gastromania/tg_models/tg_deal_moderation.dart';
+import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
@@ -286,4 +289,22 @@ class AdminDealCaseHost extends StatelessWidget {
   final String dealNo;
   @override
   Widget build(BuildContext context) => AdminShell(section: 'deals', child: AdminDealCasePage(dealNo: dealNo));
+}
+
+class AdminSoHost extends StatelessWidget {
+  const AdminSoHost({super.key, this.queue});
+  final String? queue;
+
+  @override
+  Widget build(BuildContext context) {
+    final kind = TGSoAdminQueue.values.where((e) => e.name == queue).firstOrNull ?? TGSoAdminQueue.needsMatching;
+    return AdminShell(section: 'special_orders', child: AdminSoQueuePage(queue: kind));
+  }
+}
+
+class AdminSoCaseHost extends StatelessWidget {
+  const AdminSoCaseHost({super.key, required this.requestNo});
+  final String requestNo;
+  @override
+  Widget build(BuildContext context) => AdminShell(section: 'special_orders', child: AdminSoCasePage(requestNo: requestNo));
 }

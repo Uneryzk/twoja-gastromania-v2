@@ -51,10 +51,10 @@ abstract final class TGNav {
 
   static void pricing(BuildContext context) => showTGPricingSheet(context);
 
-  /// Direct B2B lead-gen for manufacturers, with a reference photo gallery.
-  static void specialOrder(BuildContext context) => showTGSpecialOrderSheet(context);
+  /// Special Order hub + manufacturer guide.
+  static void specialOrder(BuildContext context) => context.go('/special-order');
 
-  static void storeQuote(BuildContext context, int sellerId) => context.push('/special-order?seller=$sellerId');
+  static void storeQuote(BuildContext context, int sellerId) => context.go('/special-order/new?seller=$sellerId');
 
   static void dashboardListings(BuildContext context, {String? filter, String? renew, String? sold}) {
     final parts = <String>[
@@ -102,6 +102,23 @@ abstract final class TGNav {
   }
 
   static void plans(BuildContext context) => context.go('/plans');
+
+  static void accountRequests(BuildContext context, {String? requestNo, String? tab}) {
+    if (requestNo != null && requestNo.isNotEmpty) {
+      context.go('/account/requests/$requestNo${tab == null || tab.isEmpty ? '' : '?tab=$tab'}');
+      return;
+    }
+    context.go('/account/requests${tab == null || tab.isEmpty ? '' : '?tab=$tab'}');
+  }
+
+  static void sellerLeads(BuildContext context, {String? requestNo, String? tab, bool directed = false}) {
+    final q = <String>[
+      if (requestNo != null && requestNo.isNotEmpty) 'id=$requestNo',
+      if (tab != null && tab.isNotEmpty) 'tab=$tab',
+      if (directed) 'directed=1',
+    ];
+    context.go('/dashboard/leads${q.isEmpty ? '' : '?${q.join('&')}'}');
+  }
 
   static void restaurantsForSale(BuildContext context) => _comingSoon(context, 'Restaurants for Sale');
 

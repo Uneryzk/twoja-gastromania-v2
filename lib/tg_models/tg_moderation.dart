@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 
-enum TGReportTarget { listing, seller, review }
+enum TGReportTarget { listing, seller, review, request }
 
 enum TGReportReason {
   fraud,
@@ -20,6 +20,9 @@ enum TGReportReason {
   fakeReview,
   sellerOrCompetitor,
   personalData,
+  spamRequest,
+  othersPersonalData,
+  outOfScope,
   other,
 }
 
@@ -439,6 +442,9 @@ extension TGReportReasonLabel on TGReportReason {
         TGReportReason.fakeReview => 'Fake review',
         TGReportReason.sellerOrCompetitor => 'Seller or competitor',
         TGReportReason.personalData => 'Personal data',
+        TGReportReason.spamRequest => 'Spam or not a real project',
+        TGReportReason.othersPersonalData => 'Contains personal data of others',
+        TGReportReason.outOfScope => 'Out of scope or prohibited',
         TGReportReason.other => 'Other',
       };
 

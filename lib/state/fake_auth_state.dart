@@ -47,20 +47,28 @@ class StoreOwnerDevPick {
 
   static const technica = StoreOwnerDevPick(
     sellerKey: 'seller_technica',
-    label: 'Store owner (Technica)',
+    label: 'Basic store owner (Technica)',
     plan: TGStorePlanKind.basic,
     planLabel: 'Basic Store',
   );
 
   static const gastroPro = StoreOwnerDevPick(
     sellerKey: 'seller_gastropl',
-    label: 'Store owner (Gastrosilesia.pl, Pro)',
+    label: 'Pro store owner (Gastrosilesia.pl)',
     plan: TGStorePlanKind.pro,
     planLabel: 'Pro Store',
     promotedUsed: 2,
   );
 
-  static const all = [technica, gastroPro];
+  static const rmEnterprise = StoreOwnerDevPick(
+    sellerKey: 'seller_rm',
+    label: 'Enterprise store owner (RM)',
+    plan: TGStorePlanKind.enterprise,
+    planLabel: 'Enterprise Store',
+    promotedUsed: 1,
+  );
+
+  static const all = [technica, gastroPro, rmEnterprise];
 }
 
 class BuyerDevPick {
@@ -393,6 +401,11 @@ class FakeAuthState extends ChangeNotifier {
     phoneVerified = pick.phoneVerified;
     ownedListings = const [];
     storePlan = null;
+    notifyListeners();
+  }
+
+  void markPhoneVerified() {
+    phoneVerified = true;
     notifyListeners();
   }
 

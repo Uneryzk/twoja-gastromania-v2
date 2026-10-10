@@ -126,9 +126,41 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           builder: (context, params) => SellerProfilePageWidget(sellerId: params.state.pathParameters['id'] ?? ''),
         ),
         FFRoute(
-          name: SpecialOrderPlaceholderPage.routeName,
-          path: SpecialOrderPlaceholderPage.routePath,
-          builder: (context, params) => SpecialOrderPlaceholderPage(sellerId: params.state.uri.queryParameters['seller']),
+          name: SpecialOrderHubPage.routeName,
+          path: SpecialOrderHubPage.routePath,
+          builder: (context, params) => SpecialOrderHubPage(initialQuery: params.state.uri.queryParameters),
+        ),
+        FFRoute(
+          name: SpecialOrderNewPage.routeName,
+          path: SpecialOrderNewPage.routePath,
+          builder: (context, params) => SpecialOrderNewPage(query: params.state.uri.queryParameters),
+        ),
+        FFRoute(
+          name: SpecialOrderSuccessPage.routeName,
+          path: SpecialOrderSuccessPage.routePath,
+          builder: (context, params) => SpecialOrderSuccessPage(requestNo: params.state.uri.queryParameters['no']),
+        ),
+        FFRoute(
+          name: BuyerRequestsPage.routeName,
+          path: BuyerRequestsPage.routePath,
+          builder: (context, params) => BuyerRequestsPage(tab: params.state.uri.queryParameters['tab']),
+        ),
+        FFRoute(
+          name: 'BuyerRequestDetail',
+          path: '/account/requests/:requestNo',
+          builder: (context, params) => BuyerRequestsPage(
+            requestNo: params.state.pathParameters['requestNo'],
+            tab: params.state.uri.queryParameters['tab'],
+          ),
+        ),
+        FFRoute(
+          name: SellerLeadsPage.routeName,
+          path: SellerLeadsPage.routePath,
+          builder: (context, params) => SellerLeadsPage(
+            tab: params.state.uri.queryParameters['tab'],
+            requestNo: params.state.uri.queryParameters['id'],
+            directedOnly: params.state.uri.queryParameters['directed'] == '1',
+          ),
         ),
         FFRoute(
           // Filters live in the query string: /products?type=rent&cat=cooking&...
@@ -265,6 +297,16 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           name: 'AdminDealCase',
           path: '/admin/d/:dealNo',
           builder: (context, params) => AdminDealCaseHost(dealNo: params.state.pathParameters['dealNo'] ?? ''),
+        ),
+        FFRoute(
+          name: 'AdminSpecialOrders',
+          path: '/admin/special-orders',
+          builder: (context, params) => AdminSoHost(queue: params.state.uri.queryParameters['queue']),
+        ),
+        FFRoute(
+          name: 'AdminSpecialOrderCase',
+          path: '/admin/special-orders/:requestNo',
+          builder: (context, params) => AdminSoCaseHost(requestNo: params.state.pathParameters['requestNo'] ?? ''),
         ),
       ].map((r) => r.toRoute(appStateNotifier)).toList()
         ..add(GoRoute(path: '/checkout', redirect: (_, __) => CheckoutPage.routePath))

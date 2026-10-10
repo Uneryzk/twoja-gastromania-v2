@@ -320,6 +320,7 @@ class ModerationService extends ChangeNotifier {
   TGReportTarget _targetOf(String listingNo) {
     if (listingNo.startsWith('s:')) return TGReportTarget.seller;
     if (listingNo.startsWith('r:')) return TGReportTarget.review;
+    if (listingNo.startsWith('q:')) return TGReportTarget.request;
     return cases[listingNo]?.target ?? TGReportTarget.listing;
   }
 
@@ -838,6 +839,7 @@ class ModerationService extends ChangeNotifier {
         TGReportTarget.listing => id,
         TGReportTarget.seller => 's:$id',
         TGReportTarget.review => 'r:$id',
+        TGReportTarget.request => 'q:$id',
       };
 
   TGPublicReportResult submitListingReport({

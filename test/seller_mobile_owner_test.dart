@@ -129,8 +129,9 @@ void main() {
   });
 
   testWidgets('dev switch lists store owner roles', (tester) async {
-    expect(StoreOwnerDevPick.technica.label, 'Store owner (Technica)');
-    expect(StoreOwnerDevPick.gastroPro.label, 'Store owner (Gastrosilesia.pl, Pro)');
+    expect(StoreOwnerDevPick.technica.label, 'Basic store owner (Technica)');
+    expect(StoreOwnerDevPick.gastroPro.label, 'Pro store owner (Gastrosilesia.pl)');
+    expect(StoreOwnerDevPick.rmEnterprise.label, 'Enterprise store owner (RM)');
   });
 
   testWidgets('390px reviews tab is a single column with write CTA', (tester) async {

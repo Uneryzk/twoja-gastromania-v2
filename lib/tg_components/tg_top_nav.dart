@@ -10,9 +10,10 @@ import 'package:twoja_gastromania/tg_models/tg_product.dart';
 /// "Buy" and "Rent" open `/products` pre-filtered; [activeType] highlights the
 /// one that is currently applied (none on the home page).
 class TGTopNav extends StatelessWidget {
-  const TGTopNav({super.key, this.activeType});
+  const TGTopNav({super.key, this.activeType, this.activeNavId});
 
   final TGListingType? activeType;
+  final String? activeNavId;
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +28,14 @@ class TGTopNav extends StatelessWidget {
       TGNavItem(id: 'special_order', label: context.t('ui_special_order'), onTap: () => TGNav.specialOrder(context)),
     ];
 
-    final int? activeIndex = switch (activeType) {
-      TGListingType.buy => 0,
-      TGListingType.rent => 1,
-      null => null,
-    };
+    final int? activeIndex = activeNavId != null
+        ? items.indexWhere((e) => e.id == activeNavId)
+        : switch (activeType) {
+            TGListingType.buy => 0,
+            TGListingType.rent => 1,
+            null => null,
+          };
+    final resolvedActive = activeIndex != null && activeIndex < 0 ? null : activeIndex;
 
     return Material(
       color: theme.primaryBackground,
@@ -40,7 +44,7 @@ class TGTopNav extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1280),
-            child: TGNavPills(items: items, activeIndex: activeIndex),
+            child: TGNavPills(items: items, activeIndex: resolvedActive),
           ),
         ),
       ),

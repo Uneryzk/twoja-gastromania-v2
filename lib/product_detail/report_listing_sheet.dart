@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_review.dart';
+import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 
@@ -44,42 +45,62 @@ const _kReviewReasons = <TGReportReason>[
   TGReportReason.other,
 ];
 
+const _kRequestReasons = <TGReportReason>[
+  TGReportReason.spamRequest,
+  TGReportReason.othersPersonalData,
+  TGReportReason.outOfScope,
+  TGReportReason.other,
+];
+
 class TGReportSubject {
   const TGReportSubject.listing(this.product)
       : kind = TGReportTarget.listing,
         seller = null,
         review = null,
-        purchaseReview = null;
+        purchaseReview = null,
+        request = null;
   const TGReportSubject.seller(this.seller)
       : kind = TGReportTarget.seller,
         product = null,
         review = null,
-        purchaseReview = null;
+        purchaseReview = null,
+        request = null;
   const TGReportSubject.review(this.review, this.seller)
       : kind = TGReportTarget.review,
         product = null,
-        purchaseReview = null;
+        purchaseReview = null,
+        request = null;
   const TGReportSubject.purchaseReview(this.purchaseReview, this.seller)
       : kind = TGReportTarget.review,
         product = null,
-        review = null;
+        review = null,
+        request = null;
+  const TGReportSubject.request(this.request)
+      : kind = TGReportTarget.request,
+        product = null,
+        seller = null,
+        review = null,
+        purchaseReview = null;
 
   final TGReportTarget kind;
   final TGProduct? product;
   final TGStoreProfile? seller;
   final TGStoreReview? review;
   final TGPurchaseReview? purchaseReview;
+  final TGSpecialRequest? request;
 
   String get targetId => switch (kind) {
         TGReportTarget.listing => product?.listingNo ?? product?.id ?? '',
         TGReportTarget.seller => seller?.sellerKey ?? '',
         TGReportTarget.review => purchaseReview?.id ?? review?.id ?? '',
+        TGReportTarget.request => request?.requestNo ?? request?.id ?? '',
       };
 
   List<TGReportReason> get reasons => switch (kind) {
         TGReportTarget.listing => _kListingReasons,
         TGReportTarget.seller => _kSellerReasons,
         TGReportTarget.review => _kReviewReasons,
+        TGReportTarget.request => _kRequestReasons,
       };
 }
 
@@ -311,6 +332,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
                                   TGReportTarget.listing => context.t('ui_report_listing'),
                                   TGReportTarget.seller => context.t('ui_report_seller'),
                                   TGReportTarget.review => context.t('ui_report_review'),
+                                  TGReportTarget.request => context.t('ui_so_report_request'),
                                 },
                           style: theme.titleMedium.override(fontWeight: FontWeight.w900),
                         ),
@@ -654,6 +676,15 @@ class _TargetSummary extends StatelessWidget {
     if (subject.kind == TGReportTarget.seller && subject.seller != null) {
       return Text(subject.seller!.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13));
     }
+    if (subject.kind == TGReportTarget.request && subject.request != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(subject.request!.requestNo, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+          Text(subject.request!.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+        ],
+      );
+    }
     final review = subject.review;
     if (review == null) return const SizedBox.shrink();
     return Column(
@@ -674,6 +705,7 @@ String _reasonTitle(BuildContext context, TGReportReason reason, TGReportTarget 
   if (target == TGReportTarget.seller && reason == TGReportReason.prohibited) {
     return context.t('ui_rr_prohibited_activity');
   }
+  if (target == TGReportTarget.request) return reason.label;
   return context.t('ui_rr_${reason.name}');
 }
 
