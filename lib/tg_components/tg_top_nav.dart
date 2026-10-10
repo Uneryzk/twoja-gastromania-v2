@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_components/tg_nav_pills.dart';
@@ -9,6 +10,7 @@ import 'package:twoja_gastromania/tg_models/tg_product.dart';
 ///
 /// "Buy" and "Rent" open `/products` pre-filtered; [activeType] highlights the
 /// one that is currently applied (none on the home page).
+/// "Special Order" always navigates to `/special-order` (full hub page).
 class TGTopNav extends StatelessWidget {
   const TGTopNav({super.key, this.activeType, this.activeNavId});
 
@@ -19,6 +21,13 @@ class TGTopNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final isPhone = MediaQuery.sizeOf(context).width < 700;
+    final path = GoRouterState.of(context).uri.path;
+    final routeNavId = path.startsWith('/special-order')
+        ? 'special_order'
+        : path.startsWith('/add-product')
+            ? 'add_product'
+            : null;
+    final resolvedNavId = activeNavId ?? routeNavId;
 
     final items = [
       TGNavItem(id: 'buy', label: context.t('ui_buy'), onTap: () => TGNav.buy(context)),
@@ -28,8 +37,8 @@ class TGTopNav extends StatelessWidget {
       TGNavItem(id: 'special_order', label: context.t('ui_special_order'), onTap: () => TGNav.specialOrder(context)),
     ];
 
-    final int? activeIndex = activeNavId != null
-        ? items.indexWhere((e) => e.id == activeNavId)
+    final int? activeIndex = resolvedNavId != null
+        ? items.indexWhere((e) => e.id == resolvedNavId)
         : switch (activeType) {
             TGListingType.buy => 0,
             TGListingType.rent => 1,

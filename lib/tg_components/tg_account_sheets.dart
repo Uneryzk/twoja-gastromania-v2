@@ -6,7 +6,6 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
-import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
@@ -89,9 +88,10 @@ Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
   }
 }
 
-/// B2B lead-gen: manufacturers receive the request with reference photos.
-Future<void> showTGSpecialOrderSheet(BuildContext context) =>
-    _showTGSheet(context, (_) => const _SpecialOrderSheet());
+/// Navigates to the Special Order hub (full page). Kept for any legacy callers.
+Future<void> showTGSpecialOrderSheet(BuildContext context) async {
+  context.go('/special-order');
+}
 
 // ---------------------------------------------------------------------------
 
@@ -584,129 +584,6 @@ class _AccountSheet extends StatelessWidget {
             variant: TGButtonVariant.outline,
             height: 46,
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Special Order Hub
-// ---------------------------------------------------------------------------
-
-const _kSpecialOrderGallery = <String>[
-  'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg',
-  'assets/images/IMG_20200120_131650.jpg',
-  'assets/images/oztiryakiler-sanayi-tipi-bulasik-yikama-makinesitouch-ekran-oby-50t-tahliye-pompali-tezgah-alti-bulasik-makineleri-oztiryakiler-52978-19-B.webp',
-  'assets/images/Food_Prepering_table.jpg',
-  'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg',
-  'assets/images/Bar_&_Beverage_Equipment.jpg',
-];
-
-class _SpecialOrderSheet extends StatefulWidget {
-  const _SpecialOrderSheet();
-
-  @override
-  State<_SpecialOrderSheet> createState() => _SpecialOrderSheetState();
-}
-
-class _SpecialOrderSheetState extends State<_SpecialOrderSheet> {
-  final _need = TextEditingController();
-  final _city = TextEditingController();
-  final _phone = TextEditingController();
-  int _photo = 0;
-
-  @override
-  void dispose() {
-    _need.dispose();
-    _city.dispose();
-    _phone.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final need = _need.text.trim();
-    if (need.isEmpty) {
-      showTGToast(context, context.t('ui_describe_equipment'), icon: Icons.info_outline);
-      return;
-    }
-    Navigator.of(context).pop();
-    showTGToast(context, context.t('ui_request_sent_mfr'), icon: Icons.send_rounded);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-    return _SheetFrame(
-      title: context.t('ui_special_order_hub'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            context.t('ui_special_order_intro'),
-            style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.45),
-          ),
-          const SizedBox(height: 14),
-          Text(context.t('ui_reference_gallery'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 108,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _kSpecialOrderGallery.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, i) {
-                final selected = i == _photo;
-                return Semantics(
-                  button: true,
-                  selected: selected,
-                  label: context.t('ui_reference_photo_n', {'n': '${i + 1}'}),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _photo = i),
-                    child: AnimatedContainer(
-                      duration: TGMotion.quick,
-                      width: 148,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(TGRadius.input),
-                        border: Border.all(color: selected ? theme.primary : theme.tertiary, width: selected ? 2 : 1),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(TGRadius.input - 1),
-                        child: Image.asset(
-                          _kSpecialOrderGallery[i],
-                          fit: BoxFit.cover,
-                          cacheWidth: 400,
-                          errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _need,
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: context.t('ui_what_do_you_need'),
-              hintText: context.t('ui_special_order_hint'),
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _city,
-            decoration: InputDecoration(labelText: context.t('ui_city'), hintText: 'Katowice'),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            decoration: InputDecoration(labelText: context.t('ui_phone'), hintText: '+48 …'),
-          ),
-          const SizedBox(height: 16),
-          TGButton(onPressed: _submit, label: context.t('ui_send_to_manufacturers'), icon: Icons.send_rounded, height: 48),
         ],
       ),
     );

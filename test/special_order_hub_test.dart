@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
@@ -71,5 +72,20 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1300));
     expect(app.location, '/special-order');
     expect(find.textContaining('Custom stainless steel'), findsOneWidget);
+    // Hub is a full page — no legacy modal sheet.
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
+  });
+
+  testWidgets('Special Order nav pill is active on hub', (tester) async {
+    await pumpTgApp(tester, location: '/special-order', size: TGSizes.desktop);
+    await tester.pump(const Duration(milliseconds: 1300));
+    final pill = find.ancestor(
+      of: find.text('Special Order'),
+      matching: find.byWidgetPredicate(
+        (w) => w is Semantics && (w.properties.selected ?? false),
+      ),
+    );
+    expect(pill, findsWidgets);
   });
 }

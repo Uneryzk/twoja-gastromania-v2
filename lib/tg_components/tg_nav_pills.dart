@@ -244,14 +244,19 @@ class _NavPill extends StatelessWidget {
       );
     }
 
-    return TGButton(
-      onPressed: item.onTap,
+    return Semantics(
+      selected: active,
+      button: true,
       label: item.label,
-      icon: item.icon,
-      variant: active ? TGButtonVariant.outline : TGButtonVariant.ghost,
-      height: 44,
-      padding: padding,
-      borderRadius: BorderRadius.circular(theme.designToken.radius.full),
+      child: TGButton(
+        onPressed: item.onTap,
+        label: item.label,
+        icon: item.icon,
+        variant: active ? TGButtonVariant.outline : TGButtonVariant.ghost,
+        height: 44,
+        padding: padding,
+        borderRadius: BorderRadius.circular(theme.designToken.radius.full),
+      ),
     );
   }
 }
