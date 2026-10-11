@@ -38,13 +38,13 @@ class TGListingImages {
 
   static String _normalizeCategory(String category, String? title) {
     final combined = '${category.toLowerCase()} ${title?.toLowerCase() ?? ''}';
-    if (combined.contains('fırın') || combined.contains('ocak') || combined.contains('pişir') || combined.contains('cook')) {
+    if (combined.contains('fırın') || combined.contains('ocak') || combined.contains('pişir') || combined.contains('cook') || combined.contains('pişirme')) {
       return 'cooking';
-    } else if (combined.contains('dolap') || combined.contains('soğut') || combined.contains('buz') || combined.contains('cool')) {
+    } else if (combined.contains('dolap') || combined.contains('soğut') || combined.contains('buz') || combined.contains('cool') || combined.contains('soğutma')) {
       return 'cooling';
     } else if (combined.contains('kahve') || combined.contains('bar') || combined.contains('espresso') || combined.contains('cafe')) {
       return 'cafe';
-    } else if (combined.contains('tezgah') || combined.contains('paslanmaz') || combined.contains('hazırlık') || combined.contains('maliyet') || combined.contains('mutfak')) {
+    } else if (combined.contains('tezgah') || combined.contains('paslanmaz') || combined.contains('hazırlık') || combined.contains('maliyet') || combined.contains('mutfak') || combined.contains('mobilya')) {
       return 'preparation';
     }
     return 'default';
