@@ -9,6 +9,7 @@ import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_hover_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_listing_no_line.dart';
+import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_contact.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
@@ -410,24 +411,7 @@ class _ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget fallback(BuildContext c, Object e, StackTrace? s) => _imageFallback(c);
-    if (imageUrl.startsWith('http')) {
-      return Image.network(imageUrl, fit: BoxFit.cover, cacheWidth: 720, errorBuilder: fallback);
-    }
-    if (imageUrl.startsWith('assets/')) {
-      // `cacheWidth` keeps big source files (some are ~3 MB) cheap to decode.
-      return Image.asset(imageUrl, fit: BoxFit.cover, cacheWidth: 720, gaplessPlayback: true, errorBuilder: fallback);
-    }
-    return _imageFallback(context);
-  }
-
-  Widget _imageFallback(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-    return Container(
-      color: theme.alternate,
-      alignment: Alignment.center,
-      child: Icon(Icons.image_outlined, color: theme.secondaryText, size: 28),
-    );
+    return TGSmartImage(url: imageUrl, cacheWidth: 720);
   }
 }
 

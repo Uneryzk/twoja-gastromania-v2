@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -1234,7 +1235,11 @@ class ModerationService extends ChangeNotifier {
       city: 'Katowice',
       voivodeship: 'Śląskie',
       phone: '+48 (532) 784-074',
-      imageUrl: 'assets/images/bartscher_2002170.webp',
+      imageUrl: TGListingImages.cover(
+        id: 'own_mod_review',
+        category: TGCategory.foodPreparation,
+        title: 'Mikser planetarny 40L – under review',
+      ),
       photoCount: 4,
       isPromoted: false,
       createdAt: t.subtract(const Duration(days: 8)),
@@ -1251,7 +1256,12 @@ class ModerationService extends ChangeNotifier {
       id: 'own_mod_hidden',
       title: 'Witryna chłodnicza 2-drzwiowa – hidden',
       listingNo: '49120384',
-      imageUrl: 'assets/images/images.jpeg',
+      category: TGCategory.refrigerationEquipment,
+      imageUrl: TGListingImages.cover(
+        id: 'own_mod_hidden',
+        category: TGCategory.refrigerationEquipment,
+        title: 'Witryna chłodnicza 2-drzwiowa – hidden',
+      ),
       isHidden: true,
       description: 'Hidden while we wait for seller proof.',
     );
@@ -1261,7 +1271,11 @@ class ModerationService extends ChangeNotifier {
       listingNo: '50231495',
       status: TGListingStatus.removed,
       isHidden: true,
-      imageUrl: 'assets/images/IMG_3696-scaled.webp',
+      imageUrl: TGListingImages.cover(
+        id: 'own_mod_removed',
+        category: TGCategory.foodPreparation,
+        title: 'Krajalnica chleba – removed',
+      ),
       description: 'Removed for prohibited content.',
     );
     sellerListings.addAll([reviewOpen, reviewHidden, removed]);

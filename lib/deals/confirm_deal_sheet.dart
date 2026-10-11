@@ -5,6 +5,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_components/tg_sms_gate.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
@@ -171,7 +172,10 @@ class _ConfirmDealSheetState extends State<ConfirmDealSheet> with SingleTickerPr
                                     height: 56,
                                     child: deal.listingSnapshot.imageUrl.isEmpty
                                         ? const ColoredBox(color: TGColors.border)
-                                        : Image.asset(deal.listingSnapshot.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.border)),
+                                        : TGSmartImage(
+                                            url: deal.listingSnapshot.imageUrl,
+                                            fallback: (_) => const ColoredBox(color: TGColors.border),
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(width: 10),

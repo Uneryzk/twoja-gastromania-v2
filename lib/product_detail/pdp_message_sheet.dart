@@ -10,6 +10,7 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_inline_translate.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
+import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_message.dart';
@@ -180,7 +181,10 @@ class _MessageSheetState extends State<_MessageSheet> {
                           height: 42,
                           child: widget.product.imageUrl.isEmpty
                               ? ColoredBox(color: theme.alternate)
-                              : Image.asset(widget.product.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate)),
+                              : TGSmartImage(
+                                  url: widget.product.imageUrl,
+                                  fallback: (_) => ColoredBox(color: theme.alternate),
+                                ),
                         ),
                       ),
                       const SizedBox(width: 10),

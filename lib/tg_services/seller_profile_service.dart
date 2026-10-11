@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
@@ -519,7 +520,6 @@ List<TGProduct> _seedExtraListings() {
     required String no,
     required String title,
     required TGSeller seller,
-    required String image,
     required TGCategory cat,
     int? price,
     bool promoted = false,
@@ -544,7 +544,8 @@ List<TGProduct> _seedExtraListings() {
         city: seller.id == 'seller_ek' ? 'Rybnik' : seller.id == 'seller_rm' ? 'Katowice' : 'Chorzów',
         voivodeship: 'Śląskie',
         phone: phone,
-        imageUrl: image,
+        imageUrl: TGListingImages.cover(id: id, category: cat, title: title),
+        imageUrls: TGListingImages.gallery(id: id, category: cat, title: title, count: 4),
         photoCount: 4,
         isPromoted: promoted,
         createdAt: now.subtract(Duration(days: int.tryParse(no.substring(6)) ?? 3)),
@@ -555,16 +556,16 @@ List<TGProduct> _seedExtraListings() {
       );
 
   return [
-    item(id: 'gs1', no: '30110001', title: 'Piec konwekcyjny 10 GN – Gastrosilesia', seller: gs, image: 'assets/images/bartscher_2002170.webp', cat: TGCategory.cookingEquipment, price: 18900, promoted: true),
-    item(id: 'gs2', no: '30110002', title: 'Szafa chłodnicza 1400L', seller: gs, image: 'assets/images/IMG_3696-scaled.webp', cat: TGCategory.refrigerationEquipment, price: 6400, promoted: true),
-    item(id: 'gs3', no: '30110003', title: 'Stół centralny 2000 mm', seller: gs, image: 'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg', cat: TGCategory.stainlessSteelFurniture, price: 2100, condition: TGCondition.newItem),
-    item(id: 'gs4', no: '30110004', title: 'Zmywarka kapturowa Hobart', seller: gs, image: 'assets/images/oztiryakiler-sanayi-tipi-bulasik-yikama-makinesitouch-ekran-oby-50t-tahliye-pompali-tezgah-alti-bulasik-makineleri-oztiryakiler-52978-19-B.webp', cat: TGCategory.warewashing, price: 9800, promoted: true),
-    item(id: 'ek1', no: '30220001', title: 'Zmywarka podszafkowa EK', seller: ek, image: 'assets/images/oztiryakiler-sanayi-tipi-bulasik-yikama-makinesitouch-ekran-oby-50t-tahliye-pompali-tezgah-alti-bulasik-makineleri-oztiryakiler-52978-19-B.webp', cat: TGCategory.warewashing, price: 4100, promoted: true),
-    item(id: 'ek2', no: '30220002', title: 'Stół roboczy 1500 mm', seller: ek, image: 'assets/images/Food_Prepering_table.jpg', cat: TGCategory.foodPreparation, price: 980, condition: TGCondition.newItem),
-    item(id: 'ek3', no: '30220003', title: 'Krajalnica 300 mm', seller: ek, image: 'assets/images/IMG_3696-scaled.webp', cat: TGCategory.foodPreparation, price: 1450),
-    item(id: 'ek4', no: '30220004', title: 'Wanna bemarowa 2x GN', seller: ek, image: 'assets/images/pol_pm_Wanna-bemarowa-3X-GN-1-1-Komat-KCB-001-031-2808_2.png', cat: TGCategory.foodPreparation, price: 890),
-    item(id: 'ek5', no: '30220005', title: 'Zmywarka tunelowa – outlet', seller: ek, image: 'assets/images/blog-26.jpg', cat: TGCategory.warewashing, price: 11200),
-    item(id: 'rm1', no: '30330001', title: 'Linia Rational iCombi – RM', seller: rm, image: 'assets/images/bartscher_2002170.webp', cat: TGCategory.cookingEquipment, price: 42000, promoted: true, condition: TGCondition.newItem),
-    item(id: 'rm2', no: '30330002', title: 'Komora chłodnicza 12 m²', seller: rm, image: 'assets/images/IMG_3696-scaled.webp', cat: TGCategory.refrigerationEquipment, price: 28500, promoted: true),
+    item(id: 'gs1', no: '30110001', title: 'Piec konwekcyjny 10 GN – Gastrosilesia', seller: gs, cat: TGCategory.cookingEquipment, price: 18900, promoted: true),
+    item(id: 'gs2', no: '30110002', title: 'Szafa chłodnicza 1400L', seller: gs, cat: TGCategory.refrigerationEquipment, price: 6400, promoted: true),
+    item(id: 'gs3', no: '30110003', title: 'Stół centralny 2000 mm', seller: gs, cat: TGCategory.stainlessSteelFurniture, price: 2100, condition: TGCondition.newItem),
+    item(id: 'gs4', no: '30110004', title: 'Zmywarka kapturowa Hobart', seller: gs, cat: TGCategory.warewashing, price: 9800, promoted: true),
+    item(id: 'ek1', no: '30220001', title: 'Zmywarka podszafkowa EK', seller: ek, cat: TGCategory.warewashing, price: 4100, promoted: true),
+    item(id: 'ek2', no: '30220002', title: 'Stół roboczy 1500 mm', seller: ek, cat: TGCategory.foodPreparation, price: 980, condition: TGCondition.newItem),
+    item(id: 'ek3', no: '30220003', title: 'Krajalnica 300 mm', seller: ek, cat: TGCategory.foodPreparation, price: 1450),
+    item(id: 'ek4', no: '30220004', title: 'Wanna bemarowa 2x GN', seller: ek, cat: TGCategory.foodPreparation, price: 890),
+    item(id: 'ek5', no: '30220005', title: 'Zmywarka tunelowa – outlet', seller: ek, cat: TGCategory.warewashing, price: 11200),
+    item(id: 'rm1', no: '30330001', title: 'Linia Rational iCombi – RM', seller: rm, cat: TGCategory.cookingEquipment, price: 42000, promoted: true, condition: TGCondition.newItem),
+    item(id: 'rm2', no: '30330002', title: 'Komora chłodnicza 12 m²', seller: rm, cat: TGCategory.refrigerationEquipment, price: 28500, promoted: true),
   ];
 }

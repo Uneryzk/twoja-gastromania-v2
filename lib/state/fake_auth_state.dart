@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -773,7 +774,8 @@ TGProduct _own({
     city: 'Katowice',
     voivodeship: 'Śląskie',
     phone: '+48 (532) 784-074',
-    imageUrl: 'assets/images/bartscher_2002170.webp',
+    imageUrl: TGListingImages.cover(id: id, category: TGCategory.cookingEquipment, title: title),
+    imageUrls: TGListingImages.gallery(id: id, category: TGCategory.cookingEquipment, title: title, count: 4),
     photoCount: 4,
     isPromoted: false,
     createdAt: created,

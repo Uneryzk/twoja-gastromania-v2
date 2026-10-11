@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
+import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -85,7 +86,10 @@ class DealRow extends StatelessWidget {
         height: phone ? 120 : 56,
         child: deal.listingSnapshot.imageUrl.isEmpty
             ? const ColoredBox(color: TGColors.border)
-            : Image.asset(deal.listingSnapshot.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.border)),
+            : TGSmartImage(
+                url: deal.listingSnapshot.imageUrl,
+                fallback: (_) => const ColoredBox(color: TGColors.border),
+              ),
       ),
     );
     final text = Column(

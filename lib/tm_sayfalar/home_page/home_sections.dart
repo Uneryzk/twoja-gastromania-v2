@@ -8,6 +8,8 @@ import 'package:twoja_gastromania/products/products_results.dart' show gridColum
 import 'package:twoja_gastromania/tg_components/tg_hover_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_rating_stars.dart';
+import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -303,20 +305,21 @@ class _ArrowButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _CategoryData {
-  const _CategoryData(this.category, this.image, this.titleKey);
+  const _CategoryData(this.category, this.titleKey);
 
   final TGCategory category;
-  final String image;
   final String titleKey;
+
+  String get image => TGListingImages.categoryCover(category);
 }
 
 const List<_CategoryData> _categories = [
-  _CategoryData(TGCategory.cookingEquipment, 'assets/images/pol_pm_Wanna-bemarowa-3X-GN-1-1-Komat-KCB-001-031-2808_2.png', 'ji98dehm'),
-  _CategoryData(TGCategory.refrigerationEquipment, 'assets/images/IMG_20200120_131650.jpg', 'swrjjpbp'),
-  _CategoryData(TGCategory.warewashing, 'assets/images/oztiryakiler-sanayi-tipi-bulasik-yikama-makinesitouch-ekran-oby-50t-tahliye-pompali-tezgah-alti-bulasik-makineleri-oztiryakiler-52978-19-B.webp', 'lcx4dovc'),
-  _CategoryData(TGCategory.foodPreparation, 'assets/images/Food_Prepering_table.jpg', '71nup2wm'),
-  _CategoryData(TGCategory.stainlessSteelFurniture, 'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg', '56pbhr1s'),
-  _CategoryData(TGCategory.barAndBeverageEquipment, 'assets/images/Bar_&_Beverage_Equipment.jpg', 'viy2skiv'),
+  _CategoryData(TGCategory.cookingEquipment, 'ji98dehm'),
+  _CategoryData(TGCategory.refrigerationEquipment, 'swrjjpbp'),
+  _CategoryData(TGCategory.warewashing, 'lcx4dovc'),
+  _CategoryData(TGCategory.foodPreparation, '71nup2wm'),
+  _CategoryData(TGCategory.stainlessSteelFurniture, '56pbhr1s'),
+  _CategoryData(TGCategory.barAndBeverageEquipment, 'viy2skiv'),
 ];
 
 /// "Featured Offers": one card per category. Tapping a card opens `/products`
@@ -385,7 +388,11 @@ class _CategoryCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(data.image, fit: BoxFit.cover, cacheWidth: 800, errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate)),
+          TGSmartImage(
+            url: data.image,
+            cacheWidth: 800,
+            fallback: (_) => ColoredBox(color: theme.alternate),
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(

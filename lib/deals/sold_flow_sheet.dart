@@ -6,6 +6,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
@@ -367,7 +368,10 @@ class _ListingMini extends StatelessWidget {
             height: 56,
             child: listing.imageUrl.isEmpty
                 ? const ColoredBox(color: TGColors.border)
-                : Image.asset(listing.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.border)),
+                : TGSmartImage(
+                    url: listing.imageUrl,
+                    fallback: (_) => const ColoredBox(color: TGColors.border),
+                  ),
           ),
         ),
         const SizedBox(width: 10),

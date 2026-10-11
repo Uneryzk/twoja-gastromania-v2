@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -10,7 +11,8 @@ class TGProductService {
   TGProductService._();
   static final TGProductService instance = TGProductService._();
 
-  static const _storageKey = '__tg_products_v7__';
+  /// Bumped when seed image strategy changes (static assets → Picsum seeds).
+  static const _storageKey = '__tg_products_v8__';
 
   List<TGProduct>? _cache;
 
@@ -582,7 +584,13 @@ class TGProductService {
     final numbered = [
       for (final p in seeded)
         p.copyWith(
-          imageUrls: _galleryFor(p),
+          imageUrl: TGListingImages.cover(id: p.id, category: p.category, title: p.title),
+          imageUrls: TGListingImages.gallery(
+            id: p.id,
+            category: p.category,
+            title: p.title,
+            count: p.photoCount.clamp(1, 8),
+          ),
           status: switch (p.id) {
             'p007' => TGListingStatus.sold,
             'p012' => TGListingStatus.expired,
@@ -611,22 +619,6 @@ class TGProductService {
   }
 }
 
-const _kImagePool = <String>[
-  'assets/images/bartscher_2002170.webp',
-  'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg',
-  'assets/images/oztiryakiler-sanayi-tipi-bulasik-yikama-makinesitouch-ekran-oby-50t-tahliye-pompali-tezgah-alti-bulasik-makineleri-oztiryakiler-52978-19-B.webp',
-  'assets/images/IMG_3696-scaled.webp',
-  'assets/images/pol_pm_Wanna-bemarowa-3X-GN-1-1-Komat-KCB-001-031-2808_2.png',
-  'assets/images/blog-26.jpg',
-  'assets/images/images.jpeg',
-  'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg',
-  'assets/images/IMG_20200120_131650.jpg',
-  'assets/images/17594161762353ebc282350944289b81f72b29ad94_square_thumbnail_405x552.jpg',
-  'assets/images/Food_Prepering_table.jpg',
-  'assets/images/image.png',
-  'assets/images/10befb6d92142e17d926d07d605d82d8.jpg',
-];
-
 String _seedListingNo(String id) => switch (id) {
       'p001' => '10482137',
       'p002' => '11820463',
@@ -648,20 +640,6 @@ String _seedListingNo(String id) => switch (id) {
       'p018' => '27169504',
       _ => TGListingNo.allocate(),
     };
-
-List<String> _galleryFor(TGProduct p) {
-  final n = p.photoCount.clamp(1, 8);
-  final out = <String>[p.imageUrl];
-  final start = p.id.hashCode.abs();
-  for (var i = 0; i < _kImagePool.length && out.length < n; i++) {
-    final next = _kImagePool[(start + i) % _kImagePool.length];
-    if (!out.contains(next)) out.add(next);
-  }
-  while (out.length < n) {
-    out.add(p.imageUrl);
-  }
-  return out;
-}
 
 extension<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;

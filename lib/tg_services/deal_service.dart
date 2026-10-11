@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_models/tg_deal.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -103,10 +104,30 @@ class DealService extends ChangeNotifier {
       TGDealConversation(id: 'c8', listingNo: '35472819', sellerId: FakeAuthState.mockOwnerId, buyerId: buyerMarek.userId, buyerName: buyerMarek.displayName, lastMessageAt: DateTime(now.year, 10, 3)),
     ]);
     const seller = 'Technica';
-    const img = 'assets/images/bartscher_2002170.webp';
-    final snap1 = const TGDealSnapshot(title: 'Piec pizza 4 pizze – 3 dni do końca', imageUrl: img, price: 2500, city: 'Katowice', sellerName: seller, sellerVerified: true);
-    final snap2 = const TGDealSnapshot(title: 'Stół chłodniczy 2-drzwiowy', imageUrl: img, price: 2500, city: 'Katowice', sellerName: seller, sellerVerified: true);
-    final snap3 = const TGDealSnapshot(title: 'Zmywarka podszafkowa', imageUrl: img, price: 2500, city: 'Katowice', sellerName: seller, sellerVerified: true);
+    final snap1 = TGDealSnapshot(
+      title: 'Piec pizza 4 pizze – 3 dni do końca',
+      imageUrl: TGListingImages.cover(id: 'deal-snap-1', category: TGCategory.cookingEquipment, title: 'Piec pizza 4 pizze'),
+      price: 2500,
+      city: 'Katowice',
+      sellerName: seller,
+      sellerVerified: true,
+    );
+    final snap2 = TGDealSnapshot(
+      title: 'Stół chłodniczy 2-drzwiowy',
+      imageUrl: TGListingImages.cover(id: 'deal-snap-2', category: TGCategory.refrigerationEquipment, title: 'Stół chłodniczy 2-drzwiowy'),
+      price: 2500,
+      city: 'Katowice',
+      sellerName: seller,
+      sellerVerified: true,
+    );
+    final snap3 = TGDealSnapshot(
+      title: 'Zmywarka podszafkowa',
+      imageUrl: TGListingImages.cover(id: 'deal-snap-3', category: TGCategory.warewashing, title: 'Zmywarka podszafkowa'),
+      price: 2500,
+      city: 'Katowice',
+      sellerName: seller,
+      sellerVerified: true,
+    );
     deals.addAll([
       TGDeal(
         id: 'D-2026-000123',
@@ -1057,7 +1078,7 @@ class DealService extends ChangeNotifier {
   }
 
   void _seedCatalogReviews(DateTime now) {
-    const img = 'assets/images/bartscher_2002170.webp';
+    final img = TGListingImages.cover(id: 'catalog-review', category: TGCategory.cookingEquipment, title: 'catalog-review');
     const names = ['Marek K.', 'Anna W.', 'Piotr B.', 'Kasia M.', 'Jan Z.'];
     const ids = ['buyer_marek', 'buyer_anna', 'buyer_piotr', 'buyer_kasia', 'buyer_jan'];
     var seq = 1100;

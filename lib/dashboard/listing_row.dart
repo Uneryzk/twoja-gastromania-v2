@@ -6,6 +6,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/dashboard/seller_moderation_sheets.dart';
@@ -61,7 +62,10 @@ class ListingRow extends StatelessWidget {
             height: 72,
             child: product.imageUrl.isEmpty
                 ? const ColoredBox(color: TGColors.border)
-                : Image.asset(product.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.border)),
+                : TGSmartImage(
+                    url: product.imageUrl,
+                    fallback: (_) => const ColoredBox(color: TGColors.border),
+                  ),
           ),
         ),
         const SizedBox(width: 12),
@@ -211,7 +215,10 @@ class ListingRow extends StatelessWidget {
                         aspectRatio: 16 / 10,
                         child: product.imageUrl.isEmpty
                             ? const ColoredBox(color: TGColors.border)
-                            : Image.asset(product.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.border)),
+                            : TGSmartImage(
+                                url: product.imageUrl,
+                                fallback: (_) => const ColoredBox(color: TGColors.border),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 10),

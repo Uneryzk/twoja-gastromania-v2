@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
+import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_review.dart';
@@ -221,7 +223,11 @@ class TGSponsorSlotService extends ChangeNotifier {
         status: TGSponsorSlotStatus.active,
         sellerId: 'seller_gastropl',
         title: 'Custom extraction hoods for kitchens',
-        imageUrl: 'assets/images/blog-26.jpg',
+        imageUrl: TGListingImages.cover(
+          id: 'SLOT-seed-1',
+          category: TGCategory.stainlessSteelFurniture,
+          title: 'Custom extraction hoods for kitchens',
+        ),
         projectLink: '/s/gastropl',
         startsAt: now.subtract(const Duration(days: 10)),
         endsAt: now.add(const Duration(days: 20)),
@@ -234,7 +240,11 @@ class TGSponsorSlotService extends ChangeNotifier {
         status: TGSponsorSlotStatus.contentPending,
         sellerId: 'seller_inoxline',
         title: 'Stainless worktops — fast lead times',
-        imageUrl: 'assets/images/blog-26.jpg',
+        imageUrl: TGListingImages.cover(
+          id: 'SLOT-seed-2',
+          category: TGCategory.stainlessSteelFurniture,
+          title: 'Stainless worktops — fast lead times',
+        ),
         startsAt: now.subtract(const Duration(days: 1)),
         endsAt: now.add(const Duration(days: 29)),
         paidAmount: 319,
