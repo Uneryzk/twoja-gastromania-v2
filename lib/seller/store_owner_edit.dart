@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
@@ -144,6 +145,12 @@ class StoreOwnerBar extends StatelessWidget {
               },
               child: Text(preview ? context.t('ui_exit_preview') : context.t('ui_preview_as_visitor')),
             ),
+            if (profile.acceptsSpecialOrder)
+              TextButton(
+                key: const Key('store-mfr-dashboard'),
+                onPressed: () => context.go('/dashboard/manufacturer'),
+                child: Text(context.t('ui_mfr_title'), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w900)),
+              ),
           ],
         ),
       ),

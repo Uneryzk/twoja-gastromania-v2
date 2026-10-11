@@ -33,62 +33,156 @@ enum TGUserRole { visitor, seller, storeSeller, moderator, admin, buyer }
 class StoreOwnerDevPick {
   const StoreOwnerDevPick({
     required this.sellerKey,
-    required this.label,
+    required this.labelKey,
     required this.plan,
     required this.planLabel,
     this.promotedUsed = 0,
   });
 
   final String sellerKey;
-  final String label;
+  /// l10n key — brand names stay in the translated string.
+  final String labelKey;
   final TGStorePlanKind plan;
   final String planLabel;
   final int promotedUsed;
 
+  /// Approved store — Technica Pro (also used by older tests as [technica]).
   static const technica = StoreOwnerDevPick(
     sellerKey: 'seller_technica',
-    label: 'Basic store owner (Technica)',
+    labelKey: 'ui_dev_store_technica',
     plan: TGStorePlanKind.basic,
     planLabel: 'Basic Store',
   );
 
+  /// Approved store — Gastrosilesia.pl
   static const gastroPro = StoreOwnerDevPick(
     sellerKey: 'seller_gastropl',
-    label: 'Pro store owner (Gastrosilesia.pl)',
+    labelKey: 'ui_dev_store_gastro',
     plan: TGStorePlanKind.pro,
     planLabel: 'Pro Store',
     promotedUsed: 2,
   );
 
+  /// Kept for tests / manufacturer-adjacent store chrome (RM).
   static const rmEnterprise = StoreOwnerDevPick(
     sellerKey: 'seller_rm',
-    label: 'Enterprise store owner (RM)',
+    labelKey: 'ui_dev_maker_rm',
     plan: TGStorePlanKind.enterprise,
     planLabel: 'Enterprise Store',
     promotedUsed: 1,
   );
 
-  static const all = [technica, gastroPro, rmEnterprise];
+  static const pendingApproval = StoreOwnerDevPick(
+    sellerKey: 'seller_gastrolab',
+    labelKey: 'ui_dev_store_pending',
+    plan: TGStorePlanKind.basic,
+    planLabel: 'Basic Store',
+  );
+
+  static const suspended = StoreOwnerDevPick(
+    sellerKey: 'seller_nordgastro',
+    labelKey: 'ui_dev_store_suspended',
+    plan: TGStorePlanKind.basic,
+    planLabel: 'Basic Store',
+  );
+
+  /// Corporate store rows shown in the Dev Switcher.
+  static const all = [technica, gastroPro, pendingApproval, suspended];
+}
+
+/// Special-order manufacturer personas for the Dev Switcher (names unchanged).
+class ManufacturerDevPick {
+  const ManufacturerDevPick({
+    required this.sellerKey,
+    required this.labelKey,
+    required this.plan,
+    required this.planLabel,
+    this.promotedUsed = 0,
+    this.forceInactive = false,
+  });
+
+  final String sellerKey;
+  final String labelKey;
+  final TGStorePlanKind plan;
+  final String planLabel;
+  final int promotedUsed;
+  final bool forceInactive;
+
+  static const rm = ManufacturerDevPick(
+    sellerKey: 'seller_rm',
+    labelKey: 'ui_dev_maker_rm',
+    plan: TGStorePlanKind.enterprise,
+    planLabel: 'Enterprise Store',
+    promotedUsed: 1,
+  );
+
+  static const stalbar = ManufacturerDevPick(
+    sellerKey: 'seller_stalbar',
+    labelKey: 'ui_dev_maker_stalbar',
+    plan: TGStorePlanKind.enterprise,
+    planLabel: 'Enterprise Store',
+  );
+
+  static const inoxline = ManufacturerDevPick(
+    sellerKey: 'seller_inoxline',
+    labelKey: 'ui_dev_maker_inoxline',
+    plan: TGStorePlanKind.pro,
+    planLabel: 'Pro Store',
+    promotedUsed: 1,
+  );
+
+  static const metalgast = ManufacturerDevPick(
+    sellerKey: 'seller_metalgast',
+    labelKey: 'ui_dev_maker_metalgast',
+    plan: TGStorePlanKind.pro,
+    planLabel: 'Pro Store',
+  );
+
+  static const capacityFull = ManufacturerDevPick(
+    sellerKey: 'seller_nordinox',
+    labelKey: 'ui_dev_maker_passive',
+    plan: TGStorePlanKind.pro,
+    planLabel: 'Pro Store',
+    forceInactive: true,
+  );
+
+  static const all = [rm, stalbar, inoxline, metalgast, capacityFull];
+
+  StoreOwnerDevPick get asStoreOwner => StoreOwnerDevPick(
+        sellerKey: sellerKey,
+        labelKey: labelKey,
+        plan: plan,
+        planLabel: planLabel,
+        promotedUsed: promotedUsed,
+      );
 }
 
 class BuyerDevPick {
   const BuyerDevPick({
     required this.userId,
-    required this.label,
+    required this.labelKey,
     required this.displayName,
     required this.phoneVerified,
     required this.initials,
   });
 
   final String userId;
-  final String label;
+  final String labelKey;
   final String displayName;
   final bool phoneVerified;
   final String initials;
 
+  static const corporate = BuyerDevPick(
+    userId: 'buyer_corporate',
+    labelKey: 'ui_dev_buyer_corporate',
+    displayName: 'GastroHotel Sp. z o.o.',
+    phoneVerified: true,
+    initials: 'GH',
+  );
+
   static const marek = BuyerDevPick(
     userId: 'buyer_marek',
-    label: 'Buyer (Marek K., verified phone)',
+    labelKey: 'ui_dev_buyer_marek',
     displayName: 'Marek K.',
     phoneVerified: true,
     initials: 'MK',
@@ -96,14 +190,63 @@ class BuyerDevPick {
 
   static const anna = BuyerDevPick(
     userId: 'buyer_anna',
-    label: 'Buyer (Anna W., phone not verified)',
+    labelKey: 'ui_dev_buyer_anna',
     displayName: 'Anna W.',
     phoneVerified: false,
     initials: 'AW',
   );
 
-  static const all = [marek, anna];
+  static const all = [corporate, marek, anna];
 }
+
+/// Special-order request owners for the Dev Switcher (names unchanged).
+class SpecialOrderBuyerDevPick {
+  const SpecialOrderBuyerDevPick({
+    required this.userId,
+    required this.labelKey,
+    required this.displayName,
+    required this.initials,
+  });
+
+  final String userId;
+  final String labelKey;
+  final String displayName;
+  final String initials;
+
+  static const jan = SpecialOrderBuyerDevPick(
+    userId: 'buyer_jan',
+    labelKey: 'ui_dev_so_jan',
+    displayName: 'Jan Kowalski',
+    initials: 'JK',
+  );
+
+  static const piotr = SpecialOrderBuyerDevPick(
+    userId: 'buyer_piotr',
+    labelKey: 'ui_dev_so_piotr',
+    displayName: 'Piotr Nowak',
+    initials: 'PN',
+  );
+
+  static const tomasz = SpecialOrderBuyerDevPick(
+    userId: 'buyer_tomasz',
+    labelKey: 'ui_dev_so_tomasz',
+    displayName: 'Tomasz Wiśniewski',
+    initials: 'TW',
+  );
+
+  static const all = [jan, piotr, tomasz];
+
+  BuyerDevPick get asBuyer => BuyerDevPick(
+        userId: userId,
+        labelKey: labelKey,
+        displayName: displayName,
+        phoneVerified: true,
+        initials: initials,
+      );
+}
+
+/// Sentinel for Dev Switcher → Devren İlan Sahibi.
+enum DevrenSellerDevPick { listingOwner }
 
 extension TGUserRoleLabel on TGUserRole {
   String get label => switch (this) {
@@ -127,7 +270,11 @@ extension TGUserRoleLabel on TGUserRole {
 ///  * every listing (free or paid) has its own 30-day clock from publish.
 class FakeAuthState extends ChangeNotifier {
   FakeAuthState({bool isLoggedIn = false}) : _isLoggedIn = isLoggedIn {
-    setScenario(TGEntitlementScenario.hasExpired, notify: false);
+    if (isLoggedIn) {
+      setScenario(TGEntitlementScenario.hasExpired, notify: false);
+    } else {
+      setRole(TGUserRole.visitor, notify: false);
+    }
   }
 
   bool _isLoggedIn;
@@ -415,10 +562,48 @@ class FakeAuthState extends ChangeNotifier {
     storePlan = pick.plan;
     storePlanLabel = pick.planLabel;
     storeActiveUsed = 11;
-    storeActiveLimit = 15;
+    storeActiveLimit = switch (pick.plan) {
+      TGStorePlanKind.basic => 15,
+      TGStorePlanKind.pro => 50,
+      TGStorePlanKind.enterprise => 9999,
+    };
     storePromotedUsed = pick.promotedUsed;
     storePromotedLimit = 3;
     storeRenewsOn = DateTime(2026, 10, 24);
+    ownedListings = const [];
+    displayName = switch (pick.sellerKey) {
+      'seller_technica' => 'Technica Pro',
+      'seller_gastropl' => 'Gastrosilesia.pl',
+      'seller_rm' => 'RM',
+      'seller_stalbar' => 'Stalbar Projekt',
+      'seller_inoxline' => 'Inoxline Silesia',
+      'seller_metalgast' => 'Metalgast Katowice',
+      'seller_nordinox' => 'Nordinox Warszawa',
+      'seller_gastrolab' => 'GastroLab',
+      'seller_nordgastro' => 'NordGastro',
+      _ => pick.sellerKey,
+    };
+    phoneVerified = true;
+    notifyListeners();
+  }
+
+  /// Mock auth: Special Order manufacturer persona (same store chrome + seller key).
+  void actAsManufacturer(ManufacturerDevPick pick) => actAsStoreOwner(pick.asStoreOwner);
+
+  /// Mock auth: Special Order request owner (Jan / Piotr / Tomasz).
+  void actAsSpecialOrderBuyer(SpecialOrderBuyerDevPick pick) => actAsBuyer(pick.asBuyer);
+
+  /// Mock auth: restaurant / cafe business-transfer seller (Devren).
+  void actAsDevrenSeller() {
+    setScenario(TGEntitlementScenario.noListings, notify: false);
+    _isLoggedIn = true;
+    role = TGUserRole.seller;
+    sellerType = TGSellerType.private;
+    userId = 'seller_devren';
+    userInitials = 'DR';
+    displayName = 'Devren İlan Sahibi';
+    phoneVerified = true;
+    storePlan = null;
     notifyListeners();
   }
 

@@ -86,7 +86,7 @@ void main() {
     app.auth.actAsBuyer(
       const BuyerDevPick(
         userId: 'buyer_kasia',
-        label: 'Buyer (Kasia)',
+        labelKey: 'ui_dev_buyer_marek',
         displayName: 'Kasia M.',
         phoneVerified: true,
         initials: 'KM',

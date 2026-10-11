@@ -21,12 +21,15 @@ import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
+import 'package:twoja_gastromania/tg_components/founder_price_row.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_services/account_identity_service.dart';
+import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 
 class AddProductPage extends StatefulWidget {
@@ -250,6 +253,15 @@ class _AddProductPageState extends State<AddProductPage> {
           );
       auth.upsertOwned(pending);
       await TGProductService.instance.upsert(pending);
+      if (draft.founderPromoteRate > 0 && draft.promoteListFeePln > 0) {
+        TGFounderService.instance.recordSavings(
+          sellerId: auth.userId,
+          item: draft.promoteDays == 30 ? TGFounderDiscountItem.promote30 : TGFounderDiscountItem.promote14,
+          listPrice: draft.promoteListFeePln,
+          paidPrice: draft.promoteFeePln,
+          discountPct: draft.founderPromoteRate,
+        );
+      }
       auth.beginCheckout(
         TGCheckoutCart.listing(
           listingId: pending.id,
@@ -1343,10 +1355,25 @@ class _AddProductPageState extends State<AddProductPage> {
         WizardRadioCard(selected: draft.promote == AddProductPromote.none, title: context.t('ui_warranty_none'), onTap: () => _dirty(() => draft.promote = AddProductPromote.none)),
         const SizedBox(height: 8),
         WizardRadioCard(selected: draft.promote == AddProductPromote.days14, title: context.t('ui_promote_14'), subtitle: context.t('ui_promote_help', {'badge': context.t('ui_promoted_badge')}), onTap: () => _dirty(() => draft.promote = AddProductPromote.days14)),
+        if (draft.promote == AddProductPromote.days14)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: FounderPriceRow(sellerId: auth.userId, listPrice: TGPricing.promote14Pln),
+          ),
         const SizedBox(height: 8),
         WizardRadioCard(selected: draft.promote == AddProductPromote.days30, title: context.t('ui_promote_30'), subtitle: context.t('ui_promote_help', {'badge': context.t('ui_promoted_badge')}), onTap: () => _dirty(() => draft.promote = AddProductPromote.days30)),
+        if (draft.promote == AddProductPromote.days30)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: FounderPriceRow(sellerId: auth.userId, listPrice: TGPricing.promote30Pln),
+          ),
         const SizedBox(height: 14),
         Text(context.t('ui_total_brutto_vat', {'n': '${draft.totalPln}'}), style: FlutterFlowTheme.of(context).titleSmall.override(fontWeight: FontWeight.w900)),
+        if (draft.founderPromoteRate > 0)
+          Text(
+            'Founder discount −${(draft.founderPromoteRate * 100).round()}% on promote',
+            style: FlutterFlowTheme.of(context).bodySmall.override(fontWeight: FontWeight.w800),
+          ),
         if (plan == TGListingPlan.paid) ...[
           const SizedBox(height: 12),
           WizardCard(

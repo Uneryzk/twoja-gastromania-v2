@@ -308,6 +308,41 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           path: '/admin/special-orders/:requestNo',
           builder: (context, params) => AdminSoCaseHost(requestNo: params.state.pathParameters['requestNo'] ?? ''),
         ),
+        FFRoute(
+          name: 'AdminRevenueConfig',
+          path: '/admin/revenue-config',
+          builder: (context, params) => const AdminRevenueConfigHost(),
+        ),
+        FFRoute(
+          name: 'AdminPriority',
+          path: '/admin/priority',
+          builder: (context, params) => const AdminPriorityHost(),
+        ),
+        FFRoute(
+          name: 'AdminFounders',
+          path: '/admin/founders',
+          builder: (context, params) => const AdminFoundersHost(),
+        ),
+        FFRoute(
+          name: 'AdminAudits',
+          path: '/admin/audits',
+          builder: (context, params) => const AdminAuditsHost(),
+        ),
+        FFRoute(
+          name: 'AdminSponsorSlots',
+          path: '/admin/sponsor-slots',
+          builder: (context, params) => const AdminSponsorSlotsHost(),
+        ),
+        FFRoute(
+          name: FoundersPage.routeName,
+          path: FoundersPage.routePath,
+          builder: (context, params) => const FoundersPage(),
+        ),
+        FFRoute(
+          name: ManufacturerDashboardPage.routeName,
+          path: ManufacturerDashboardPage.routePath,
+          builder: (context, params) => ManufacturerDashboardPage(tab: params.state.uri.queryParameters['tab']),
+        ),
       ].map((r) => r.toRoute(appStateNotifier)).toList()
         ..add(GoRoute(path: '/checkout', redirect: (_, __) => CheckoutPage.routePath))
         ..add(GoRoute(path: kLegacyHomePath, redirect: (_, __) => HomePageWidget.routePath)),

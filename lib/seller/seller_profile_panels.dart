@@ -587,7 +587,7 @@ class _StoreAboutPanelState extends State<StoreAboutPanel> {
                   children: [
                     Text(context.t('ui_references'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 12),
-                    _ProjectGallery(projects: p.projects, carousel: stacked),
+                    StoreProjectGallery(projects: p.projects, carousel: stacked),
                   ],
                 ),
               ),
@@ -752,8 +752,44 @@ class _Social extends StatelessWidget {
   }
 }
 
-class _ProjectGallery extends StatelessWidget {
-  const _ProjectGallery({required this.projects, this.carousel = false});
+/// Dedicated Projects tab for Special Order manufacturers (store-like vitrine).
+class StoreProjectsPanel extends StatelessWidget {
+  const StoreProjectsPanel({super.key, required this.profile, this.editing = false, this.onEdit});
+  final TGStoreProfile profile;
+  final bool editing;
+  final ValueChanged<TGStoreEditSection>? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final stacked = MediaQuery.sizeOf(context).width < TGBreakpoints.desktop;
+    if (profile.projects.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Text(context.t('ui_mfr_projects_empty'), style: theme.bodyMedium.override(fontWeight: FontWeight.w700)),
+      );
+    }
+    return StoreEditableRegion(
+      section: TGStoreEditSection.projects,
+      editing: editing,
+      onEdit: onEdit ?? (_) {},
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(context.t('ui_references'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text(context.t('ui_so_recent_projects'), style: theme.bodySmall.override(color: theme.secondaryText)),
+          const SizedBox(height: 16),
+          StoreProjectGallery(projects: profile.projects, carousel: stacked),
+        ],
+      ),
+    );
+  }
+}
+
+/// Public project photo gallery — used on About and dedicated Projects tab.
+class StoreProjectGallery extends StatelessWidget {
+  const StoreProjectGallery({super.key, required this.projects, this.carousel = false});
   final List<TGStoreProject> projects;
   final bool carousel;
 
@@ -777,6 +813,8 @@ class _ProjectGallery extends StatelessWidget {
             const SizedBox(height: 8),
             Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w800)),
             Text('${p.city} · ${p.year}', style: FlutterFlowTheme.of(context).bodySmall.override(color: FlutterFlowTheme.of(context).secondaryText)),
+            if (p.completedViaPlatform && p.buyerConfirmedLink)
+              Text('Completed via platform', style: FlutterFlowTheme.of(context).bodySmall.override(fontWeight: FontWeight.w800, color: FlutterFlowTheme.of(context).primary)),
           ],
         ),
       );

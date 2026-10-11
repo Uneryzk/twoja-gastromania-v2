@@ -13,10 +13,12 @@ import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/tg_models/tg_special_review.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
+import 'package:twoja_gastromania/tg_services/special_review_service.dart';
 
 class AdminSellerCasePage extends StatefulWidget {
   const AdminSellerCasePage({super.key, required this.sellerId});
@@ -140,7 +142,10 @@ class AdminReviewCasePage extends StatelessWidget {
   Widget build(BuildContext context) {
     context.watch<ModerationService>();
     DealService.instance.ensureSeeded();
+    TGSpecialReviewService.instance.ensureSeeded();
     final review = DealService.instance.reviewById(reviewId);
+    final special = review == null ? TGSpecialReviewService.instance.byId(reviewId) : null;
+    if (special != null) return _SpecialReviewCase(review: special);
     final key = ModerationService.caseKeyFor(TGReportTarget.review, reviewId);
     final reports = ModerationService.instance.reportsFor(key);
     final others = review == null
@@ -216,6 +221,91 @@ class AdminReviewCasePage extends StatelessWidget {
           ),
         ),
         const AdminPrinciplesFooter(),
+      ],
+    );
+  }
+}
+
+class _SpecialReviewCase extends StatelessWidget {
+  const _SpecialReviewCase({required this.review});
+  final TGSpecialReview review;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final auth = context.watch<FakeAuthState>();
+    final obj = TGSpecialReviewService.instance.objections.where((o) => o.reviewId == review.id).firstOrNull;
+    final ev = TGSpecialReviewService.instance.evidence.where((e) => e.dealId == review.id).toList();
+    final private = TGSpecialReviewService.instance.privateReports.where((p) => p.requestId == review.requestId).toList();
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text('Project review', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        AdminCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${review.authorName} · ${review.rating}/5 · ${review.state.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(review.text),
+              Text('${review.requestNo} · ${review.projectTitleSnapshot}'),
+              Text('Platform signals: award record, quote record, time-to-award, message/call logs', style: theme.bodySmall),
+              if (review.riskFlags.isNotEmpty) Text('Risk: ${review.riskFlags.join(", ")}', style: const TextStyle(fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+        if (obj != null) ...[
+          const SizedBox(height: 12),
+          Text('Objection: ${obj.reason.name} · ${obj.status.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
+          Text(obj.note),
+          Text('Suggested evidence: Handover protocol, invoice, contract, photos of the delivered project', style: theme.bodySmall),
+        ],
+        for (final e in ev) ListTile(dense: true, title: Text(e.fileUrl), subtitle: Text(e.type.name)),
+        for (final p in private) ListTile(dense: true, title: Text('Private buyer report (team only): ${p.reason.name}'), subtitle: Text(p.note)),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: [
+            TGButton(
+              onPressed: () {
+                TGSpecialReviewService.instance.moderatorDecide(
+                  reviewId: review.id,
+                  decision: TGObjectionDecision.confirmed,
+                  actorId: auth.userId,
+                  note: 'Moderator confirmed',
+                );
+              },
+              label: 'Confirm',
+              height: 40,
+            ),
+            TGButton(
+              onPressed: () {
+                TGSpecialReviewService.instance.moderatorDecide(
+                  reviewId: review.id,
+                  decision: TGObjectionDecision.removed,
+                  actorId: auth.userId,
+                  note: 'Removed',
+                );
+              },
+              label: 'Remove',
+              height: 40,
+              variant: TGButtonVariant.outline,
+            ),
+            TGButton(
+              onPressed: () {
+                TGSpecialReviewService.instance.moderatorDecide(
+                  reviewId: review.id,
+                  decision: TGObjectionDecision.notVerified,
+                  actorId: auth.userId,
+                  note: 'Not verified',
+                );
+              },
+              label: 'Not verified',
+              height: 40,
+              variant: TGButtonVariant.ghost,
+            ),
+          ],
+        ),
       ],
     );
   }

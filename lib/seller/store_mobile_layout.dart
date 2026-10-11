@@ -303,6 +303,7 @@ class StoreMobileContactBar extends StatelessWidget {
 
 String storeMobileTabLabel(BuildContext context, {required String name, required int products, required int reviews}) {
   return switch (name) {
+    'projects' => context.t('ui_mfr_projects_tab'),
     'products' => context.t('ui_products_n', {'n': '$products'}),
     'about' => context.t('ui_about_short'),
     'reviews' => context.t('ui_reviews_n_short', {'n': '$reviews'}),

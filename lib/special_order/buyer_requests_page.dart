@@ -18,9 +18,12 @@ import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/special_order/special_review_composer.dart';
+import 'package:twoja_gastromania/tg_components/audited_badge.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
+import 'package:twoja_gastromania/tg_services/special_review_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class BuyerRequestsPage extends StatefulWidget {
@@ -224,6 +227,47 @@ class _RequestDetailState extends State<_RequestDetail> {
         const SizedBox(height: 8),
         Text(request.title, style: theme.titleLarge.override(fontWeight: FontWeight.w900)),
         Text('${request.city} · ${request.voivodeship}', style: theme.bodyMedium.override(color: theme.secondaryText)),
+        if (request.status == TGSpecialRequestStatus.awarded) ...[
+          const SizedBox(height: 16),
+          Text('Project completion', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          Text('Status: ${request.completionStatus.name}', style: theme.bodySmall),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (request.completionStatus != TGProjectCompletionStatus.completed)
+                TGButton(
+                  onPressed: () {
+                    final auth = context.read<FakeAuthState>();
+                    TGSpecialReviewService.instance.markCompleted(request.id, buyerId: auth.userId);
+                    setState(() {});
+                    showSpecialReviewComposer(context, request: svc.byId(request.id)!);
+                  },
+                  label: 'Mark completed',
+                  height: 40,
+                ),
+              if (request.completionStatus == TGProjectCompletionStatus.inProgress)
+                TGButton(
+                  onPressed: () {
+                    final auth = context.read<FakeAuthState>();
+                    TGSpecialReviewService.instance.markStillInProgress(request.id, buyerId: auth.userId);
+                    setState(() {});
+                    showTGToast(context, 'We\'ll ask again in 14 days');
+                  },
+                  label: 'Still in progress',
+                  variant: TGButtonVariant.outline,
+                  height: 40,
+                ),
+              if (request.completionStatus == TGProjectCompletionStatus.completed)
+                TGButton(
+                  onPressed: () => showSpecialReviewComposer(context, request: request),
+                  label: 'Write project review',
+                  height: 40,
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: 20),
         Row(
           children: [
@@ -345,10 +389,12 @@ class _QuoteColumn extends StatelessWidget {
           ),
           if (store != null) ...[
             const SizedBox(height: 4),
-            Wrap(spacing: 6, children: [
+            Wrap(spacing: 6, runSpacing: 4, children: [
               if (store.verified) const TGVerifiedSellerBadge(),
+              AuditedManufacturerBadge(sellerId: store.sellerKey, compact: true),
               TGRatingBadge(rating: store.rating),
             ]),
+            CustomProjectsRatingLine(sellerId: store.sellerKey),
             Text(context.t('ui_so_replies_in', {'n': '${store.responseHours ?? 24}'}), style: theme.bodySmall),
             TextButton(
               onPressed: () => context.go('${store.path}?tab=about'),
@@ -356,6 +402,7 @@ class _QuoteColumn extends StatelessWidget {
             ),
           ],
           if (lowest) _tag(context.t('ui_so_lowest_price')),
+          if (quote.isRevised) _tag('Revised'),
           if (fastest) _tag(context.t('ui_so_fastest')),
           const SizedBox(height: 8),
           _row(context.t('ui_price'), '${quote.priceNet} PLN netto\n${quote.priceGross} PLN brutto (${quote.vatRate}% VAT)'),
@@ -398,7 +445,43 @@ class _QuoteColumn extends StatelessWidget {
                   height: 36,
                 ),
                 TGButton(
-                  onPressed: () => TGSpecialOrderService.instance.declineQuote(quote.id),
+                  onPressed: () async {
+                    final reason = await showModalBottomSheet<TGQuoteDeclineReason>(
+                      context: context,
+                      backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+                      builder: (ctx) => SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(context.t('ui_so_decline'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                              const SizedBox(height: 8),
+                              Text('Optional — used only in aggregated analytics', style: TextStyle(color: FlutterFlowTheme.of(ctx).secondaryText, fontSize: 12)),
+                              const SizedBox(height: 12),
+                              for (final e in const [
+                                (TGQuoteDeclineReason.price, 'Price too high'),
+                                (TGQuoteDeclineReason.leadTime, 'Lead time too long'),
+                                (TGQuoteDeclineReason.choseOther, 'Chose another offer'),
+                                (TGQuoteDeclineReason.projectCancelled, 'Project cancelled'),
+                                (TGQuoteDeclineReason.other, 'Other'),
+                              ])
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: OutlinedButton(
+                                    onPressed: () => Navigator.pop(ctx, e.$1),
+                                    child: Text(e.$2),
+                                  ),
+                                ),
+                              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Skip')),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                    TGSpecialOrderService.instance.declineQuote(quote.id, reason: reason);
+                  },
                   label: context.t('ui_so_decline'),
                   variant: TGButtonVariant.ghost,
                   height: 36,

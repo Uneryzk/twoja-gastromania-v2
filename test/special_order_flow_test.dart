@@ -31,15 +31,13 @@ void main() {
     expect(isValidNip('1234567890'), isFalse);
   });
 
-  test('pro seller only sees directed leads; enterprise sees pool', () {
+  test('pro with Priority / enterprise see early pool; basic still empty', () {
     final svc = TGSpecialOrderService.instance..ensureSeeded();
-    final pro = svc.leadsForSeller('seller_gastropl');
-    expect(pro.every((r) {
-      final via = svc.viaFor(r.id, 'seller_gastropl');
-      return via == TGLeadAccessVia.selected || via == TGLeadAccessVia.matched;
-    }), isTrue);
+    final gastro = svc.leadsForSeller('seller_gastropl');
+    expect(gastro, isNotEmpty);
     final ent = svc.leadsForSeller('seller_rm');
-    expect(ent.length, greaterThan(pro.length));
+    expect(ent.length, greaterThanOrEqualTo(gastro.length));
+    expect(svc.leadsForSeller('seller_technica'), isEmpty);
   });
 
   test('basic store cannot receive leads', () {

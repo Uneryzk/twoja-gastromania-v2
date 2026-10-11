@@ -12,6 +12,8 @@ import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 
 Future<void> _showTGSheet(BuildContext context, WidgetBuilder builder) {
@@ -37,55 +39,148 @@ Future<void> showTGPricingSheet(BuildContext context, {bool publishing = false})
 /// Header pill menu: quota status, quick actions, demo state switch, log out.
 Future<void> showTGAccountSheet(BuildContext context) => _showTGSheet(context, (_) => const _AccountSheet());
 
-/// Debug long-press: switch mock role and entitlement scenario.
+TextStyle _devSectionStyle(BuildContext context) =>
+    FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w800, fontSize: 11);
+
+TextStyle _devItemStyle(BuildContext context) =>
+    FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w600);
+
+PopupMenuItem<Object> _devSection(BuildContext context, String title) => PopupMenuItem(
+      enabled: false,
+      height: 32,
+      child: Text(title, style: _devSectionStyle(context)),
+    );
+
+void _devAdvanceClock(int days) {
+  DealService.instance.ensureSeeded();
+  DealModerationService.instance.ensureSeeded();
+  TGSpecialOrderService.instance.ensureSeeded();
+  TGClock.advance(Duration(days: days));
+  DealService.instance.onClockAdvanced();
+  DealModerationService.instance.onClockAdvanced();
+  TGSpecialOrderService.instance.onClockAdvanced();
+}
+
+/// Applies a Dev Switcher pick: updates [FakeAuthState], then navigates via [router].
+///
+/// Uses [GoRouter] (not [BuildContext.go]) because selecting Admin/login roles
+/// rebuilds the header and can dispose the widget that opened the menu — so
+/// `context.mounted` was false and `/admin` never ran.
+void applyTGDevSwitchPick(GoRouter router, FakeAuthState auth, Object picked) {
+  if (picked is TGUserRole) {
+    auth.setRole(picked); // notifyListeners → UI refresh
+    if (picked == TGUserRole.admin || picked == TGUserRole.moderator) {
+      router.go('/admin');
+    } else if (picked == TGUserRole.visitor) {
+      router.go('/');
+    }
+    return;
+  }
+  if (picked is TGEntitlementScenario) {
+    auth.setRole(TGUserRole.seller, notify: false);
+    auth.setScenario(picked); // notifyListeners
+    router.go('/dashboard/listings');
+    return;
+  }
+  if (picked is StoreOwnerDevPick) {
+    auth.actAsStoreOwner(picked);
+    router.go(TGSellerProfileService.instance.pathForSellerId(picked.sellerKey));
+    return;
+  }
+  if (picked is ManufacturerDevPick) {
+    auth.actAsManufacturer(picked);
+    if (picked.forceInactive) {
+      final profile = TGSellerProfileService.instance.bySellerKey(picked.sellerKey);
+      if (profile != null) {
+        TGSellerProfileService.instance.patch(
+          profile.publicId,
+          (p) => p.copyWith(status: TGStoreStatus.inactive),
+        );
+      }
+    }
+    // Land on public store-like page (logo, projects, reviews); tools stay at /dashboard/manufacturer.
+    router.go(TGSellerProfileService.instance.pathForSellerId(picked.sellerKey));
+    return;
+  }
+  if (picked is BuyerDevPick) {
+    auth.actAsBuyer(picked);
+    router.go('/account/deals');
+    return;
+  }
+  if (picked is SpecialOrderBuyerDevPick) {
+    TGSpecialOrderService.instance.ensureSeeded();
+    auth.actAsSpecialOrderBuyer(picked);
+    router.go('/account/requests');
+    return;
+  }
+  if (picked == DevrenSellerDevPick.listingOwner) {
+    auth.actAsDevrenSeller();
+    router.go('/dashboard/listings');
+    return;
+  }
+  if (picked is int) _devAdvanceClock(picked);
+}
+
+String _devClockLabel(BuildContext context, int days) {
+  final key = days == 1 ? 'ui_dev_clock_days' : 'ui_dev_clock_days_many';
+  return context.t(key, {'n': '$days'});
+}
+
+/// Debug long-press Dev Switcher — labels follow the selected app language.
 Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
   final box = context.findRenderObject();
   if (box is! RenderBox || !box.hasSize || !box.attached) return;
+  // Capture router before the menu — header may rebuild/dispose [context] on pick.
+  final router = GoRouter.of(context);
   final origin = box.localToGlobal(Offset.zero);
+  final itemStyle = _devItemStyle(context);
+  String t(String key) => context.t(key);
   final picked = await showMenu<Object>(
     context: context,
     color: FlutterFlowTheme.of(context).secondaryBackground,
     position: RelativeRect.fromLTRB(origin.dx, origin.dy + box.size.height + 6, origin.dx + 1, 0),
+    constraints: const BoxConstraints(maxHeight: 560, minWidth: 300),
     items: [
-      const PopupMenuItem(enabled: false, child: Text('Role', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-      for (final r in TGUserRole.values)
-        PopupMenuItem(value: r, child: Text(r.label, style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w600))),
+      _devSection(context, t('ui_dev_sec_visitor')),
+      PopupMenuItem(value: TGUserRole.visitor, child: Text(t('ui_dev_visitor_anon'), style: itemStyle)),
       const PopupMenuDivider(),
-      const PopupMenuItem(enabled: false, child: Text('Listings', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-      for (final s in TGEntitlementScenario.values)
-        PopupMenuItem(value: s, child: Text(_AccountSheet.scenarioLabel(s), style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w600))),
+      _devSection(context, t('ui_dev_sec_staff')),
+      PopupMenuItem(value: TGUserRole.admin, child: Text(t('ui_dev_admin'), style: itemStyle)),
+      PopupMenuItem(value: TGUserRole.moderator, child: Text(t('ui_dev_moderator'), style: itemStyle)),
       const PopupMenuDivider(),
-      const PopupMenuItem(enabled: false, child: Text('Store owner', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-      for (final p in StoreOwnerDevPick.all)
-        PopupMenuItem(value: p, child: Text(p.label, style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w600))),
+      _devSection(context, t('ui_dev_sec_private_seller')),
+      PopupMenuItem(value: TGEntitlementScenario.noListings, child: Text(t('ui_dev_sc_no_listings'), style: itemStyle)),
+      PopupMenuItem(value: TGEntitlementScenario.freeActive, child: Text(t('ui_dev_sc_free_active'), style: itemStyle)),
+      PopupMenuItem(value: TGEntitlementScenario.freeNoListingsLeft, child: Text(t('ui_dev_sc_free_used'), style: itemStyle)),
+      PopupMenuItem(value: TGEntitlementScenario.needsAttention, child: Text(t('ui_dev_sc_needs_attention'), style: itemStyle)),
+      PopupMenuItem(value: TGEntitlementScenario.listingExpiringSoon, child: Text(t('ui_dev_sc_expiring'), style: itemStyle)),
       const PopupMenuDivider(),
-      const PopupMenuItem(enabled: false, child: Text('Buyers', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-      for (final p in BuyerDevPick.all)
-        PopupMenuItem(value: p, child: Text(p.label, style: FlutterFlowTheme.of(context).bodyMedium.override(fontWeight: FontWeight.w600))),
+      _devSection(context, t('ui_dev_sec_stores')),
+      for (final p in StoreOwnerDevPick.all) PopupMenuItem(value: p, child: Text(t(p.labelKey), style: itemStyle)),
       const PopupMenuDivider(),
-      const PopupMenuItem(enabled: false, child: Text('Clock', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11))),
-      const PopupMenuItem(value: 1, child: Text('Advance time +1 days')),
-      const PopupMenuItem(value: 2, child: Text('Advance time +2 days')),
-      const PopupMenuItem(value: 3, child: Text('Advance time +3 days')),
-      const PopupMenuItem(value: 5, child: Text('Advance time +5 days')),
-      const PopupMenuItem(value: 10, child: Text('Advance time +10 days')),
-      const PopupMenuItem(value: 14, child: Text('Advance time +14 days')),
-      const PopupMenuItem(value: 25, child: Text('Advance time +25 days')),
+      _devSection(context, t('ui_dev_sec_makers')),
+      for (final p in ManufacturerDevPick.all) PopupMenuItem(value: p, child: Text(t(p.labelKey), style: itemStyle)),
+      const PopupMenuDivider(),
+      _devSection(context, t('ui_dev_sec_buyers_private')),
+      PopupMenuItem(value: BuyerDevPick.marek, child: Text(t(BuyerDevPick.marek.labelKey), style: itemStyle)),
+      PopupMenuItem(value: BuyerDevPick.anna, child: Text(t(BuyerDevPick.anna.labelKey), style: itemStyle)),
+      const PopupMenuDivider(),
+      _devSection(context, t('ui_dev_sec_buyers_corp')),
+      PopupMenuItem(value: BuyerDevPick.corporate, child: Text(t(BuyerDevPick.corporate.labelKey), style: itemStyle)),
+      const PopupMenuDivider(),
+      _devSection(context, t('ui_dev_sec_so_buyers')),
+      for (final p in SpecialOrderBuyerDevPick.all) PopupMenuItem(value: p, child: Text(t(p.labelKey), style: itemStyle)),
+      const PopupMenuDivider(),
+      _devSection(context, t('ui_dev_sec_transfer')),
+      PopupMenuItem(value: DevrenSellerDevPick.listingOwner, child: Text(t('ui_dev_transfer_owner'), style: itemStyle)),
+      const PopupMenuDivider(),
+      _devSection(context, t('ui_dev_sec_clock')),
+      for (final d in const [1, 2, 3, 5, 10, 14, 25])
+        PopupMenuItem(value: d, child: Text(_devClockLabel(context, d), style: itemStyle)),
     ],
   );
-  if (picked is TGUserRole) auth.setRole(picked);
-  if (picked is TGEntitlementScenario) auth.setScenario(picked);
-  if (picked is StoreOwnerDevPick) auth.actAsStoreOwner(picked);
-  if (picked is BuyerDevPick) auth.actAsBuyer(picked);
-  if (picked is int) {
-    DealService.instance.ensureSeeded();
-    DealModerationService.instance.ensureSeeded();
-    TGSpecialOrderService.instance.ensureSeeded();
-    TGClock.advance(Duration(days: picked));
-    DealService.instance.onClockAdvanced();
-    DealModerationService.instance.onClockAdvanced();
-    TGSpecialOrderService.instance.onClockAdvanced();
-  }
+  if (picked == null) return;
+  applyTGDevSwitchPick(router, auth, picked);
 }
 
 /// Navigates to the Special Order hub (full page). Kept for any legacy callers.
@@ -420,14 +515,14 @@ String _roleLabel(BuildContext context, TGUserRole role) => switch (role) {
 class _AccountSheet extends StatelessWidget {
   const _AccountSheet();
 
-  static String scenarioLabel(TGEntitlementScenario s) => switch (s) {
-        TGEntitlementScenario.noListings => 'No listings yet – 3 free',
-        TGEntitlementScenario.freeActive => '2 free left',
-        TGEntitlementScenario.freeNoListingsLeft => '3 free slots used',
-        TGEntitlementScenario.needsAttention => '1 listing needs attention',
-        TGEntitlementScenario.listingExpiringSoon => '1 listing ends in 3d',
-        TGEntitlementScenario.hasExpired => '2 expired · Renew',
-        TGEntitlementScenario.storeSubscriber => 'B2B store subscriber',
+  static String scenarioLabel(BuildContext context, TGEntitlementScenario s) => switch (s) {
+        TGEntitlementScenario.noListings => context.t('ui_dev_sc_no_listings'),
+        TGEntitlementScenario.freeActive => context.t('ui_dev_sc_free_active'),
+        TGEntitlementScenario.freeNoListingsLeft => context.t('ui_dev_sc_free_used'),
+        TGEntitlementScenario.needsAttention => context.t('ui_dev_sc_needs_attention'),
+        TGEntitlementScenario.listingExpiringSoon => context.t('ui_dev_sc_expiring'),
+        TGEntitlementScenario.hasExpired => context.t('ui_dev_sc_expired'),
+        TGEntitlementScenario.storeSubscriber => context.t('ui_dev_sc_store_sub'),
       };
 
   @override
@@ -568,7 +663,7 @@ class _AccountSheet extends StatelessWidget {
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     activeColor: theme.primary,
-                    title: Text(scenarioLabel(v), style: theme.bodyMedium.override(fontWeight: FontWeight.w600)),
+                    title: Text(scenarioLabel(context, v), style: theme.bodyMedium.override(fontWeight: FontWeight.w600)),
                   ),
               ],
             ),

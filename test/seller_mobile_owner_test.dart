@@ -129,9 +129,12 @@ void main() {
   });
 
   testWidgets('dev switch lists store owner roles', (tester) async {
-    expect(StoreOwnerDevPick.technica.label, 'Basic store owner (Technica)');
-    expect(StoreOwnerDevPick.gastroPro.label, 'Pro store owner (Gastrosilesia.pl)');
-    expect(StoreOwnerDevPick.rmEnterprise.label, 'Enterprise store owner (RM)');
+    expect(StoreOwnerDevPick.technica.labelKey, 'ui_dev_store_technica');
+    expect(StoreOwnerDevPick.gastroPro.labelKey, 'ui_dev_store_gastro');
+    expect(StoreOwnerDevPick.pendingApproval.labelKey, 'ui_dev_store_pending');
+    expect(StoreOwnerDevPick.suspended.labelKey, 'ui_dev_store_suspended');
+    expect(ManufacturerDevPick.rm.labelKey, 'ui_dev_maker_rm');
+    expect(SpecialOrderBuyerDevPick.jan.displayName, 'Jan Kowalski');
   });
 
   testWidgets('390px reviews tab is a single column with write CTA', (tester) async {

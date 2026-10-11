@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 
-enum TGStoreTab { products, about, reviews }
+enum TGStoreTab { projects, products, about, reviews }
 
 @immutable
 class TGStoreQuery {
@@ -67,6 +67,7 @@ class TGStoreQuery {
   static TGStoreQuery fromQuery(Map<String, String> qp) {
     final tabRaw = (qp['tab'] ?? 'products').toLowerCase();
     final tab = switch (tabRaw) {
+      'projects' => TGStoreTab.projects,
       'about' => TGStoreTab.about,
       'reviews' => TGStoreTab.reviews,
       _ => TGStoreTab.products,

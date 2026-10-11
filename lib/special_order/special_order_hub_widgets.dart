@@ -6,6 +6,8 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/seller/seller_profile_panels.dart' show showStoreProjectLightbox;
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
+import 'package:twoja_gastromania/tg_components/audited_badge.dart';
 import 'package:twoja_gastromania/tg_components/tg_badges.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
@@ -95,25 +97,16 @@ class SoStatsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    Widget card({required String label, required Widget value}) {
-      return Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(TGRadius.card), border: Border.all(color: TGColors.border)),
-          child: Column(
-            children: [
-              value,
-              const SizedBox(height: 6),
-              Text(label, textAlign: TextAlign.center, style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w700)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Row(
-      children: [
-        card(
+    final prod = TGRevenueConfigService.instance.productionMode;
+    final showMakers = !prod || manufacturers >= 5;
+    final showProjects = !prod || projects >= 5;
+    // Median quote card uses illustrative "1 business day" — hide in production until ≥5 real replies exist.
+    final realReplies = TGSpecialOrderService.instance.quotes.length;
+    final showMedian = !prod || realReplies >= 5;
+    final cards = <Widget>[
+      if (showMakers)
+        _statCard(
+          theme,
           label: context.t('ui_so_stat_makers'),
           value: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: played ? manufacturers.toDouble() : 0),
@@ -121,8 +114,9 @@ class SoStatsRow extends StatelessWidget {
             builder: (_, v, __) => Text('${v.round()}', style: theme.headlineMedium.override(fontWeight: FontWeight.w900)),
           ),
         ),
-        const SizedBox(width: 16),
-        card(
+      if (showProjects)
+        _statCard(
+          theme,
           label: context.t('ui_so_stat_projects'),
           value: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: played ? projects.toDouble() : 0),
@@ -130,16 +124,43 @@ class SoStatsRow extends StatelessWidget {
             builder: (_, v, __) => Text('${v.round()}', style: theme.headlineMedium.override(fontWeight: FontWeight.w900)),
           ),
         ),
-        const SizedBox(width: 16),
-        card(
+      if (showMedian)
+        _statCard(
+          theme,
           label: context.t('ui_so_stat_quote'),
           value: AnimatedOpacity(
             opacity: played ? 1 : 0,
             duration: tgAnim(context, const Duration(milliseconds: 400)),
-            child: Text(context.t('ui_so_median_quote'), style: theme.titleLarge.override(fontWeight: FontWeight.w900), textAlign: TextAlign.center),
+            child: Text(
+              prod ? 'within 2 business days' : context.t('ui_so_median_quote'),
+              style: theme.titleLarge.override(fontWeight: FontWeight.w900),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
+    ];
+    if (cards.length < 2) return const SizedBox.shrink();
+    return Row(
+      children: [
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) const SizedBox(width: 16),
+          Expanded(child: cards[i]),
+        ],
       ],
+    );
+  }
+
+  Widget _statCard(FlutterFlowTheme theme, {required String label, required Widget value}) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(TGRadius.card), border: Border.all(color: TGColors.border)),
+      child: Column(
+        children: [
+          value,
+          const SizedBox(height: 6),
+          Text(label, textAlign: TextAlign.center, style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w700)),
+        ],
+      ),
     );
   }
 }
@@ -504,10 +525,13 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           if (p.verified) const TGVerifiedSellerBadge(),
+                          AuditedManufacturerBadge(sellerId: p.sellerKey, compact: true),
                           TGRatingBadge(rating: p.rating),
                           Text(context.t('ui_reviews_n', {'n': '${p.reviewsCount}'}), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
                         ],
                       ),
+                      const SizedBox(height: 4),
+                      CustomProjectsRatingLine(sellerId: p.sellerKey),
                     ],
                   ),
                 ),
@@ -529,7 +553,12 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
             ),
             const SizedBox(height: 10),
             Text(
-              '${p.city} · ${context.t('ui_member_since', {'y': '${p.memberSince.year}'})} · ${context.t('ui_so_replies_in', {'n': '${p.responseHours ?? 24}'})}',
+              (() {
+                final prod = TGRevenueConfigService.instance.productionMode;
+                final base = '${p.city} · ${context.t('ui_member_since', {'y': '${p.memberSince.year}'})}';
+                if (prod && (p.responseHours == null || p.responseHours! < 5)) return base;
+                return '$base · ${context.t('ui_so_replies_in', {'n': '${p.responseHours ?? 24}'})}';
+              })(),
               style: theme.bodySmall.override(color: theme.secondaryText),
             ),
             const SizedBox(height: 10),

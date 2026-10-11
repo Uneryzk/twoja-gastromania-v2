@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/add_product/add_product_fields.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
+import 'package:twoja_gastromania/payment/payment_form.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
@@ -13,6 +14,15 @@ import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
+import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
+import 'package:twoja_gastromania/tg_components/founder_price_row.dart';
+import 'package:twoja_gastromania/tg_services/audit_service.dart';
+import 'package:twoja_gastromania/tg_services/founder_service.dart';
+import 'package:twoja_gastromania/tg_services/priority_service.dart';
+import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
+import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
+import 'package:twoja_gastromania/tg_services/sponsor_slot_service.dart';
 
 class PlansPage extends StatefulWidget {
   const PlansPage({super.key});
@@ -124,6 +134,10 @@ class _PlansPageState extends State<PlansPage> {
                       style: theme.bodySmall.override(color: theme.secondaryText),
                       textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: 40),
+                    const _PriorityManufacturerSection(),
+                    const SizedBox(height: 32),
+                    const _AuditAndSponsorCards(),
                   ],
                 ),
               ),
@@ -203,6 +217,236 @@ class _PlanCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PriorityManufacturerSection extends StatefulWidget {
+  const _PriorityManufacturerSection();
+
+  @override
+  State<_PriorityManufacturerSection> createState() => _PriorityManufacturerSectionState();
+}
+
+class _PriorityManufacturerSectionState extends State<_PriorityManufacturerSection> {
+  TGPriorityBillingPeriod _billing = TGPriorityBillingPeriod.monthly;
+
+  @override
+  void initState() {
+    super.initState();
+    TGPriorityService.instance.ensureSeeded();
+    TGFounderService.instance.ensureSeeded();
+    TGAnalytics.track('priority_view', {'from': 'plans'});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
+    final cfg = TGRevenueConfigService.instance;
+    final auth = context.watch<FakeAuthState>();
+    final profile = TGSellerProfileService.instance.bySellerKey(auth.userId);
+    final specialty = profile?.specialties.firstOrNull ?? TGStoreSpecialty.worktopsTables;
+    final region = profile?.voivodeship ?? 'Śląskie';
+    final gateOpen = cfg.flags.priorityForSale && TGPriorityService.instance.segmentSaleOpen(specialty, region);
+    final seats = TGPriorityService.instance.seatsTaken(specialty, region);
+    final cap = cfg.config.priority.capPerSegment;
+    final full = seats >= cap;
+    final catalog = TGPriorityService.instance.priceFor(_billing);
+    final months = switch (_billing) {
+      TGPriorityBillingPeriod.monthly => 1,
+      TGPriorityBillingPeriod.sixMonths => 6,
+      TGPriorityBillingPeriod.yearly => 10,
+    };
+    final monthlyList = cfg.config.priority.priceMonthly;
+    final founderMonthly = TGFounderService.instance.discountedPrice(auth.userId, monthlyList);
+    final founderTotal = founderMonthly * months;
+    // Founder and bulk do not stack — manufacturer gets the better (lower) price.
+    final price = founderTotal < catalog ? founderTotal : catalog;
+    final founderWins = founderTotal < catalog && founderMonthly < monthlyList;
+    final bulk = cfg.flags.bulkBilling;
+    final isEnterprise = profile?.plan == TGStorePlanKind.enterprise;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      key: const ValueKey('priority'),
+      children: [
+        Text('Priority Manufacturer', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        if (isEnterprise)
+          Text('Included with Enterprise', style: theme.titleMedium.override(fontWeight: FontWeight.w800))
+        else if (founderWins && _billing == TGPriorityBillingPeriod.monthly)
+          FounderPriceRow(sellerId: auth.userId, listPrice: monthlyList)
+        else
+          Text(
+            founderWins ? '$price PLN (Founder better than bulk)' : '$catalog PLN / period (brutto, VAT included)',
+            style: theme.titleMedium.override(fontWeight: FontWeight.w800),
+          ),
+        const SizedBox(height: 8),
+        Text('Add-on for Pro Store. Included with Enterprise.', style: theme.bodySmall.override(color: theme.secondaryText)),
+        const SizedBox(height: 12),
+        for (final line in const [
+          'Early access to Special Order requests in your category and region',
+          'Instant alerts (push/SMS)',
+          'Market insight on quotes (aggregated, anonymous)',
+          'Analytics: views, quotes, wins, loss reasons',
+        ])
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(children: [
+              Icon(Icons.check, size: 16, color: theme.primary),
+              const SizedBox(width: 8),
+              Expanded(child: Text(line)),
+            ]),
+          ),
+        const SizedBox(height: 12),
+        Text('Monthly billing, cancel any time. We don\'t guarantee any number of requests.', style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.4)),
+        const SizedBox(height: 6),
+        Text(
+          'If fewer than 3 requests matching your category and region arrive in a billing period, we extend your subscription by one month automatically. This is not a guarantee of request volume.',
+          style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.4),
+        ),
+        if (bulk && !isEnterprise) ...[
+          const SizedBox(height: 16),
+          SegmentedButton<TGPriorityBillingPeriod>(
+            segments: [
+              const ButtonSegment(value: TGPriorityBillingPeriod.monthly, label: Text('Monthly')),
+              ButtonSegment(value: TGPriorityBillingPeriod.sixMonths, label: Text('6 months −10% (${TGPriorityService.instance.priceFor(TGPriorityBillingPeriod.sixMonths)} PLN)')),
+              ButtonSegment(value: TGPriorityBillingPeriod.yearly, label: Text('Yearly 2 months free (${TGPriorityService.instance.priceFor(TGPriorityBillingPeriod.yearly)} PLN)')),
+            ],
+            selected: {_billing},
+            onSelectionChanged: (s) => setState(() => _billing = s.first),
+          ),
+        ],
+        const SizedBox(height: 16),
+        if (isEnterprise)
+          Text('Priority is included in your Enterprise plan.', style: theme.bodyMedium.override(fontWeight: FontWeight.w800))
+        else if (!cfg.flags.priorityForSale || !gateOpen)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Priority isn\'t open in your region and category yet. Join the waitlist.', style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              TGButton(
+                onPressed: () {
+                  TGPriorityService.instance.joinWaitlist(sellerId: auth.userId, specialty: specialty, region: region);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Joined waitlist')));
+                },
+                label: 'Join waitlist',
+                height: 48,
+              ),
+            ],
+          )
+        else if (full)
+          TGButton(
+            onPressed: () {
+              TGPriorityService.instance.joinWaitlist(sellerId: auth.userId, specialty: specialty, region: region);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Joined waitlist')));
+            },
+            label: 'Join waitlist',
+            height: 48,
+          )
+        else
+          TGButton(
+            onPressed: () => _pay(context, auth.userId, specialty, region, price, catalog, founderWins),
+            label: 'Get Priority · $price PLN',
+            height: 48,
+          ),
+        if (phone) const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Future<void> _pay(
+    BuildContext context,
+    String sellerId,
+    TGStoreSpecialty specialty,
+    String region,
+    int price,
+    int catalog,
+    bool founderWins,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(ctx).bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Priority Manufacturer', style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
+              const SizedBox(height: 12),
+              if (founderWins) FounderPriceRow(sellerId: sellerId, listPrice: catalog > price ? catalog : TGRevenueConfigService.instance.config.priority.priceMonthly),
+              const SizedBox(height: 8),
+              PaymentForm(
+                amountPln: price.toDouble(),
+                onPaid: () {
+                  if (founderWins) {
+                    final rate = TGFounderService.instance.activeDiscountRate(sellerId);
+                    TGFounderService.instance.recordSavings(
+                      sellerId: sellerId,
+                      item: TGFounderDiscountItem.priority,
+                      listPrice: catalog,
+                      paidPrice: price,
+                      discountPct: rate,
+                    );
+                  }
+                  TGPriorityService.instance.activateAddon(
+                    sellerId: sellerId,
+                    segments: [TGPrioritySegment(specialty: specialty, region: region, seat: true)],
+                    period: _billing,
+                    paymentMethod: 'mock',
+                  );
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Priority activated')));
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AuditAndSponsorCards extends StatelessWidget {
+  const _AuditAndSponsorCards();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final flags = TGRevenueConfigService.instance.flags;
+    if (!flags.auditProgram && !flags.sponsorSlots) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (flags.auditProgram) ...[
+          Text('Audited Manufacturer', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 6),
+          Text('We sell the audit, not the badge. One-time review of company records, workshop, insurance and references.', style: theme.bodyMedium),
+          const SizedBox(height: 10),
+          TGButton(
+            onPressed: () => context.go('/dashboard/manufacturer?tab=audit'),
+            label: 'Open Audit · ${TGAuditService.feePln} PLN',
+            height: 48,
+          ),
+          const SizedBox(height: 28),
+        ],
+        if (flags.sponsorSlots) ...[
+          Text('Sponsor slots', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 6),
+          Text('Promote your workshop in one specialty × region for 30 days. Always labelled Sponsored. No request-volume promise.', style: theme.bodyMedium),
+          const SizedBox(height: 10),
+          TGButton(
+            onPressed: () => context.go('/dashboard/manufacturer?tab=sponsor'),
+            label: 'Open Sponsor slots · ${TGSponsorSlotService.pricePln} PLN',
+            height: 48,
+            variant: TGButtonVariant.outline,
+          ),
+        ],
+      ],
     );
   }
 }

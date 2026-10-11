@@ -26,6 +26,12 @@ abstract final class TGAdminNav {
   static const templates = '/admin/templates';
   static const deals = '/admin/deals';
   static const specialOrders = '/admin/special-orders';
+  static const revenueConfig = '/admin/revenue-config';
+  static const priority = '/admin/priority';
+  static const founders = '/admin/founders';
+  static const audits = '/admin/audits';
+  static const sponsorSlots = '/admin/sponsor-slots';
+  static const projectReviews = '/admin/deals?queue=project_reviews';
   static String soCasePath(String requestNo) => '$specialOrders/$requestNo';
   static String soQueuePath(TGSoAdminQueue queue) =>
       queue == TGSoAdminQueue.needsMatching ? specialOrders : '$specialOrders?queue=${queue.name}';
@@ -304,6 +310,12 @@ class AdminSideMenu extends StatelessWidget {
           ),
           _SoNavGroup(section: section),
           const SizedBox(height: 8),
+          _NavTile(selected: section == 'revenue', icon: Icons.tune_outlined, label: 'Revenue config', onTap: () => context.go(TGAdminNav.revenueConfig)),
+          _NavTile(selected: section == 'priority', icon: Icons.bolt_outlined, label: 'Priority seats', onTap: () => context.go(TGAdminNav.priority)),
+          _NavTile(selected: section == 'founders', icon: Icons.emoji_events_outlined, label: 'Founders', onTap: () => context.go(TGAdminNav.founders)),
+          _NavTile(selected: section == 'audits', icon: Icons.fact_check_outlined, label: 'Audits', onTap: () => context.go(TGAdminNav.audits)),
+          _NavTile(selected: section == 'sponsor_slots', icon: Icons.campaign_outlined, label: 'Sponsor slots', onTap: () => context.go(TGAdminNav.sponsorSlots)),
+          const SizedBox(height: 8),
           _NavTile(selected: section == 'audit', icon: Icons.receipt_long_outlined, label: context.t('ui_admin_audit'), onTap: () => context.go(TGAdminNav.audit)),
           if (isAdmin)
             _NavTile(selected: section == 'templates', icon: Icons.email_outlined, label: context.t('ui_admin_templates'), onTap: () => context.go(TGAdminNav.templates)),
@@ -464,6 +476,11 @@ class _MobileAdminTabs extends StatelessWidget {
               _tab(context, 'sellers', Icons.storefront_outlined, TGAdminNav.sellers),
               _tab(context, 'deals', Icons.handshake_outlined, TGAdminNav.deals),
               _tab(context, 'special_orders', Icons.precision_manufacturing_outlined, TGAdminNav.specialOrders),
+              _tab(context, 'revenue', Icons.tune_outlined, TGAdminNav.revenueConfig),
+              _tab(context, 'priority', Icons.bolt_outlined, TGAdminNav.priority),
+              _tab(context, 'founders', Icons.emoji_events_outlined, TGAdminNav.founders),
+              _tab(context, 'audits', Icons.fact_check_outlined, TGAdminNav.audits),
+              _tab(context, 'sponsor_slots', Icons.campaign_outlined, TGAdminNav.sponsorSlots),
               _tab(context, 'audit', Icons.receipt_long_outlined, TGAdminNav.audit),
               if (isAdmin) _tab(context, 'templates', Icons.email_outlined, TGAdminNav.templates),
             ],
@@ -474,7 +491,14 @@ class _MobileAdminTabs extends StatelessWidget {
   }
 
   Widget _tab(BuildContext context, String id, IconData icon, String path) {
-    final on = section == id || (id == 'deals' && section.startsWith('deals')) || (id == 'special_orders' && section == 'special_orders');
+    final on = section == id ||
+        (id == 'deals' && section.startsWith('deals')) ||
+        (id == 'special_orders' && section == 'special_orders') ||
+        (id == 'revenue' && section == 'revenue') ||
+        (id == 'priority' && section == 'priority') ||
+        (id == 'founders' && section == 'founders') ||
+        (id == 'audits' && section == 'audits') ||
+        (id == 'sponsor_slots' && section == 'sponsor_slots');
     return Expanded(
       child: InkWell(
         onTap: () => context.go(path),

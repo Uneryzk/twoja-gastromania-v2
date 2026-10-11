@@ -14,6 +14,8 @@ enum TGStoreSpecialty {
 
 enum TGSpecialRequestStatus { draft, held, open, quoted, awarded, closed, expired, rejected }
 
+enum TGProjectCompletionStatus { inProgress, completed, notCompleted }
+
 enum TGSpecialRoutingMode { selected, team, both }
 
 enum TGSpecialContactPref { share, platformOnly }
@@ -24,7 +26,9 @@ enum TGQuotePriceType { fixed, from, estimate }
 
 enum TGQuoteStatus { submitted, viewed, shortlisted, declined, awarded, lost, withdrawn }
 
-enum TGLeadAccessVia { selected, matched, enterprisePool }
+enum TGLeadAccessVia { selected, matched, priorityPool, enterprisePool, proPool }
+
+enum TGQuoteDeclineReason { price, leadTime, choseOther, projectCancelled, other }
 
 enum TGSoAdminQueue { needsMatching, held, noQuotes, reported, all }
 
@@ -170,6 +174,10 @@ class TGSpecialRequest {
     this.budgetMax,
     this.quoteLimit = 5,
     this.awardedSellerId,
+    this.awardedAt,
+    this.completionStatus = TGProjectCompletionStatus.inProgress,
+    this.completedAt,
+    this.nextCompletionPromptAt,
     this.flags = const [],
     this.nip,
     this.widthMm,
@@ -221,6 +229,10 @@ class TGSpecialRequest {
   final DateTime createdAt;
   final DateTime expiresAt;
   final String? awardedSellerId;
+  final DateTime? awardedAt;
+  final TGProjectCompletionStatus completionStatus;
+  final DateTime? completedAt;
+  final DateTime? nextCompletionPromptAt;
   final List<String> flags;
   final String? rejectReason;
   final DateTime? closedAt;
@@ -273,6 +285,11 @@ class TGSpecialRequest {
     DateTime? expiresAt,
     String? awardedSellerId,
     bool clearAwarded = false,
+    DateTime? awardedAt,
+    TGProjectCompletionStatus? completionStatus,
+    DateTime? completedAt,
+    DateTime? nextCompletionPromptAt,
+    bool clearNextPrompt = false,
     List<String>? flags,
     String? rejectReason,
     bool clearReject = false,
@@ -324,6 +341,10 @@ class TGSpecialRequest {
         createdAt: createdAt,
         expiresAt: expiresAt ?? this.expiresAt,
         awardedSellerId: clearAwarded ? null : (awardedSellerId ?? this.awardedSellerId),
+        awardedAt: clearAwarded ? null : (awardedAt ?? this.awardedAt),
+        completionStatus: completionStatus ?? this.completionStatus,
+        completedAt: completedAt ?? this.completedAt,
+        nextCompletionPromptAt: clearNextPrompt ? null : (nextCompletionPromptAt ?? this.nextCompletionPromptAt),
         flags: flags ?? this.flags,
         rejectReason: clearReject ? null : (rejectReason ?? this.rejectReason),
         closedAt: clearClosed ? null : (closedAt ?? this.closedAt),
@@ -349,6 +370,13 @@ class TGSpecialRequest {
     if (duplicateFiles && !out.contains('duplicate_files')) out.add('duplicate_files');
     return out;
   }
+
+  bool get budgetGiven => budgetMin != null || budgetMax != null;
+  bool get drawingAttached => files.any((f) {
+        final n = f.name.toLowerCase();
+        return n.endsWith('.pdf') || n.endsWith('.dwg') || n.contains('draw') || n.contains('plan');
+      });
+  bool get companyNip => nip != null && nip!.trim().isNotEmpty;
 }
 
 @immutable
@@ -371,6 +399,9 @@ class TGQuote {
     this.vatRate = 23,
     this.attachmentUrl,
     this.isNew = false,
+    this.revisionCount = 0,
+    this.revisedAt,
+    this.declineReason,
   });
 
   final String id;
@@ -390,32 +421,53 @@ class TGQuote {
   final TGQuoteStatus status;
   final DateTime createdAt;
   final bool isNew;
+  final int revisionCount;
+  final DateTime? revisedAt;
+  final TGQuoteDeclineReason? declineReason;
 
   int get priceGross => (priceNet * (100 + vatRate) / 100).round();
+  bool get isRevised => revisionCount > 0;
+  bool get canRevise => revisionCount < 1 && (status == TGQuoteStatus.submitted || status == TGQuoteStatus.viewed || status == TGQuoteStatus.shortlisted);
 
   TGQuote copyWith({
     TGQuoteStatus? status,
     bool? isNew,
     DateTime? validUntil,
+    int? priceNet,
+    TGQuotePriceType? priceType,
+    int? leadTimeWeeks,
+    bool? installationIncluded,
+    bool? deliveryIncluded,
+    int? warrantyMonths,
+    String? paymentTerms,
+    String? note,
+    String? attachmentUrl,
+    int? revisionCount,
+    DateTime? revisedAt,
+    TGQuoteDeclineReason? declineReason,
+    bool clearDecline = false,
   }) =>
       TGQuote(
         id: id,
         requestId: requestId,
         sellerId: sellerId,
-        priceNet: priceNet,
+        priceNet: priceNet ?? this.priceNet,
         vatRate: vatRate,
-        priceType: priceType,
-        leadTimeWeeks: leadTimeWeeks,
+        priceType: priceType ?? this.priceType,
+        leadTimeWeeks: leadTimeWeeks ?? this.leadTimeWeeks,
         validUntil: validUntil ?? this.validUntil,
-        installationIncluded: installationIncluded,
-        deliveryIncluded: deliveryIncluded,
-        warrantyMonths: warrantyMonths,
-        paymentTerms: paymentTerms,
-        note: note,
-        attachmentUrl: attachmentUrl,
+        installationIncluded: installationIncluded ?? this.installationIncluded,
+        deliveryIncluded: deliveryIncluded ?? this.deliveryIncluded,
+        warrantyMonths: warrantyMonths ?? this.warrantyMonths,
+        paymentTerms: paymentTerms ?? this.paymentTerms,
+        note: note ?? this.note,
+        attachmentUrl: attachmentUrl ?? this.attachmentUrl,
         status: status ?? this.status,
         createdAt: createdAt,
         isNew: isNew ?? this.isNew,
+        revisionCount: revisionCount ?? this.revisionCount,
+        revisedAt: revisedAt ?? this.revisedAt,
+        declineReason: clearDecline ? null : (declineReason ?? this.declineReason),
       );
 }
 
@@ -426,18 +478,24 @@ class TGLeadAccess {
     required this.sellerId,
     required this.via,
     required this.viewedAt,
+    this.visibleFrom,
   });
 
   final String requestId;
   final String sellerId;
   final TGLeadAccessVia via;
   final DateTime? viewedAt;
+  /// When null, treated as immediately visible (legacy / wave 0–1).
+  final DateTime? visibleFrom;
 
-  TGLeadAccess copyWith({DateTime? viewedAt}) => TGLeadAccess(
+  bool isVisibleAt(DateTime now) => visibleFrom == null || !visibleFrom!.isAfter(now);
+
+  TGLeadAccess copyWith({DateTime? viewedAt, DateTime? visibleFrom}) => TGLeadAccess(
         requestId: requestId,
         sellerId: sellerId,
         via: via,
         viewedAt: viewedAt ?? this.viewedAt,
+        visibleFrom: visibleFrom ?? this.visibleFrom,
       );
 }
 

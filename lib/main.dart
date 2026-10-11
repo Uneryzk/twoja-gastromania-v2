@@ -21,10 +21,10 @@ import 'package:provider/provider.dart';
 
 const _kStartupTimeout = Duration(seconds: 5);
 
-/// The app has no backend yet, so the session is mocked. Starting signed in
-/// shows the account pill ("2 free · 18 days left") in the global header; set
-/// this to `false` to start as a logged-out visitor (header shows "Login").
-const bool kMockSignedInByDefault = true;
+/// The app has no backend yet, so the session is mocked. Default is a logged-out
+/// visitor (header shows "Login"). Long-press the login/account control for the
+/// Turkish Dev Switcher. Set `true` only if you want a signed-in demo by default.
+const bool kMockSignedInByDefault = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

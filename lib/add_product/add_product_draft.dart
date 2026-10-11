@@ -3,6 +3,7 @@ import 'package:twoja_gastromania/products/tg_geo.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/founder_service.dart';
 
 enum AddProductFulfillment { pickupOnly, shipping, buyerChoice }
 
@@ -169,11 +170,20 @@ class AddProductDraft extends ChangeNotifier {
     return TGPricing.netFromGross(p).round();
   }
 
-  int get promoteFeePln => switch (promote) {
+  int get promoteListFeePln => switch (promote) {
         AddProductPromote.none => 0,
         AddProductPromote.days14 => TGPricing.promote14Pln,
         AddProductPromote.days30 => TGPricing.promote30Pln,
       };
+
+  double get founderPromoteRate =>
+      promoteListFeePln <= 0 ? 0 : TGFounderService.instance.activeDiscountRate(auth.userId);
+
+  int get promoteFeePln {
+    final list = promoteListFeePln;
+    if (list <= 0) return 0;
+    return TGFounderService.instance.discountedPrice(auth.userId, list);
+  }
 
   int get promoteDays => switch (promote) {
         AddProductPromote.none => 0,

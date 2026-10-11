@@ -18,6 +18,8 @@ export 'package:twoja_gastromania/special_order/special_order_new_page.dart' sho
 export 'package:twoja_gastromania/special_order/special_order_success_page.dart' show SpecialOrderSuccessPage;
 export 'package:twoja_gastromania/special_order/buyer_requests_page.dart' show BuyerRequestsPage;
 export 'package:twoja_gastromania/special_order/seller_leads_page.dart' show SellerLeadsPage;
+export 'package:twoja_gastromania/special_order/manufacturer_dashboard_page.dart' show ManufacturerDashboardPage;
+export 'package:twoja_gastromania/special_order/founders_page.dart' show FoundersPage;
 
 export 'package:twoja_gastromania/products/products_widget.dart' show ProductsPageWidget;
 export 'package:twoja_gastromania/dashboard/listings_dashboard_widget.dart' show ListingsDashboardPage;
@@ -32,4 +34,9 @@ export 'package:twoja_gastromania/checkout/checkout_page.dart' show CheckoutPage
 export 'package:twoja_gastromania/plans/plans_page.dart' show PlansPage;
 export 'package:twoja_gastromania/admin/admin_pages.dart'
     show AdminQueueHost, AdminListingsHost, AdminSellersHost, AdminAuditHost, AdminTemplatesHost, AdminCaseHost, AdminDealsHost, AdminDealCaseHost, AdminSoHost, AdminSoCaseHost;
+export 'package:twoja_gastromania/admin/admin_revenue_config_page.dart' show AdminRevenueConfigHost;
+export 'package:twoja_gastromania/admin/admin_priority_page.dart' show AdminPriorityHost;
+export 'package:twoja_gastromania/admin/admin_founders_page.dart' show AdminFoundersHost;
+export 'package:twoja_gastromania/admin/admin_audits_page.dart' show AdminAuditsHost;
+export 'package:twoja_gastromania/admin/admin_sponsor_slots_page.dart' show AdminSponsorSlotsHost;
 export 'package:twoja_gastromania/admin/admin_target_pages.dart' show AdminSellerCaseHost, AdminReviewCaseHost;

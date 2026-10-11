@@ -111,6 +111,9 @@ class TGStoreProject {
     required this.year,
     required this.photos,
     required this.description,
+    this.linkedRequestId,
+    this.completedViaPlatform = false,
+    this.buyerConfirmedLink = false,
   });
 
   final String title;
@@ -118,14 +121,29 @@ class TGStoreProject {
   final int year;
   final List<String> photos;
   final String description;
+  final String? linkedRequestId;
+  final bool completedViaPlatform;
+  final bool buyerConfirmedLink;
 
-  TGStoreProject copyWith({String? title, String? city, int? year, List<String>? photos, String? description}) =>
+  TGStoreProject copyWith({
+    String? title,
+    String? city,
+    int? year,
+    List<String>? photos,
+    String? description,
+    String? linkedRequestId,
+    bool? completedViaPlatform,
+    bool? buyerConfirmedLink,
+  }) =>
       TGStoreProject(
         title: title ?? this.title,
         city: city ?? this.city,
         year: year ?? this.year,
         photos: photos ?? this.photos,
         description: description ?? this.description,
+        linkedRequestId: linkedRequestId ?? this.linkedRequestId,
+        completedViaPlatform: completedViaPlatform ?? this.completedViaPlatform,
+        buyerConfirmedLink: buyerConfirmedLink ?? this.buyerConfirmedLink,
       );
 }
 
@@ -244,6 +262,9 @@ class TGStoreProfile {
     String? logoUrl,
     String? coverUrl,
     String? nip,
+    DateTime? nipVerifiedAt,
+    bool? verified,
+    TGStorePlanKind? plan,
     List<TGStoreProject>? projects,
     double? rating,
     int? reviewsCount,
@@ -274,9 +295,9 @@ class TGStoreProfile {
         name: name,
         legalName: legalName,
         nip: nip ?? this.nip,
-        nipVerifiedAt: nipVerifiedAt,
-        verified: verified,
-        plan: plan,
+        nipVerifiedAt: nipVerifiedAt ?? this.nipVerifiedAt,
+        verified: verified ?? this.verified,
+        plan: plan ?? this.plan,
         status: status ?? this.status,
         coverUrl: coverUrl ?? this.coverUrl,
         logoUrl: logoUrl ?? this.logoUrl,

@@ -193,13 +193,19 @@ class _StoreBody extends StatelessWidget {
     final owner = storeIsOwner(auth, profile);
     final ownerUi = owner && !chrome.previewVisitor;
     final contactLooksOn = profile.isLive && (!ownerUi || chrome.previewVisitor);
+    final makerProjects = profile.isSpecialOrderManufacturer && profile.projects.isNotEmpty;
     final tabs = <TGStoreTab>[
+      if (makerProjects) TGStoreTab.projects,
       TGStoreTab.products,
       if (isStore && profile.showAbout) TGStoreTab.about,
       TGStoreTab.reviews,
     ];
     var tab = query.tab;
-    if (!tabs.contains(tab)) tab = TGStoreTab.products;
+    final uriHasTab = GoRouterState.of(context).uri.queryParameters.containsKey('tab');
+    if (!uriHasTab && makerProjects && tab == TGStoreTab.products) {
+      tab = TGStoreTab.projects;
+    }
+    if (!tabs.contains(tab)) tab = tabs.first;
     final bottomPad = mobile && isStore && profile.isLive ? 88.0 : 64.0;
 
     void selectTab(TGStoreTab t) {
@@ -388,6 +394,11 @@ class _StoreBody extends StatelessWidget {
                         child: !profile.isLive
                             ? _InactiveExtras(profile: profile)
                             : switch (tab) {
+                                TGStoreTab.projects => StoreProjectsPanel(
+                                    profile: profile,
+                                    editing: chrome.editing,
+                                    onEdit: (s) => showStoreEditFlow(context, profile, section: s),
+                                  ),
                                 TGStoreTab.products => StoreProductsPanel(profile: profile, listings: listings, query: query, onQuery: onQuery, hideSeller: isStore),
                                 TGStoreTab.about => StoreAboutPanel(profile: profile, editing: chrome.editing, onEdit: (s) => showStoreEditFlow(context, profile, section: s)),
                                 TGStoreTab.reviews => StoreReviewsPanel(profile: profile),
@@ -1016,6 +1027,7 @@ class _TabList extends StatelessWidget {
             ? context.t('ui_listings_short')
             : storeMobileTabLabel(context, name: t.name, products: listingsCount, reviews: reviewsCount))
         : switch (t) {
+            TGStoreTab.projects => context.t('ui_mfr_projects_tab'),
             TGStoreTab.products => isStore
                 ? '${context.t('ui_active_products')} ($listingsCount)'
                 : context.t('ui_active_listings'),

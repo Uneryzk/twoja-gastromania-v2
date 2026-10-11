@@ -10,6 +10,9 @@ import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_components/founder_price_row.dart';
+import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
+import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/invoicing_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 
@@ -70,7 +73,19 @@ class _RenewSheetBodyState extends State<_RenewSheetBody> {
   bool _paying = false;
   final _formKey = GlobalKey<PaymentFormState>();
 
-  int get _total => TGPricing.listingFeePln + (_promote == 14 ? TGPricing.promote14Pln : _promote == 30 ? TGPricing.promote30Pln : 0);
+  int _promoteList(String sellerId) {
+    if (_promote == 14) return TGPricing.promote14Pln;
+    if (_promote == 30) return TGPricing.promote30Pln;
+    return 0;
+  }
+
+  int _promotePaid(String sellerId) {
+    final list = _promoteList(sellerId);
+    if (list <= 0) return 0;
+    return TGFounderService.instance.discountedPrice(sellerId, list);
+  }
+
+  int _total(String sellerId) => TGPricing.listingFeePln + _promotePaid(sellerId);
 
   bool _allow(int days) {
     final room = widget.early ? widget.product.daysUntilExpiry() + TGPricing.listingPeriodDays : TGPricing.listingPeriodDays;
@@ -80,8 +95,12 @@ class _RenewSheetBodyState extends State<_RenewSheetBody> {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
+    final auth = context.watch<FakeAuthState>();
+    final sellerId = auth.userId;
     final p = widget.product;
     final ago = p.daysSinceExpiry();
+    final promote14Total = TGPricing.listingFeePln + TGFounderService.instance.discountedPrice(sellerId, TGPricing.promote14Pln);
+    final promote30Total = TGPricing.listingFeePln + TGFounderService.instance.discountedPrice(sellerId, TGPricing.promote30Pln);
     return PopScope(
       canPop: !_paying,
       child: SingleChildScrollView(
@@ -104,23 +123,31 @@ class _RenewSheetBodyState extends State<_RenewSheetBody> {
           _offer(
             enabled: _allow(14),
             selected: _promote == 14,
-            title: context.t('ui_renew_promote_14', {'fee': '${TGPricing.listingFeePln + TGPricing.promote14Pln}'}),
+            title: context.t('ui_renew_promote_14', {'fee': '$promote14Total'}),
             onTap: () => setState(() => _promote = 14),
           ),
+          if (_promote == 14) ...[
+            const SizedBox(height: 6),
+            FounderPriceRow(sellerId: sellerId, listPrice: TGPricing.promote14Pln, label: 'Promote add-on'),
+          ],
           const SizedBox(height: 8),
           _offer(
             enabled: _allow(30),
             selected: _promote == 30,
-            title: context.t('ui_renew_promote_30', {'fee': '${TGPricing.listingFeePln + TGPricing.promote30Pln}'}),
+            title: context.t('ui_renew_promote_30', {'fee': '$promote30Total'}),
             onTap: () => setState(() => _promote = 30),
           ),
+          if (_promote == 30) ...[
+            const SizedBox(height: 6),
+            FounderPriceRow(sellerId: sellerId, listPrice: TGPricing.promote30Pln, label: 'Promote add-on'),
+          ],
           const SizedBox(height: 16),
           PaymentForm(
             key: _formKey,
-            amountPln: _total.toDouble(),
+            amountPln: _total(sellerId).toDouble(),
             autofocusBlik: true,
             onWaitingChanged: (v) => setState(() => _paying = v),
-            onPaid: () => _finish(context),
+            onPaid: () => _finish(context, sellerId),
           ),
         ],
       ),
@@ -134,9 +161,21 @@ class _RenewSheetBodyState extends State<_RenewSheetBody> {
     return Tooltip(message: 'Promote cannot last longer than the listing.', child: Opacity(opacity: 0.45, child: IgnorePointer(child: card)));
   }
 
-  Future<void> _finish(BuildContext context) async {
+  Future<void> _finish(BuildContext context, String sellerId) async {
+    final list = _promoteList(sellerId);
+    final paid = _promotePaid(sellerId);
+    final rate = TGFounderService.instance.activeDiscountRate(sellerId);
+    if (rate > 0 && list > paid) {
+      TGFounderService.instance.recordSavings(
+        sellerId: sellerId,
+        item: _promote == 30 ? TGFounderDiscountItem.promote30 : TGFounderDiscountItem.promote14,
+        listPrice: list,
+        paidPrice: paid,
+        discountPct: rate,
+      );
+    }
     InvoicingService.instance.onPaymentSuccess(
-      grossAmount: _total.toDouble(),
+      grossAmount: _total(sellerId).toDouble(),
       transactionId: 'txn_renew_${widget.product.id}_${DateTime.now().millisecondsSinceEpoch}',
       buyer: _formKey.currentState?.invoiceBuyer,
       listingId: widget.product.id,

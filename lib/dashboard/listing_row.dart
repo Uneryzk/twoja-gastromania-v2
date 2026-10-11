@@ -11,6 +11,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/dashboard/seller_moderation_sheets.dart';
 import 'package:twoja_gastromania/deals/sold_flow_sheet.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 
 class ListingRow extends StatelessWidget {
@@ -39,6 +40,7 @@ class ListingRow extends StatelessWidget {
           children: [
             _SourceTag(product: product),
             _StatusChip(product: product),
+            if (TGFounderService.instance.evaluateListing(product).qualified) const _FounderQualifyChip(),
             if (ModerationService.instance.sellerCaseFor(product.listingNo)?.replyBy != null)
               _ReplyByChip(at: ModerationService.instance.sellerCaseFor(product.listingNo)!.replyBy!),
             if (product.status == TGListingStatus.removed && ModerationService.instance.sellerCaseFor(product.listingNo)?.shortReason != null)
@@ -377,6 +379,33 @@ class _ReplyByChip extends StatelessWidget {
         border: Border.all(color: TGColors.slaAmber),
       ),
       child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: TGColors.slaAmber)),
+    );
+  }
+}
+
+class _FounderQualifyChip extends StatelessWidget {
+  const _FounderQualifyChip();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: theme.primaryText.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified_outlined, size: 14, color: theme.primaryText),
+          const SizedBox(width: 4),
+          Text(
+            'Qualifies for founder tier',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: theme.primaryText),
+          ),
+        ],
+      ),
     );
   }
 }

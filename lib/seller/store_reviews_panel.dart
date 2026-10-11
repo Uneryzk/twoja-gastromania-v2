@@ -21,6 +21,7 @@ import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
+import 'package:twoja_gastromania/tg_services/special_review_service.dart';
 
 enum TGReviewSort { newest, highest, lowest, helpful }
 
@@ -39,6 +40,7 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
   bool _onlyCounted = false;
   int _visible = 10;
   bool _barsPlayed = false;
+  int _bucket = 0; // 0 listings & deals, 1 custom projects
 
   @override
   void initState() {
@@ -76,15 +78,23 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
   Widget build(BuildContext context) {
     context.watch<FakeAuthState>();
     final profile = TGSellerProfileService.instance.bySellerKey(widget.profile.sellerKey) ?? widget.profile;
+    TGSpecialReviewService.instance.ensureSeeded();
     return ListenableBuilder(
-      listenable: Listenable.merge([DealService.instance, TGSellerProfileService.instance]),
+      listenable: Listenable.merge([DealService.instance, TGSellerProfileService.instance, TGSpecialReviewService.instance]),
       builder: (context, _) {
         final deals = DealService.instance;
         final counted = deals.countedReviewsFor(profile.sellerKey);
         final public = deals.publicReviewsFor(profile.sellerKey);
         final dist = deals.countedDistribution(profile.sellerKey);
         final avg = deals.averageFor(profile.sellerKey);
-        setStoreAggregateRating(name: profile.name, rating: avg, count: counted.length);
+        final customSummary = TGSpecialReviewService.instance.summaryFor(profile.sellerKey);
+        if (customSummary.countedCount >= 3 && customSummary.average != null) {
+          setStoreAggregateRating(name: '${profile.name} custom', rating: customSummary.average!, count: customSummary.countedCount);
+        } else {
+          setStoreAggregateRating(name: profile.name, rating: avg, count: counted.length);
+        }
+        final customReviews = TGSpecialReviewService.instance.forSeller(profile.sellerKey);
+        final subAvgs = TGSpecialReviewService.instance.subScoreAverages(profile.sellerKey);
         final filtered = _filtered(public);
         final shown = filtered.take(_visible).toList();
         final wide = MediaQuery.sizeOf(context).width >= 1024;
@@ -129,20 +139,60 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
           onMore: () => setState(() => _visible += 10),
           empty: public.isEmpty,
         );
+        final bucketBar = SegmentedButton<int>(
+          segments: [
+            ButtonSegment(value: 0, label: Text(context.t('ui_mfr_reviews_listings'))),
+            ButtonSegment(value: 1, label: Text(context.t('ui_mfr_reviews_custom'))),
+          ],
+          selected: {_bucket},
+          onSelectionChanged: (s) => setState(() => _bucket = s.first),
+        );
+        final customList = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (customSummary.displayLine != null) Text(customSummary.displayLine!, style: const TextStyle(fontWeight: FontWeight.w800)),
+            if (subAvgs != null)
+              Text(
+                context.t('ui_mfr_subscores', {
+                  'q': '${subAvgs.quality}',
+                  'c': '${subAvgs.communication}',
+                  'd': '${subAvgs.deadline}',
+                  'a': '${subAvgs.quoteAccuracy}',
+                }),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            const SizedBox(height: 8),
+            if (customReviews.isEmpty)
+              Text('No custom project reviews yet.', style: Theme.of(context).textTheme.bodySmall)
+            else
+              for (final r in customReviews)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('${r.authorName} · ${r.rating}/5 · ${r.state.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: Text(r.text, maxLines: 3, overflow: TextOverflow.ellipsis),
+                ),
+          ],
+        );
         if (!wide) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              summary,
+              bucketBar,
               const SizedBox(height: 12),
-              TGButton(key: const Key('write-review'), onPressed: writeEnabled ? _write : null, label: context.t('ui_write_review'), height: 48),
-              const SizedBox(height: 20),
-              list,
+              if (_bucket == 0) ...[
+                summary,
+                const SizedBox(height: 12),
+                TGButton(key: const Key('write-review'), onPressed: writeEnabled ? _write : null, label: context.t('ui_write_review'), height: 48),
+                const SizedBox(height: 20),
+                list,
+              ] else
+                customList,
             ],
           );
         }
         final left = widget.stickySummary ? Align(alignment: Alignment.topCenter, child: SingleChildScrollView(child: summary)) : summary;
-        final right = widget.stickySummary ? ListView(padding: const EdgeInsets.only(bottom: 8), children: [list]) : list;
+        final rightBody = _bucket == 0 ? list : customList;
+        final right = widget.stickySummary ? ListView(padding: const EdgeInsets.only(bottom: 8), children: [bucketBar, const SizedBox(height: 12), rightBody]) : Column(children: [bucketBar, const SizedBox(height: 12), rightBody]);
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

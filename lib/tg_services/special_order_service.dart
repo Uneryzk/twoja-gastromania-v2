@@ -2,10 +2,25 @@ import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/tg_services/audit_service.dart';
+import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/notification_service.dart';
+import 'package:twoja_gastromania/tg_services/priority_service.dart';
+import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
+import 'package:twoja_gastromania/tg_services/special_review_service.dart';
+import 'package:twoja_gastromania/tg_services/sponsor_slot_service.dart';
+
+/// Mock manufacturer keys hidden when productionMode is on.
+const _kMockManufacturerKeys = {
+  'seller_inoxline',
+  'seller_stalbar',
+  'seller_metalgast',
+  'seller_nordinox',
+};
 
 enum TGSpecialSort { recommended, highestRated, mostProjects, fastestResponse }
 
@@ -46,17 +61,24 @@ class TGSpecialOrderService extends ChangeNotifier {
     _reqSeq = 123;
     _quoteSeq = 1;
     _auditSeq = 1;
+    TGPriorityService.instance.reset();
     notifyListeners();
   }
 
   void ensureSeeded() {
     if (_seeded) return;
     _seeded = true;
+    TGPriorityService.instance.ensureSeeded();
     _seedAll();
   }
 
   void onClockAdvanced() {
     ensureSeeded();
+    TGPriorityService.instance.onClockAdvanced();
+    TGFounderService.instance.onClockAdvanced();
+    TGSpecialReviewService.instance.onClockAdvanced();
+    TGAuditService.instance.onClockAdvanced();
+    TGSponsorSlotService.instance.onClockAdvanced();
     final now = TGClock.now();
     for (var i = 0; i < requests.length; i++) {
       final r = requests[i];
@@ -120,6 +142,9 @@ class TGSpecialOrderService extends ChangeNotifier {
   }) {
     ensureSeeded();
     var list = TGSellerProfileService.instance.specialOrderManufacturers;
+    if (TGRevenueConfigService.instance.productionMode) {
+      list = list.where((p) => !_kMockManufacturerKeys.contains(p.sellerKey)).toList();
+    }
     final q = search?.trim().toLowerCase();
     if (q != null && q.isNotEmpty) {
       list = list.where((p) => p.name.toLowerCase().contains(q) || p.city.toLowerCase().contains(q)).toList();
@@ -164,7 +189,10 @@ class TGSpecialOrderService extends ChangeNotifier {
     return all.take(limit).toList();
   }
 
-  TGStoreProfile? sponsoredManufacturer() {
+  TGStoreProfile? sponsoredManufacturer({TGStoreSpecialty? specialty, String? region}) {
+    TGSponsorSlotService.instance.ensureSeeded();
+    final fromSlot = TGSponsorSlotService.instance.sponsoredFor(specialty: specialty, region: region);
+    if (fromSlot != null) return fromSlot;
     final enterprise = TGSellerProfileService.instance.specialOrderManufacturers.where((p) => p.plan == TGStorePlanKind.enterprise).toList();
     return enterprise.isEmpty ? null : enterprise.first;
   }
@@ -212,30 +240,98 @@ class TGSpecialOrderService extends ChangeNotifier {
     return leadAccess.where((a) => a.requestId == requestId).toList();
   }
 
+  static bool _isPoolVia(TGLeadAccessVia via) =>
+      via == TGLeadAccessVia.priorityPool || via == TGLeadAccessVia.enterprisePool || via == TGLeadAccessVia.proPool;
+
   List<TGSpecialRequest> leadsForSeller(String sellerKey, {bool directedOnly = false}) {
     ensureSeeded();
     final profile = TGSellerProfileService.instance.bySellerKey(sellerKey);
     if (profile == null || !profile.isLive) return const [];
     if (profile.plan == TGStorePlanKind.basic || profile.plan == null) return const [];
+    final now = TGClock.now();
     final ids = leadAccess.where((a) {
       if (a.sellerId != sellerKey) return false;
-      if (profile.plan == TGStorePlanKind.pro) {
-        return a.via == TGLeadAccessVia.selected || a.via == TGLeadAccessVia.matched;
-      }
+      if (!a.isVisibleAt(now)) return false;
       if (directedOnly) return a.via == TGLeadAccessVia.selected || a.via == TGLeadAccessVia.matched;
       return true;
     }).map((a) => a.requestId).toSet();
     return requests.where((r) => ids.contains(r.id)).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
-  TGLeadAccessVia? viaFor(String requestId, String sellerId) =>
-      leadAccess.where((a) => a.requestId == requestId && a.sellerId == sellerId).firstOrNull?.via;
+  /// Matching pool leads not yet visible to a Priority-less Pro (for early-access note).
+  int pendingEarlyAccessCount(String sellerKey) {
+    ensureSeeded();
+    final profile = TGSellerProfileService.instance.bySellerKey(sellerKey);
+    if (profile == null || profile.plan != TGStorePlanKind.pro) return 0;
+    if (TGPriorityService.instance.hasPrioritySeat(sellerKey)) return 0;
+    final now = TGClock.now();
+    return leadAccess.where((a) {
+      if (a.sellerId != sellerKey) return false;
+      if (a.via != TGLeadAccessVia.proPool) return false;
+      return !a.isVisibleAt(now);
+    }).length;
+  }
+
+  Duration? earliestPendingVisibleIn(String sellerKey) {
+    ensureSeeded();
+    final now = TGClock.now();
+    Duration? best;
+    for (final a in leadAccess.where((a) => a.sellerId == sellerKey && a.via == TGLeadAccessVia.proPool && a.visibleFrom != null && a.visibleFrom!.isAfter(now))) {
+      final d = a.visibleFrom!.difference(now);
+      if (best == null || d < best) best = d;
+    }
+    return best;
+  }
+
+  TGLeadAccess? accessRow(String requestId, String sellerId) =>
+      leadAccess.where((a) => a.requestId == requestId && a.sellerId == sellerId).firstOrNull;
+
+  TGLeadAccessVia? viaFor(String requestId, String sellerId) => accessRow(requestId, sellerId)?.via;
 
   int activeQuoteCount(String requestId) => quotesFor(requestId).where((q) => q.status != TGQuoteStatus.declined && q.status != TGQuoteStatus.lost).length;
 
   int poolQuoteCount(String requestId) {
-    final poolSellers = leadAccess.where((a) => a.requestId == requestId && a.via == TGLeadAccessVia.enterprisePool).map((a) => a.sellerId).toSet();
+    final poolSellers = leadAccess.where((a) => a.requestId == requestId && _isPoolVia(a.via)).map((a) => a.sellerId).toSet();
     return quotesFor(requestId).where((q) => poolSellers.contains(q.sellerId)).length;
+  }
+
+  /// Pool quotes from sellers whose access is already visible (wave-1 window).
+  int visiblePoolQuoteCount(String requestId) {
+    final now = TGClock.now();
+    final poolSellers = leadAccess
+        .where((a) => a.requestId == requestId && _isPoolVia(a.via) && a.isVisibleAt(now))
+        .map((a) => a.sellerId)
+        .toSet();
+    return quotesFor(requestId).where((q) => poolSellers.contains(q.sellerId)).length;
+  }
+
+  bool wave2VisibleYet(String requestId) {
+    final now = TGClock.now();
+    return leadAccess.any((a) => a.requestId == requestId && a.via == TGLeadAccessVia.proPool && a.isVisibleAt(now));
+  }
+
+  String? quoteBlockReason(String requestId, String sellerId) {
+    final r = byId(requestId);
+    if (r == null) return 'Request not found';
+    if (r.status == TGSpecialRequestStatus.closed ||
+        r.status == TGSpecialRequestStatus.expired ||
+        r.status == TGSpecialRequestStatus.awarded ||
+        r.status == TGSpecialRequestStatus.rejected) {
+      return 'Request closed';
+    }
+    if (quotesFor(requestId).any((q) => q.sellerId == sellerId)) return 'Already quoted';
+    if (activeQuoteCount(requestId) >= r.quoteLimit) return 'Quote limit reached';
+    final via = viaFor(requestId, sellerId);
+    if (via != null && _isPoolVia(via)) {
+      final waves = TGRevenueConfigService.instance.waves;
+      if (poolQuoteCount(requestId) >= waves.poolQuoteCap) {
+        return 'Quote limit reached for pool leads';
+      }
+      if (!wave2VisibleYet(requestId) && visiblePoolQuoteCount(requestId) >= waves.priorityWindowPoolCap) {
+        return 'One pool slot is reserved for the next wave.';
+      }
+    }
+    return null;
   }
 
   bool canSubmitQuote(String requestId, String sellerId) {
@@ -244,11 +340,9 @@ class TGSpecialOrderService extends ChangeNotifier {
     if (r.status != TGSpecialRequestStatus.open && r.status != TGSpecialRequestStatus.quoted && r.status != TGSpecialRequestStatus.held) return false;
     final profile = TGSellerProfileService.instance.bySellerKey(sellerId);
     if (profile == null || !profile.isLive || !profile.isSpecialOrderManufacturer) return false;
-    if (quotesFor(requestId).any((q) => q.sellerId == sellerId)) return false;
-    if (activeQuoteCount(requestId) >= r.quoteLimit) return false;
-    final via = viaFor(requestId, sellerId);
-    if (via == TGLeadAccessVia.enterprisePool && poolQuoteCount(requestId) >= 3) return false;
-    return true;
+    final access = accessRow(requestId, sellerId);
+    if (access == null || !access.isVisibleAt(TGClock.now())) return false;
+    return quoteBlockReason(requestId, sellerId) == null;
   }
 
   TGSpecialRequest submitRequest(TGSpecialRequest draft) {
@@ -321,38 +415,80 @@ class TGSpecialOrderService extends ChangeNotifier {
       body: saved.title,
       deepLink: '/admin/special-orders/${saved.requestNo}',
     );
-    for (final a in accessFor(saved.id)) {
-      final settings = leadAlerts[a.sellerId] ?? const TGLeadAlertSettings();
-      if (settings.instantEmail || a.via != TGLeadAccessVia.enterprisePool) {
-        NotificationService.instance.add(
-          userId: a.sellerId,
-          type: 'so_new_lead',
-          dealId: saved.requestNo,
-          title: 'New Special Order lead',
-          body: saved.title,
-          deepLink: '/dashboard/leads?id=${saved.requestNo}',
-        );
-      }
-    }
+    _notifyNewLeads(saved);
     TGAnalytics.track('so_request_submit', {'requestNo': saved.requestNo, 'status': saved.status.name});
     notifyListeners();
     return saved;
   }
 
+  bool _sellerMatchesRequest(TGStoreProfile p, TGSpecialRequest r) {
+    final typeOk = r.projectTypes.any(p.specialties.contains);
+    final regionOk = p.serviceRegions.any((reg) =>
+        reg.toLowerCase() == 'nationwide' || reg.toLowerCase() == r.voivodeship.toLowerCase());
+    return typeOk && regionOk;
+  }
+
   void _grantAccess(TGSpecialRequest r) {
+    final now = TGClock.now();
+    final waves = TGRevenueConfigService.instance.waves;
+    final delayH = r.deadline == TGSpecialDeadline.asap ? waves.delayHoursAsap : waves.delayHours;
+    final wave2At = now.add(Duration(hours: delayH));
     final seen = <String>{};
-    void add(String sellerId, TGLeadAccessVia via) {
+
+    void add(String sellerId, TGLeadAccessVia via, {DateTime? visibleFrom}) {
       if (!seen.add(sellerId)) return;
-      leadAccess.add(TGLeadAccess(requestId: r.id, sellerId: sellerId, via: via, viewedAt: null));
+      leadAccess.add(TGLeadAccess(
+        requestId: r.id,
+        sellerId: sellerId,
+        via: via,
+        viewedAt: null,
+        visibleFrom: visibleFrom,
+      ));
     }
 
+    // Wave 0 — selected / matched (matched added later by team)
     if (r.routingMode == TGSpecialRoutingMode.selected || r.routingMode == TGSpecialRoutingMode.both) {
       for (final id in r.selectedSellerIds) {
-        add(id, TGLeadAccessVia.selected);
+        add(id, TGLeadAccessVia.selected, visibleFrom: now);
       }
     }
-    for (final p in TGSellerProfileService.instance.specialOrderManufacturers.where((e) => e.plan == TGStorePlanKind.enterprise)) {
-      add(p.sellerKey, TGLeadAccessVia.enterprisePool);
+
+    final makers = TGSellerProfileService.instance.specialOrderManufacturers;
+    // Wave 1 — Enterprise (all) + Priority seats matching type/region
+    for (final p in makers.where((e) => e.plan == TGStorePlanKind.enterprise)) {
+      add(p.sellerKey, TGLeadAccessVia.enterprisePool, visibleFrom: now);
+    }
+    for (final p in makers) {
+      if (p.plan == TGStorePlanKind.enterprise) continue;
+      if (!_sellerMatchesRequest(p, r)) continue;
+      final typeHit = r.projectTypes.any((t) => TGPriorityService.instance.hasPrioritySeat(p.sellerKey, specialty: t));
+      if (typeHit) add(p.sellerKey, TGLeadAccessVia.priorityPool, visibleFrom: now);
+    }
+
+    // Wave 2 — Pro without Priority, matching specialty + region
+    for (final p in makers.where((e) => e.plan == TGStorePlanKind.pro)) {
+      if (TGPriorityService.instance.hasPrioritySeat(p.sellerKey)) continue;
+      if (!_sellerMatchesRequest(p, r)) continue;
+      add(p.sellerKey, TGLeadAccessVia.proPool, visibleFrom: wave2At);
+    }
+  }
+
+  void _notifyNewLeads(TGSpecialRequest saved) {
+    final now = TGClock.now();
+    for (final a in accessFor(saved.id)) {
+      if (!a.isVisibleAt(now)) continue;
+      final settings = leadAlerts[a.sellerId] ?? const TGLeadAlertSettings();
+      final priorityInstant = a.via == TGLeadAccessVia.priorityPool;
+      if (settings.instantEmail || a.via == TGLeadAccessVia.selected || a.via == TGLeadAccessVia.matched || priorityInstant) {
+        NotificationService.instance.add(
+          userId: a.sellerId,
+          type: priorityInstant ? 'so_priority_lead' : 'so_new_lead',
+          dealId: saved.requestNo,
+          title: priorityInstant ? 'Priority early access lead' : 'New Special Order lead',
+          body: saved.title,
+          deepLink: '/dashboard/leads?id=${saved.requestNo}',
+        );
+      }
     }
   }
 
@@ -432,13 +568,109 @@ class TGSpecialOrderService extends ChangeNotifier {
   }
 
   void shortlistQuote(String quoteId) => _setQuoteStatus(quoteId, TGQuoteStatus.shortlisted);
-  void declineQuote(String quoteId) => _setQuoteStatus(quoteId, TGQuoteStatus.declined);
+
+  void declineQuote(String quoteId, {TGQuoteDeclineReason? reason}) {
+    final i = quotes.indexWhere((q) => q.id == quoteId);
+    if (i < 0) return;
+    quotes[i] = quotes[i].copyWith(status: TGQuoteStatus.declined, isNew: false, declineReason: reason);
+    notifyListeners();
+  }
 
   void _setQuoteStatus(String quoteId, TGQuoteStatus status) {
     final i = quotes.indexWhere((q) => q.id == quoteId);
     if (i < 0) return;
     quotes[i] = quotes[i].copyWith(status: status, isNew: false);
     notifyListeners();
+  }
+
+  TGQuote reviseQuote({
+    required String quoteId,
+    required String sellerId,
+    required int priceNet,
+    required TGQuotePriceType priceType,
+    required int leadTimeWeeks,
+    required DateTime validUntil,
+    required bool installationIncluded,
+    required bool deliveryIncluded,
+    required int warrantyMonths,
+    required String paymentTerms,
+    required String note,
+    String? attachmentUrl,
+  }) {
+    final i = quotes.indexWhere((q) => q.id == quoteId && q.sellerId == sellerId);
+    if (i < 0) throw StateError('Quote not found');
+    final q = quotes[i];
+    if (!q.canRevise) throw StateError('Cannot revise quote');
+    quotes[i] = q.copyWith(
+      priceNet: priceNet,
+      priceType: priceType,
+      leadTimeWeeks: leadTimeWeeks,
+      validUntil: validUntil,
+      installationIncluded: installationIncluded,
+      deliveryIncluded: deliveryIncluded,
+      warrantyMonths: warrantyMonths,
+      paymentTerms: paymentTerms,
+      note: note,
+      attachmentUrl: attachmentUrl,
+      revisionCount: q.revisionCount + 1,
+      revisedAt: TGClock.now(),
+      isNew: true,
+    );
+    TGAnalytics.track('quote_revise', {'quoteId': quoteId, 'sellerId': sellerId});
+    notifyListeners();
+    return quotes[i];
+  }
+
+  TGMarketInsight? marketInsightFor(String requestId, String sellerId) {
+    if (!TGRevenueConfigService.instance.flags.marketInsight) return null;
+    final mine = quotesFor(requestId).where((q) => q.sellerId == sellerId).firstOrNull;
+    if (mine == null) return null;
+    final others = quotesFor(requestId).where((q) => q.sellerId != sellerId).toList();
+    if (others.length < 2) return null;
+    final prices = others.map((q) => q.priceNet).toList()..sort();
+    final leads = others.map((q) => q.leadTimeWeeks).toList()..sort();
+    final mid = leads.length ~/ 2;
+    final median = leads.length.isOdd ? leads[mid] : ((leads[mid - 1] + leads[mid]) / 2).round();
+    return TGMarketInsight(
+      otherQuotes: others.length,
+      minPriceNet: prices.first,
+      maxPriceNet: prices.last,
+      medianLeadWeeks: median,
+    );
+  }
+
+  /// Analytics funnel for a seller over [days].
+  ({int viewed, int quoted, int won, Map<TGQuoteDeclineReason, int> losses, double? medianResponseHours}) sellerAnalytics(
+    String sellerId, {
+    int days = 30,
+  }) {
+    ensureSeeded();
+    final from = TGClock.now().subtract(Duration(days: days));
+    final access = leadAccess.where((a) => a.sellerId == sellerId && (a.viewedAt == null || !a.viewedAt!.isBefore(from)));
+    final viewed = access.where((a) => a.viewedAt != null).length;
+    final myQuotes = quotes.where((q) => q.sellerId == sellerId && !q.createdAt.isBefore(from)).toList();
+    final quoted = myQuotes.length;
+    final won = myQuotes.where((q) => q.status == TGQuoteStatus.awarded).length;
+    final losses = <TGQuoteDeclineReason, int>{};
+    for (final q in myQuotes.where((q) => q.status == TGQuoteStatus.declined || q.status == TGQuoteStatus.lost)) {
+      final reason = q.declineReason;
+      if (reason == null) continue;
+      losses[reason] = (losses[reason] ?? 0) + 1;
+    }
+    final responseHours = <double>[];
+    for (final q in myQuotes) {
+      final a = accessRow(q.requestId, sellerId);
+      final r = byId(q.requestId);
+      if (a?.viewedAt == null || r == null) continue;
+      responseHours.add(q.createdAt.difference(a!.viewedAt!).inMinutes / 60.0);
+    }
+    responseHours.sort();
+    double? median;
+    if (responseHours.isNotEmpty) {
+      final mid = responseHours.length ~/ 2;
+      median = responseHours.length.isOdd ? responseHours[mid] : (responseHours[mid - 1] + responseHours[mid]) / 2;
+    }
+    return (viewed: viewed, quoted: quoted, won: won, losses: losses, medianResponseHours: median);
   }
 
   void clearQuoteNew(String quoteId) {
@@ -452,7 +684,15 @@ class TGSpecialOrderService extends ChangeNotifier {
     final ri = requests.indexWhere((r) => r.id == requestId);
     if (ri < 0) return;
     final r = requests[ri];
-    requests[ri] = r.copyWith(status: TGSpecialRequestStatus.awarded, awardedSellerId: sellerId, closedAt: TGClock.now());
+    final now = TGClock.now();
+    requests[ri] = r.copyWith(
+      status: TGSpecialRequestStatus.awarded,
+      awardedSellerId: sellerId,
+      awardedAt: now,
+      closedAt: now,
+      completionStatus: TGProjectCompletionStatus.inProgress,
+      nextCompletionPromptAt: now.add(const Duration(days: 30)),
+    );
     for (var i = 0; i < quotes.length; i++) {
       final q = quotes[i];
       if (q.requestId != requestId) continue;
@@ -469,6 +709,20 @@ class TGSpecialOrderService extends ChangeNotifier {
       }
     }
     TGAnalytics.track('so_award', {'requestNo': r.requestNo, 'sellerId': sellerId});
+    TGSpecialReviewService.instance.onAwarded(requests[ri]);
+    notifyListeners();
+  }
+
+  void patchCompletion(String requestId, TGProjectCompletionStatus status, {int? askAgainInDays}) {
+    final ri = requests.indexWhere((r) => r.id == requestId);
+    if (ri < 0) return;
+    final now = TGClock.now();
+    requests[ri] = requests[ri].copyWith(
+      completionStatus: status,
+      completedAt: status == TGProjectCompletionStatus.completed ? now : requests[ri].completedAt,
+      nextCompletionPromptAt: askAgainInDays != null ? now.add(Duration(days: askAgainInDays)) : requests[ri].nextCompletionPromptAt,
+      clearNextPrompt: status == TGProjectCompletionStatus.completed || status == TGProjectCompletionStatus.notCompleted,
+    );
     notifyListeners();
   }
 
@@ -494,9 +748,10 @@ class TGSpecialOrderService extends ChangeNotifier {
   void matchMore(String requestId) {
     final r = byId(requestId);
     if (r == null) return;
+    final now = TGClock.now();
     for (final p in manufacturers().take(3)) {
       if (leadAccess.any((a) => a.requestId == requestId && a.sellerId == p.sellerKey)) continue;
-      leadAccess.add(TGLeadAccess(requestId: requestId, sellerId: p.sellerKey, via: TGLeadAccessVia.matched, viewedAt: null));
+      leadAccess.add(TGLeadAccess(requestId: requestId, sellerId: p.sellerKey, via: TGLeadAccessVia.matched, viewedAt: null, visibleFrom: now));
       NotificationService.instance.add(
         userId: p.sellerKey,
         type: 'so_new_lead',
@@ -642,7 +897,7 @@ class TGSpecialOrderService extends ChangeNotifier {
     if (r == null) return;
     for (final sid in sellerIds) {
       if (leadAccess.any((a) => a.requestId == requestId && a.sellerId == sid)) continue;
-      leadAccess.add(TGLeadAccess(requestId: requestId, sellerId: sid, via: TGLeadAccessVia.matched, viewedAt: null));
+      leadAccess.add(TGLeadAccess(requestId: requestId, sellerId: sid, via: TGLeadAccessVia.matched, viewedAt: null, visibleFrom: TGClock.now()));
       NotificationService.instance.add(
         userId: sid,
         type: 'so_new_lead',
@@ -873,6 +1128,8 @@ class TGSpecialOrderService extends ChangeNotifier {
       String city = 'Gliwice',
       String voiv = 'Śląskie',
       String buyerId = buyer,
+      String? buyerName,
+      String companyName = 'Bistro Centrum',
       bool phoneVerified = true,
       Duration? accountAge,
       DateTime? reportedAt,
@@ -880,55 +1137,71 @@ class TGSpecialOrderService extends ChangeNotifier {
       String? reportReason,
       String? assignedTo,
       String? description,
-    }) =>
-        TGSpecialRequest(
-          id: id,
-          requestNo: no,
-          buyerId: buyerId,
-          buyerName: buyerId == 'buyer_anna' ? 'Anna W.' : 'Marek K.',
-          companyName: 'Bistro Centrum',
-          phone: phone,
-          email: buyerId == 'buyer_anna' ? 'anna@example.com' : 'marek@example.com',
-          nip: '5261040828',
-          projectTypes: types,
-          title: title,
-          description: description ??
-              'Need a custom stainless project for our kitchen. Dimensions and finish details in the brief. Looking for verified manufacturers who can install on site.',
-          quantity: 2,
-          widthMm: 2000,
-          depthMm: 700,
-          heightMm: 850,
-          dimensionsText: '2000 x 700 x 850 mm',
-          material: 'AISI 304',
-          finish: 'Brushed',
-          budgetMin: budgetMin,
-          budgetMax: budgetMax,
-          deadline: TGSpecialDeadline.oneMonth,
-          city: city,
-          voivodeship: voiv,
-          installationNeeded: true,
-          deliveryNeeded: true,
-          files: const [
-            TGSpecialFile(id: 'f1', name: 'layout.pdf', assetPath: 'assets/images/blog-26.jpg', bytes: 420000),
-          ],
-          routingMode: mode,
-          selectedSellerIds: sellers,
-          contactPref: pref,
-          consentAt: now.subtract(createdAgo),
-          status: status,
-          createdAt: now.subtract(createdAgo),
-          expiresAt: now.add(expiresIn),
-          awardedSellerId: awarded,
-          flags: flags,
-          rejectReason: rejectReason,
-          teamQueued: mode != TGSpecialRoutingMode.selected,
-          phoneVerified: phoneVerified,
-          buyerAccountCreatedAt: now.subtract(accountAge ?? const Duration(days: 60)),
-          reportedAt: reportedAt,
-          reporterSellerId: reporterSellerId,
-          reportReason: reportReason,
-          assignedTo: assignedTo,
-        );
+      TGProjectCompletionStatus completionStatus = TGProjectCompletionStatus.inProgress,
+      DateTime? closedAt,
+    }) {
+      final name = buyerName ??
+          switch (buyerId) {
+            'buyer_anna' => 'Anna W.',
+            'buyer_jan' => 'Jan Kowalski',
+            'buyer_piotr' => 'Piotr Nowak',
+            'buyer_tomasz' => 'Tomasz Wiśniewski',
+            'buyer_corporate' => 'GastroHotel Sp. z o.o.',
+            _ => 'Marek K.',
+          };
+      final emailLocal = buyerId.replaceFirst('buyer_', '');
+      return TGSpecialRequest(
+        id: id,
+        requestNo: no,
+        buyerId: buyerId,
+        buyerName: name,
+        companyName: companyName,
+        phone: phone,
+        email: '$emailLocal@example.com',
+        nip: '5261040828',
+        projectTypes: types,
+        title: title,
+        description: description ??
+            'Need a custom stainless project for our kitchen. Dimensions and finish details in the brief. Looking for verified manufacturers who can install on site.',
+        quantity: 2,
+        widthMm: 2000,
+        depthMm: 700,
+        heightMm: 850,
+        dimensionsText: '2000 x 700 x 850 mm',
+        material: 'AISI 304',
+        finish: 'Brushed',
+        budgetMin: budgetMin,
+        budgetMax: budgetMax,
+        deadline: TGSpecialDeadline.oneMonth,
+        city: city,
+        voivodeship: voiv,
+        installationNeeded: true,
+        deliveryNeeded: true,
+        files: const [
+          TGSpecialFile(id: 'f1', name: 'layout.pdf', assetPath: 'assets/images/blog-26.jpg', bytes: 420000),
+        ],
+        routingMode: mode,
+        selectedSellerIds: sellers,
+        contactPref: pref,
+        consentAt: now.subtract(createdAgo),
+        status: status,
+        createdAt: now.subtract(createdAgo),
+        expiresAt: now.add(expiresIn),
+        awardedSellerId: awarded,
+        awardedAt: awarded != null ? now.subtract(createdAgo).add(const Duration(days: 2)) : null,
+        completionStatus: completionStatus,
+        closedAt: closedAt,
+        flags: flags,
+        rejectReason: rejectReason,
+        teamQueued: mode != TGSpecialRoutingMode.selected,
+        phoneVerified: phoneVerified,
+        buyerAccountCreatedAt: now.subtract(accountAge ?? const Duration(days: 60)),
+        reportedAt: reportedAt,
+        reporterSellerId: reporterSellerId,
+        reportReason: reportReason,
+        assignedTo: assignedTo,
+      );
+    }
 
     final seeds = <TGSpecialRequest>[
       // Needs matching (2)
@@ -953,9 +1226,55 @@ class TGSpecialOrderService extends ChangeNotifier {
       mk(id: 'so-req-8', no: 'SO-2026-000130', status: TGSpecialRequestStatus.closed, title: 'Laser cut panels (closed)', types: const [TGStoreSpecialty.laserBending], sellers: const ['seller_metalgast'], createdAgo: const Duration(days: 20), expiresIn: const Duration(days: -2)),
       mk(id: 'so-req-9', no: 'SO-2026-000131', status: TGSpecialRequestStatus.expired, title: 'Expired worktop RFQ', types: const [TGStoreSpecialty.worktopsTables], sellers: const ['seller_inoxline'], createdAgo: const Duration(days: 35), expiresIn: const Duration(days: -5)),
       mk(id: 'so-req-14', no: 'SO-2026-000136', status: TGSpecialRequestStatus.quoted, title: 'Quote-limit demo (5 quotes)', types: const [TGStoreSpecialty.shelvingStorage, TGStoreSpecialty.laserBending], sellers: const ['seller_gastropl', 'seller_inoxline', 'seller_stalbar', 'seller_metalgast', 'seller_rm'], budgetMin: 5000, budgetMax: 9000, createdAgo: const Duration(days: 7)),
+      // Dev Switcher personas — names unchanged
+      mk(
+        id: 'so-req-jan',
+        no: 'SO-2026-000140',
+        status: TGSpecialRequestStatus.quoted,
+        title: 'Prep tables for Jan Kowalski',
+        types: const [TGStoreSpecialty.worktopsTables],
+        sellers: const ['seller_inoxline', 'seller_stalbar'],
+        buyerId: 'buyer_jan',
+        companyName: 'JK Catering',
+        budgetMin: 5000,
+        budgetMax: 9000,
+        createdAgo: const Duration(days: 5),
+      ),
+      mk(
+        id: 'so-req-piotr',
+        no: 'SO-2026-000141',
+        status: TGSpecialRequestStatus.awarded,
+        title: 'Hood line for Piotr Nowak',
+        types: const [TGStoreSpecialty.extractionHoods],
+        sellers: const ['seller_rm', 'seller_gastropl'],
+        buyerId: 'buyer_piotr',
+        companyName: 'Nowak Gastro',
+        awarded: 'seller_rm',
+        budgetMin: 15000,
+        budgetMax: 22000,
+        createdAgo: const Duration(days: 18),
+        completionStatus: TGProjectCompletionStatus.inProgress,
+      ),
+      mk(
+        id: 'so-req-tomasz',
+        no: 'SO-2026-000142',
+        status: TGSpecialRequestStatus.closed,
+        title: 'Cold room for Tomasz Wiśniewski',
+        types: const [TGStoreSpecialty.coldRooms],
+        sellers: const ['seller_stalbar', 'seller_metalgast'],
+        buyerId: 'buyer_tomasz',
+        companyName: 'TW Kitchen',
+        awarded: 'seller_stalbar',
+        budgetMin: 25000,
+        budgetMax: 40000,
+        createdAgo: const Duration(days: 45),
+        expiresIn: const Duration(days: -10),
+        completionStatus: TGProjectCompletionStatus.completed,
+        closedAt: now.subtract(const Duration(days: 12)),
+      ),
     ];
     requests.addAll(seeds);
-    _reqSeq = 139;
+    _reqSeq = 143;
 
     for (final r in seeds) {
       if (r.status == TGSpecialRequestStatus.draft) continue;
@@ -995,6 +1314,14 @@ class TGSpecialOrderService extends ChangeNotifier {
     // awarded
     q('so-req-5', 'seller_rm', 98000, 10, st: TGQuoteStatus.awarded);
     q('so-req-5', 'seller_gastropl', 105000, 12, st: TGQuoteStatus.lost);
+
+    // Dev Switcher: Jan (quoting), Piotr (production), Tomasz (completed)
+    q('so-req-jan', 'seller_inoxline', 7200, 4);
+    q('so-req-jan', 'seller_stalbar', 7800, 5, isNew: true);
+    q('so-req-piotr', 'seller_rm', 18500, 6, st: TGQuoteStatus.awarded);
+    q('so-req-piotr', 'seller_gastropl', 19200, 7, st: TGQuoteStatus.lost);
+    q('so-req-tomasz', 'seller_stalbar', 31000, 8, st: TGQuoteStatus.awarded);
+    q('so-req-tomasz', 'seller_metalgast', 29500, 9, st: TGQuoteStatus.lost);
 
     // quote limit (5)
     q('so-req-14', 'seller_gastropl', 6200, 3);
