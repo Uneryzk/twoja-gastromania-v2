@@ -115,6 +115,7 @@ class _RestoBody extends StatefulWidget {
 
 class _RestoBodyState extends State<_RestoBody> {
   final _scroll = ScrollController();
+  final _galleryController = PageController();
   final _equipKey = GlobalKey();
   int _index = 0;
   int _galleryTab = 0; // 0 photos, 1 floor plan
@@ -181,9 +182,25 @@ class _RestoBodyState extends State<_RestoBody> {
     if (mounted) setState(() => _catalogue = all);
   }
 
+  void _goToGalleryImage(int i) {
+    final imgs = _galleryImages;
+    if (imgs.isEmpty) return;
+    final next = i.clamp(0, imgs.length - 1);
+    setState(() => _index = next);
+    if (_galleryController.hasClients) {
+      final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+      if (reduce) {
+        _galleryController.jumpToPage(next);
+      } else {
+        _galleryController.animateToPage(next, duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _copyReset?.cancel();
+    _galleryController.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -841,6 +858,7 @@ class _RestoBodyState extends State<_RestoBody> {
               height: h,
               color: const Color(0xFF1A1A1A),
               child: PageView.builder(
+                controller: _galleryController,
                 itemCount: imgs.length,
                 onPageChanged: (i) => setState(() => _index = i),
                 itemBuilder: (_, i) => TGSmartImage(
@@ -861,7 +879,7 @@ class _RestoBodyState extends State<_RestoBody> {
               itemCount: imgs.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (_, i) => GestureDetector(
-                onTap: () => setState(() => _index = i),
+                onTap: () => _goToGalleryImage(i),
                 child: Container(
                   width: mobile ? 84 : 96,
                   decoration: BoxDecoration(
@@ -882,10 +900,15 @@ class _RestoBodyState extends State<_RestoBody> {
   Widget _tab(String label, int i) {
     final on = _galleryTab == i;
     return InkWell(
-      onTap: () => setState(() {
-        _galleryTab = i;
-        _index = 0;
-      }),
+      onTap: () {
+        setState(() {
+          _galleryTab = i;
+          _index = 0;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_galleryController.hasClients) _galleryController.jumpToPage(0);
+        });
+      },
       child: Text(
         label,
         style: TextStyle(
