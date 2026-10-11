@@ -69,7 +69,9 @@ class _RestaurantCardState extends State<RestaurantCard> {
       onExit: (_) => setState(() => _hover = false),
       child: AnimatedContainer(
         duration: Duration(milliseconds: reduce ? 0 : 180),
-        transform: Matrix4.translationValues(0, _hover && !reduce ? -4 : 0, 0),
+        // Soft lift kept inside the card bounds via clip — avoids bleeding into next homepage section.
+        transform: Matrix4.translationValues(0, _hover && !reduce ? -3 : 0, 0),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: const Color(0xFF1F1F1F),
           borderRadius: BorderRadius.circular(16),
@@ -83,9 +85,9 @@ class _RestaurantCardState extends State<RestaurantCard> {
           boxShadow: _hover && !reduce
               ? [
                   BoxShadow(
-                    color: (promoted ? const Color(0xFFE91E8C) : const Color(0xFF14B8A6)).withValues(alpha: 0.35),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
+                    color: (promoted ? const Color(0xFFE91E8C) : const Color(0xFF14B8A6)).withValues(alpha: 0.28),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
                   ),
                 ]
               : null,
@@ -152,6 +154,15 @@ class _RestaurantCardState extends State<RestaurantCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(restoLocalizedTitle(context, r), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontSize: 16, fontWeight: FontWeight.w700)),
+                  if (r.venueName != null && r.venueName!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      r.venueName!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.bodySmall.override(color: theme.secondaryText.withValues(alpha: 0.75), fontSize: 12),
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -171,10 +182,10 @@ class _RestaurantCardState extends State<RestaurantCard> {
                   _metricRow(theme),
                   if (r.negotiable) ...[
                     const SizedBox(height: 8),
-                    _pill('do negocjacji', theme.alternate),
+                    _pill(context.t('ui_negotiable'), theme.alternate),
                   ],
                   const SizedBox(height: 10),
-                  Wrap(spacing: 6, runSpacing: 6, children: _specChips(theme)),
+                  Wrap(spacing: 6, runSpacing: 6, children: _specChips(theme).take(4).toList()),
                   const SizedBox(height: 10),
                   _sellerRow(theme),
                   const SizedBox(height: 8),
@@ -406,26 +417,14 @@ class _RestaurantCardState extends State<RestaurantCard> {
   }
 
   Widget _sellerRow(FlutterFlowTheme theme) {
-    final verified = r.seller.verified;
-    return Row(
-      children: [
-        if (verified) ...[
-          Icon(Icons.verified_user, size: 16, color: Colors.greenAccent.shade400),
-          const SizedBox(width: 4),
-          Flexible(
-            child: InkWell(
-              onTap: () => context.go('/seller/${r.seller.id}'),
-              child: Text(r.seller.name, style: theme.bodySmall.override(fontWeight: FontWeight.w700, color: TGColors.cta)),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(r.seller.rating.toStringAsFixed(1), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
-        ] else
-          Text(
-            r.posterRole == RestaurantPosterRole.owner ? 'Owner' : 'Agent',
-            style: theme.bodySmall.override(fontWeight: FontWeight.w700),
-          ),
-      ],
+    // Transfers are individual: show role (+ first name), never a store brand.
+    final role = r.posterRole == RestaurantPosterRole.owner
+        ? context.t('resto_poster_owner')
+        : context.t('resto_poster_agent');
+    final roleLabel = role.isEmpty ? (r.posterRole == RestaurantPosterRole.owner ? 'Owner' : 'Agent') : role;
+    return Text(
+      roleLabel,
+      style: theme.bodySmall.override(fontWeight: FontWeight.w700, color: theme.secondaryText),
     );
   }
 

@@ -255,12 +255,13 @@ List<RestaurantListing> _buildSeed() {
   final cfg = RestaurantConfigService.instance.config;
   final now = TGClock.now();
 
-  const storeGastro = TGSeller(id: 'seller_gastropl', name: 'GastroPL Outlet', type: TGSellerType.store, verified: true, rating: 4.7);
-  const storePrime = TGSeller(id: 'seller_primegastro', name: 'PrimeGastro', type: TGSellerType.store, verified: true, rating: 4.9);
+  // Restaurant transfers are individual (owner/agent persons) — never store brands.
   const ownerMateusz = TGSeller(id: 'seller_mateusz', name: 'Mateusz K.', type: TGSellerType.private, verified: false, rating: 4.4);
   const ownerAnna = TGSeller(id: 'seller_anna', name: 'Anna P.', type: TGSellerType.private, verified: false, rating: 4.6);
-  const agentTechnica = TGSeller(id: 'seller_technica', name: 'Technica Pro', type: TGSellerType.store, verified: false, rating: 4.2);
-  const ownerTg = TGSeller(id: 'seller_tg', name: 'TG Demo', type: TGSellerType.private, verified: false, rating: 4.5);
+  const ownerKarol = TGSeller(id: 'seller_karol', name: 'Karol W.', type: TGSellerType.private, verified: false, rating: 4.5);
+  const ownerEwa = TGSeller(id: 'seller_ewa', name: 'Ewa N.', type: TGSellerType.private, verified: false, rating: 4.3);
+  const agentAgnieszka = TGSeller(id: 'seller_agnieszka', name: 'Agnieszka T.', type: TGSellerType.private, verified: false, rating: 4.6);
+  const ownerTg = TGSeller(id: 'seller_tg', name: 'Piotr M.', type: TGSellerType.private, verified: false, rating: 4.5);
 
   List<String> imgs(String id, RestaurantBusinessType type, String title, int n) =>
       TGListingImages.galleryForTheme(
@@ -320,6 +321,7 @@ List<RestaurantListing> _buildSeed() {
     required String no,
     required RestaurantBusinessType type,
     required String title,
+    String? venueName,
     required String city,
     required String voivodeship,
     required String street,
@@ -382,6 +384,7 @@ List<RestaurantListing> _buildSeed() {
       authorizationConfirmed: authConfirmed,
       businessType: type,
       title: title,
+      venueName: venueName,
       description: description ??
           '$title in $city. Full address, rent and transfer fee shown upfront. Ready for takeover — inspect the lease and permits yourself.',
       reasonForSale: 'Relocation / new project',
@@ -467,6 +470,7 @@ List<RestaurantListing> _buildSeed() {
       no: '51010001',
       type: RestaurantBusinessType.restaurant,
       title: 'Restaurant with terrace – Mariacka, Katowice',
+      venueName: 'Katowice Big Pizza',
       city: 'Katowice',
       voivodeship: 'Śląskie',
       district: 'Śródmieście',
@@ -498,6 +502,7 @@ List<RestaurantListing> _buildSeed() {
       no: '51010002',
       type: RestaurantBusinessType.cafe,
       title: 'Corner café with pastry counter – Rybnik',
+      venueName: 'Silesia Coffee',
       city: 'Rybnik',
       voivodeship: 'Śląskie',
       street: 'ul. Kościuszki',
@@ -523,6 +528,7 @@ List<RestaurantListing> _buildSeed() {
       no: '51010003',
       type: RestaurantBusinessType.bar,
       title: 'Cocktail bar – Gliwice centre',
+      venueName: 'Zwycięstwa Bar',
       city: 'Gliwice',
       voivodeship: 'Śląskie',
       street: 'ul. Zwycięstwa',
@@ -550,6 +556,7 @@ List<RestaurantListing> _buildSeed() {
       no: '51010004',
       type: RestaurantBusinessType.pizzeria,
       title: 'Pizzeria with delivery fleet – Kraków Kazimierz',
+      venueName: 'Kazimierz Big Pizza',
       city: 'Kraków',
       voivodeship: 'Małopolskie',
       district: 'Kazimierz',
@@ -576,6 +583,7 @@ List<RestaurantListing> _buildSeed() {
       no: '51010005',
       type: RestaurantBusinessType.fastFood,
       title: 'Fast-food corner – Warszawa Mokotów',
+      venueName: 'Mokotów Burger',
       city: 'Warszawa',
       voivodeship: 'Mazowieckie',
       district: 'Mokotów',
@@ -585,8 +593,8 @@ List<RestaurantListing> _buildSeed() {
       rent: 16000,
       rentBasis: RestaurantVatBasis.netto,
       fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 150000),
-      seller: storePrime,
-      role: RestaurantPosterRole.agent,
+      seller: ownerKarol,
+      role: RestaurantPosterRole.owner,
       status: RestaurantListingStatus.active,
       source: RestaurantListingSource.paid,
       publishedDaysAgo: 12,
@@ -636,7 +644,7 @@ List<RestaurantListing> _buildSeed() {
       rent: 9800,
       rentBasis: RestaurantVatBasis.netto,
       fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 80000),
-      seller: agentTechnica,
+      seller: agentAgnieszka,
       role: RestaurantPosterRole.agent,
       status: RestaurantListingStatus.sold,
       source: RestaurantListingSource.paid,
@@ -715,8 +723,8 @@ List<RestaurantListing> _buildSeed() {
         amountPln: 110000,
         basis: RestaurantVatBasis.vatUnspecified,
       ),
-      seller: storeGastro,
-      role: RestaurantPosterRole.agent,
+      seller: ownerEwa,
+      role: RestaurantPosterRole.owner,
       status: RestaurantListingStatus.active,
       source: RestaurantListingSource.freeIntro,
       publishedDaysAgo: 15,
@@ -730,6 +738,7 @@ List<RestaurantListing> _buildSeed() {
       no: '51010011',
       type: RestaurantBusinessType.cafe,
       title: 'Specialty coffee shop – Gliwice',
+      venueName: 'Silesia Coffee Gliwice',
       city: 'Gliwice',
       voivodeship: 'Śląskie',
       street: 'ul. Wieczorka',
@@ -754,6 +763,7 @@ List<RestaurantListing> _buildSeed() {
       no: '51010012',
       type: RestaurantBusinessType.pizzeria,
       title: 'Pizzeria with garden – Rybnik',
+      venueName: 'Rybnik Garden Pizza',
       city: 'Rybnik',
       voivodeship: 'Śląskie',
       street: 'ul. Hallera',
@@ -762,8 +772,8 @@ List<RestaurantListing> _buildSeed() {
       rent: 7200,
       rentBasis: RestaurantVatBasis.netto,
       fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 55000),
-      seller: agentTechnica,
-      role: RestaurantPosterRole.agent,
+      seller: ownerMateusz,
+      role: RestaurantPosterRole.owner,
       status: RestaurantListingStatus.active,
       source: RestaurantListingSource.freeIntro,
       publishedDaysAgo: 6,
@@ -815,8 +825,8 @@ List<RestaurantListing> _buildSeed() {
       rent: 10500,
       rentBasis: RestaurantVatBasis.netto,
       fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 90000),
-      seller: storeGastro,
-      role: RestaurantPosterRole.agent,
+      seller: ownerEwa,
+      role: RestaurantPosterRole.owner,
       status: RestaurantListingStatus.active,
       source: RestaurantListingSource.paid,
       publishedDaysAgo: 20,

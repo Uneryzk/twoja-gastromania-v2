@@ -1741,6 +1741,8 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'resto_type_other': _d('Other', pl: 'Inne', tr: 'Diğer'),
 
   'resto_strip_subtitle': _d('Take over a ready business.', pl: 'Przejmij gotowy biznes.', tr: 'Hazır bir işletmeyi devralın.'),
+  'resto_poster_owner': _d('Owner', pl: 'Właściciel', tr: 'Sahip'),
+  'resto_poster_agent': _d('Agent', pl: 'Pośrednik', tr: 'Aracı'),
   'resto_title_51010001': _d('Restaurant with terrace – Mariacka, Katowice', pl: 'Restauracja z tarasem – Mariacka, Katowice', tr: 'Teraslı restoran – Mariacka, Katowice'),
   'resto_title_short_51010001': _d('Restaurant with terrace – Katowice', pl: 'Restauracja z tarasem – Katowice', tr: 'Teraslı restoran – Katowice'),
   'ad_title_ad_live_1': _d('Restaurant with terrace – Katowice', pl: 'Restauracja z tarasem – Katowice', tr: 'Teraslı restoran – Katowice'),

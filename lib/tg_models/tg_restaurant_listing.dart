@@ -562,6 +562,7 @@ class RestaurantListing {
     required this.premisesKey,
     required this.businessType,
     required this.title,
+    this.venueName,
     required this.description,
     required this.reasonForSale,
     required this.availableFrom,
@@ -627,6 +628,8 @@ class RestaurantListing {
   final String premisesKey;
   final RestaurantBusinessType businessType;
   final String title;
+  /// Optional trade name of the premises (e.g. "Katowice Big Pizza") — secondary copy.
+  final String? venueName;
   final String description;
   final String reasonForSale;
   final DateTime availableFrom;
@@ -764,6 +767,7 @@ class RestaurantListing {
     List<String>? documents,
     String? phone,
     String? title,
+    String? venueName,
     String? description,
     RestaurantPosterRole? posterRole,
     bool? authorizationConfirmed,
@@ -790,6 +794,7 @@ class RestaurantListing {
         premisesKey: premisesKey,
         businessType: businessType,
         title: title ?? this.title,
+        venueName: venueName ?? this.venueName,
         description: description ?? this.description,
         reasonForSale: reasonForSale,
         availableFrom: availableFrom,
@@ -892,6 +897,7 @@ class RestaurantListing {
     bool authorizationConfirmed = true,
     required RestaurantBusinessType businessType,
     required String title,
+    String? venueName,
     required String description,
     required String reasonForSale,
     required DateTime availableFrom,
@@ -963,6 +969,7 @@ class RestaurantListing {
       ),
       businessType: businessType,
       title: title,
+      venueName: venueName,
       description: description,
       reasonForSale: reasonForSale,
       availableFrom: availableFrom,

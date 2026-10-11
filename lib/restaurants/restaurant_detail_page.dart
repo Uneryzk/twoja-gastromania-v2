@@ -726,6 +726,13 @@ class _RestoBodyState extends State<_RestoBody> {
             fontWeight: FontWeight.w900,
           ),
         ),
+        if (r.venueName != null && r.venueName!.trim().isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            r.venueName!,
+            style: theme.bodyMedium.override(color: theme.secondaryText.withValues(alpha: 0.8), fontWeight: FontWeight.w600),
+          ),
+        ],
         const SizedBox(height: 8),
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
