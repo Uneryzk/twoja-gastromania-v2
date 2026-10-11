@@ -13,6 +13,7 @@ import 'package:twoja_gastromania/product_detail/pdp_gallery.dart';
 import 'package:twoja_gastromania/product_detail/pdp_message_sheet.dart';
 import 'package:twoja_gastromania/product_detail/pdp_translate.dart';
 import 'package:twoja_gastromania/product_detail/report_listing_sheet.dart';
+import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/products/products_logic.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
@@ -1056,12 +1057,29 @@ class _OwnerBar extends StatelessWidget {
                   height: 44,
                   borderRadius: BorderRadius.circular(TGRadius.pill),
                 ),
-                TGButton(
-                  onPressed: onAction,
-                  label: context.t('ui_promote'),
-                  variant: TGButtonVariant.outline,
-                  height: 44,
-                  borderRadius: BorderRadius.circular(TGRadius.pill),
+                PopupMenuButton<String>(
+                  tooltip: context.t('ui_promote'),
+                  onSelected: (v) {
+                    if (v == 'promote') onAction();
+                    if (v == 'banner') {
+                      context.go('/dashboard/advertising?target=${Uri.encodeComponent(product.detailPath)}');
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(value: 'promote', child: Text(context.t('ui_promote'))),
+                    if (AdSlotService.instance.purchaseVisible)
+                      const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
+                  ],
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.primary),
+                      borderRadius: BorderRadius.circular(TGRadius.pill),
+                    ),
+                    child: Text(context.t('ui_promote'), style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: theme.primary)),
+                  ),
                 ),
                 if (expiring)
                   TGButton(

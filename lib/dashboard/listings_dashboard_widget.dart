@@ -7,6 +7,13 @@ import 'package:twoja_gastromania/dashboard/dashboard_nav.dart';
 import 'package:twoja_gastromania/dashboard/listing_row.dart';
 import 'package:twoja_gastromania/dashboard/renew_sheet.dart';
 import 'package:twoja_gastromania/deals/sold_flow_sheet.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_listing_row.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_renew_sheet.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_inventory_sync_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_post_publish_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
@@ -65,7 +72,18 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
   @override
   void initState() {
     super.initState();
+    RestaurantService.instance.addListener(_onResto);
     WidgetsBinding.instance.addPostFrameCallback((_) => _handleQuery());
+  }
+
+  void _onResto() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    RestaurantService.instance.removeListener(_onResto);
+    super.dispose();
   }
 
   @override
@@ -82,7 +100,8 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
     final renewed = widget.renewedId;
     if (renewed != null && renewed.isNotEmpty) {
       final p = auth.ownedListings.where((e) => e.id == renewed).firstOrNull;
-      final until = DateFormat('d MMM y').format(p?.expiresAt ?? DateTime.now());
+      final resto = RestaurantService.instance.byId(renewed);
+      final until = DateFormat('d MMM y').format(p?.expiresAt ?? resto?.expiresAt ?? DateTime.now());
       showTGToast(context, 'Live again until $until');
     }
     final sold = widget.soldId;
@@ -95,6 +114,15 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
     }
     final id = widget.renewId;
     if (id == null || id.isEmpty) return;
+    final resto = RestaurantService.instance.byId(id) ?? RestaurantService.instance.byListingNo(id);
+    if (resto != null) {
+      showRestaurantRenewSheet(
+        context,
+        resto,
+        early: RestaurantLifecycleService.instance.isRenewEarly(resto),
+      );
+      return;
+    }
     final product = auth.ownedListings.where((p) => p.id == id).firstOrNull;
     if (product == null) return;
     showRenewSheet(context, product, early: product.isExpiringSoon && product.status != TGListingStatus.expired);
@@ -117,6 +145,15 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
       'review' => items.where((p) => p.status == TGListingStatus.underReview).toList(),
       'drafts' => items.where((p) => p.status == TGListingStatus.draft).toList(),
       _ => items,
+    };
+    var restos = RestaurantService.instance.ownedBy(auth.userId);
+    restos = switch (tab) {
+      'expired' => restos.where((r) => r.status == RestaurantListingStatus.expired).toList(),
+      'expiring' => restos.where((r) => r.isExpiringSoon()).toList(),
+      'active' => restos.where((r) => r.status == RestaurantListingStatus.active).toList(),
+      'review' => restos.where((r) => r.status == RestaurantListingStatus.underReview || r.status == RestaurantListingStatus.pendingAuthorization).toList(),
+      'drafts' => restos.where((r) => r.status == RestaurantListingStatus.draft || r.status == RestaurantListingStatus.paymentPending).toList(),
+      _ => restos,
     };
     final expiredN = auth.ownedExpired.length;
 
@@ -192,9 +229,10 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                         ),
                       ],
                       const SizedBox(height: 18),
-                      if (items.isEmpty)
+                      ..._restoDashboardCards(context, auth, theme),
+                      if (items.isEmpty && restos.isEmpty)
                         Text(context.t('ui_no_results'), style: theme.bodyMedium)
-                      else
+                      else ...[
                         for (final p in items)
                           ListingRow(
                             product: p,
@@ -214,6 +252,8 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                                   }
                                 : null,
                           ),
+                        for (final r in restos) RestaurantListingRow(listing: r),
+                      ],
                     ],
                   ),
                 ),
@@ -317,7 +357,7 @@ class _DashboardHeading extends StatelessWidget {
           );
     final add = TGButton(
       key: const Key('dashboard-add-product'),
-      onPressed: () => TGNav.addProduct(context),
+      onPressed: () => showAddListingChooser(context),
       label: context.t('ui_add_product_plus'),
       height: 44,
       borderRadius: BorderRadius.circular(TGRadius.pill),
@@ -347,4 +387,195 @@ class _DashboardHeading extends StatelessWidget {
       ],
     );
   }
+}
+
+List<Widget> _restoDashboardCards(BuildContext context, FakeAuthState auth, FlutterFlowTheme theme) {
+  final post = RestaurantPostPublishService.instance..ensureSeeded();
+  final sync = RestaurantInventorySyncService.instance..ensureSeeded();
+  final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
+  final out = <Widget>[];
+
+  for (final r in RestaurantService.instance.ownedBy(auth.userId)) {
+    final cards = post.dashboardCards(r.id);
+    if (cards.contains('details')) {
+      out.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: WizardCard(
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('Listing details ${r.detailsFilledCount}/${RestaurantListing.detailsSectionTotal}', style: const TextStyle(fontWeight: FontWeight.w900)),
+              subtitle: const Text('Filters use garden, alcohol permit and play area.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/restaurants/${r.listingNo}/details'),
+            ),
+          ),
+        ),
+      );
+    }
+    if (cards.contains('equipment')) {
+      out.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: WizardCard(
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'Equipment ${r.inventory.length} items · ${r.separatelyListedCount} listed separately',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              subtitle: Text(post.equipmentCardCopy(r, freeLeft: auth.freeListingsLeft)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/dashboard/bulk-add'),
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  for (final card in sync.syncCardsFor(auth.userId)) {
+    out.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: WizardCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Update ${card.item.name}', style: const TextStyle(fontWeight: FontWeight.w900)),
+              Text(
+                'You marked this as sold. Is it still part of restaurant listing ${card.listing.listingNo}?',
+                style: theme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              if (phone) ...[
+                TGButton(
+                  onPressed: () {
+                    sync.removeFromTransfer(listingId: card.listing.id, itemId: card.item.id, actorId: auth.userId);
+                    showTGToast(context, 'Removed from transfer list', duration: const Duration(seconds: 10), action: SnackBarAction(label: 'Undo', onPressed: () => sync.undo(card.listing.id, card.item.id)));
+                  },
+                  label: 'Remove from the transfer list',
+                  height: 40,
+                  borderRadius: BorderRadius.circular(TGRadius.pill),
+                ),
+                const SizedBox(height: 6),
+                TGButton(
+                  onPressed: () async {
+                    int? qty = card.item.qty;
+                    if (card.item.qty > 1) {
+                      qty = await showDialog<int>(
+                        context: context,
+                        builder: (ctx) {
+                          var left = card.item.qty - 1;
+                          return AlertDialog(
+                            title: const Text('How many are left?'),
+                            content: TextField(
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(labelText: 'Quantity left'),
+                              onChanged: (v) => left = int.tryParse(v) ?? left,
+                            ),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, left), child: const Text('Save')),
+                            ],
+                          );
+                        },
+                      );
+                    }
+                    if (!context.mounted) return;
+                    sync.stillIncluded(listingId: card.listing.id, itemId: card.item.id, actorId: auth.userId, qtyLeft: qty);
+                    showTGToast(context, 'Still included');
+                  },
+                  label: 'Still included · I have another unit',
+                  variant: TGButtonVariant.outline,
+                  height: 40,
+                  borderRadius: BorderRadius.circular(TGRadius.pill),
+                ),
+                TextButton(
+                  onPressed: () => context.go('/restaurants/${card.listing.listingNo}/details?section=otherInfo'),
+                  child: const Text('Edit description'),
+                ),
+              ] else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    TGButton(
+                      onPressed: () {
+                        sync.removeFromTransfer(listingId: card.listing.id, itemId: card.item.id, actorId: auth.userId);
+                        showTGToast(context, 'Removed from transfer list');
+                      },
+                      label: 'Remove from the transfer list',
+                      height: 40,
+                      borderRadius: BorderRadius.circular(TGRadius.pill),
+                    ),
+                    TGButton(
+                      onPressed: () {
+                        sync.stillIncluded(listingId: card.listing.id, itemId: card.item.id, actorId: auth.userId);
+                        showTGToast(context, 'Still included');
+                      },
+                      label: 'Still included · I have another unit',
+                      variant: TGButtonVariant.outline,
+                      height: 40,
+                      borderRadius: BorderRadius.circular(TGRadius.pill),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go(card.listing.detailPath),
+                      child: const Text('Edit description'),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  if (out.isNotEmpty) out.add(const SizedBox(height: 8));
+  return out;
+}
+
+Future<void> showAddListingChooser(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('What are you listing?', style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.kitchen_outlined),
+              title: const Text('Equipment', style: TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: const Text('Machines, furniture, spare parts'),
+              onTap: () {
+                Navigator.pop(ctx);
+                TGNav.addProduct(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.collections_outlined),
+              title: const Text('Bulk add equipment', style: TextStyle(fontWeight: FontWeight.w800)),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.go('/dashboard/bulk-add');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.storefront_outlined),
+              title: const Text('Restaurant for sale', style: TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: const Text('Business & premises transfer'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.go('/restaurants/new');
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

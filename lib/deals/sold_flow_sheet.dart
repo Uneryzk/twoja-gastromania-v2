@@ -15,6 +15,7 @@ import 'package:twoja_gastromania/tg_models/tg_deal.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_inventory_sync_service.dart';
 
 enum SoldFlowMode { markSold, removeListing }
 
@@ -236,6 +237,15 @@ class _SoldFlowSheetState extends State<SoldFlowSheet> {
                 ),
               ),
               Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8), child: _ListingMini(listing: widget.listing)),
+              if (widget.mode == SoldFlowMode.markSold &&
+                  RestaurantInventorySyncService.instance.isLinkedSeparateListing(widget.listing))
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: Text(
+                    'This item is also on your restaurant listing’s equipment list. We’ll ask you to update it.',
+                    style: theme.bodySmall.override(color: TGColors.rating, fontWeight: FontWeight.w700),
+                  ),
+                ),
               _StepDots(step: _step, skipReason: widget.mode == SoldFlowMode.markSold),
               Expanded(
                 child: AnimatedSwitcher(

@@ -6,6 +6,7 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 
 class AdminRevenueConfigPage extends StatefulWidget {
@@ -53,6 +54,28 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
         const SizedBox(height: 8),
         Text('Phase & flags control Priority, market insight, and production mode.', style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 16),
+        Builder(builder: (context) {
+          final s = RestaurantLifecycleService.instance.revenueStats();
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              border: Border.all(color: theme.alternate),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Restaurant listings (live data)', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 6),
+                Text('Listing revenue: ${s.listingRevenuePln} PLN'),
+                Text('Renew count: ${s.renewCount}'),
+                Text('Free starts: ${s.freeStartCount} · Extensions: ${s.extensionCount}'),
+                Text('Free→paid conversion: ${(s.freeToPaidConversion * 100).toStringAsFixed(1)}%'),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 16),
         Text('Phase', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         SegmentedButton<int>(
@@ -88,6 +111,7 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
           ('sponsorSlots', _draft.flags.sponsorSlots),
           ('auditProgram', _draft.flags.auditProgram),
           ('founderProgram', _draft.flags.founderProgram),
+          ('bannerAds', _draft.flags.bannerAds),
         ])
           SwitchListTile(
             title: Text(e.$1),
@@ -106,6 +130,14 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
         ),
         ListTile(
           title: Text('Gate: ≥${_draft.priority.gate.minRequests30d} requests / 30d in ${_draft.priority.gate.openRegions.join(", ")}'),
+        ),
+        ListTile(
+          title: Text(
+            'Banner ads: ${_draft.bannerAds.adSlotPln14} PLN / 14d · '
+            'Enterprise included ${_draft.bannerAds.enterpriseIncludedSlidesPerMonth}/mo · '
+            'max live ${_draft.bannerAds.maxLiveHeroSlides}',
+          ),
+          subtitle: Text(_draft.flags.bannerAds && _draft.phase >= 2 ? 'Purchase visible (flag on, phase ≥ 2)' : 'Purchase hidden'),
         ),
         const SizedBox(height: 16),
         Text('Audit', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),

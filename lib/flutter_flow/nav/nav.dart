@@ -174,16 +174,39 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           builder: (context, params) => const RestaurantsPageWidget(),
         ),
         FFRoute(
-          name: RestaurantNewPlaceholderPage.routeName,
-          path: RestaurantNewPlaceholderPage.routePath,
-          builder: (context, params) => const RestaurantNewPlaceholderPage(),
+          name: RestaurantWizardPage.routeName,
+          path: RestaurantWizardPage.routePath,
+          builder: (context, params) => RestaurantWizardPage(
+            resumeId: params.state.uri.queryParameters['resume'],
+          ),
         ),
         FFRoute(
-          name: RestaurantDetailPlaceholderPage.routeName,
-          path: RestaurantDetailPlaceholderPage.routePath,
-          builder: (context, params) => RestaurantDetailPlaceholderPage(
+          name: RestaurantDetailPage.routeName,
+          path: RestaurantDetailPage.routePath,
+          builder: (context, params) => RestaurantDetailPage(
             segment: params.state.pathParameters['segment'] ?? '',
           ),
+        ),
+        FFRoute(
+          name: RestaurantSuccessPage.routeName,
+          path: RestaurantSuccessPage.routePath,
+          builder: (context, params) => RestaurantSuccessPage(
+            listingId: params.state.uri.queryParameters['id'],
+            pending: params.state.uri.queryParameters['pending'] == '1',
+          ),
+        ),
+        FFRoute(
+          name: RestaurantDetailsEditorPage.routeName,
+          path: RestaurantDetailsEditorPage.routePath,
+          builder: (context, params) => RestaurantDetailsEditorPage(
+            listingNo: params.state.pathParameters['listingNo'] ?? '',
+            section: params.state.uri.queryParameters['section'],
+          ),
+        ),
+        FFRoute(
+          name: 'RestaurantCheckout',
+          path: '/restaurants/checkout',
+          builder: (context, params) => const CheckoutPage(),
         ),
         FFRoute(
           name: ListingsDashboardPage.routeName,
@@ -194,6 +217,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
             renewedId: params.state.uri.queryParameters['renewed'],
             soldId: params.state.uri.queryParameters['sold'],
           ),
+        ),
+        FFRoute(
+          name: BulkAddPage.routeName,
+          path: BulkAddPage.routePath,
+          builder: (context, params) => const BulkAddPage(),
         ),
         FFRoute(
           name: SellerDealsPage.routeName,
@@ -349,6 +377,18 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           name: 'AdminSponsorSlots',
           path: '/admin/sponsor-slots',
           builder: (context, params) => const AdminSponsorSlotsHost(),
+        ),
+        FFRoute(
+          name: 'AdminAds',
+          path: '/admin/ads',
+          builder: (context, params) => const AdminAdsHost(),
+        ),
+        FFRoute(
+          name: AdvertisingPage.routeName,
+          path: AdvertisingPage.routePath,
+          builder: (context, params) => AdvertisingPage(
+            prefillTarget: params.state.uri.queryParameters['target'],
+          ),
         ),
         FFRoute(
           name: FoundersPage.routeName,

@@ -345,7 +345,7 @@ class _AccountPill extends StatelessWidget {
           }),
         TGHeaderPillKind.needsAttention => context.t('ui_pill_attention_short'),
         TGHeaderPillKind.expiredListings => context.t('ui_renew'),
-        TGHeaderPillKind.expiringListings => '${auth.ownedExpiringSoon.first.daysUntilExpiry()}d',
+        TGHeaderPillKind.expiringListings => '${auth.nearestExpiringDays}d',
         TGHeaderPillKind.noListings => context.t('ui_pill_free_short', {'n': '${auth.freeListingsTotal}'}),
         TGHeaderPillKind.freeQuota => context.t('ui_pill_free_short', {'n': '${auth.freeListingsLeft}'}),
         TGHeaderPillKind.noQuota => context.t('ui_pill_zero_free'),
@@ -365,10 +365,10 @@ class _AccountPill extends StatelessWidget {
           final n = auth.ownedNeedsAttention.length;
           return context.t(n == 1 ? 'ui_pill_attention' : 'ui_pill_attention_many', {'n': '$n'});
         }(),
-      TGHeaderPillKind.expiredListings => context.t('ui_pill_expired', {'n': '${auth.ownedExpired.length}'}),
+      TGHeaderPillKind.expiredListings => context.t('ui_pill_expired', {'n': '${auth.expiredListingCount}'}),
       TGHeaderPillKind.expiringListings => () {
-          final n = auth.ownedExpiringSoon.length;
-          final d = auth.ownedExpiringSoon.map((p) => p.daysUntilExpiry()).reduce((a, b) => a < b ? a : b);
+          final n = auth.expiringListingCount;
+          final d = auth.nearestExpiringDays;
           final key = n == 1 ? 'ui_pill_listing_ends' : 'ui_pill_listings_end';
           return context.t(key, {'n': '$n', 'd': '$d'});
         }(),

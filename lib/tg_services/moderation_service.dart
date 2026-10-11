@@ -7,11 +7,13 @@ import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_models/tg_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 import 'package:twoja_gastromania/tg_services/review_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 
@@ -182,6 +184,8 @@ class ModerationService extends ChangeNotifier {
         reasons.contains(TGReportReason.fakeStore) ||
         reasons.contains(TGReportReason.fakeReview) ||
         reasons.contains(TGReportReason.harassment) ||
+        reasons.contains(TGReportReason.restoUnauthorized) ||
+        reasons.contains(TGReportReason.restoScamDeposit) ||
         recentReporters.length >= 3 ||
         promoted) {
       return TGModerationPriority.high;
@@ -578,6 +582,31 @@ class ModerationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Restaurant: request proof of authorization (lease page / owner letter / agent contract).
+  /// Sent to seller and reporter.
+  Future<void> requestAuthorization({
+    required String listingNo,
+    required String actorId,
+    required String actorRole,
+    String lang = 'en',
+  }) async {
+    final c = cases[listingNo];
+    if (c != null) c.status = TGReportStatus.waitingSeller;
+    _touchReports(listingNo, TGReportStatus.waitingSeller);
+    final resto = RestaurantService.instance.byListingNo(listingNo);
+    if (resto != null) RestaurantService.instance.setHidden(resto.id, true);
+    final vars = _vars(listingNo);
+    final sellerMail = _enqueue(templateId: 'request_authorization', lang: lang, to: _sellerEmail(listingNo), vars: vars, sendNow: true);
+    for (final email in _reporterEmails(listingNo)) {
+      _enqueue(templateId: 'request_authorization', lang: lang, to: email, vars: vars, sendNow: true);
+    }
+    _audit(actorId: actorId, actorRole: actorRole, action: TGModerationActionType.requestProof, listingNo: listingNo, summary: 'Requested proof of authorization');
+    _event(listingNo, 'Requested proof of authorization (lease / owner letter / agent contract)', sellerMail.subject);
+    TGAnalytics.track('admin_action', {'type': 'request_authorization', 'listingNo': listingNo});
+    TGAnalytics.track('admin_template_sent', {'template': 'request_authorization', 'listingNo': listingNo});
+    notifyListeners();
+  }
+
   void contactParty({
     required String listingNo,
     required bool seller,
@@ -798,6 +827,25 @@ class ModerationService extends ChangeNotifier {
     return mail;
   }
 
+  void recordRestoDescriptionAudit({
+    required String listingNo,
+    required String actorId,
+    required String actorRole,
+    required String summary,
+    String? reason,
+  }) {
+    _audit(
+      actorId: actorId,
+      actorRole: actorRole,
+      action: TGModerationActionType.other,
+      listingNo: listingNo,
+      summary: summary,
+      reason: reason,
+    );
+    _event(listingNo, summary, reason);
+    notifyListeners();
+  }
+
   void _audit({
     required String actorId,
     required String actorRole,
@@ -892,6 +940,7 @@ class ModerationService extends ChangeNotifier {
     List<TGFraudSignal> fraudSignals = const [],
     List<String> evidenceUrls = const [],
     TGProduct? product,
+    RestaurantListing? restaurant,
   }) {
     ensureSeeded();
     final listingNo = caseKeyFor(target, targetId);
@@ -916,7 +965,7 @@ class ModerationService extends ChangeNotifier {
       reportNo: no,
       listingNo: listingNo,
       target: target,
-      sellerId: sellerId,
+      sellerId: sellerId ?? restaurant?.seller.id,
       reviewId: reviewId ?? (target == TGReportTarget.review ? targetId : null),
       reason: reason,
       reporterEmail: email,
@@ -936,7 +985,23 @@ class ModerationService extends ChangeNotifier {
     if (target == TGReportTarget.listing && reason == TGReportReason.sold && product != null) {
       _openSoldHold(product: product, reporterId: id);
     }
-    _rebuildCases(promoted: {'10482137'});
+    if (target == TGReportTarget.listing && reason == TGReportReason.sold && restaurant != null) {
+      _enqueue(
+        templateId: 'sold_nudge',
+        lang: 'en',
+        to: _sellerEmail(listingNo),
+        vars: {..._vars(listingNo), 'seller': restaurant.seller.name},
+        sendNow: true,
+      );
+      _event(listingNo, 'Sold nudge sent (restaurant)', 'Is this still available?');
+    }
+    if (target == TGReportTarget.listing && reason == TGReportReason.restoUnauthorized && restaurant != null) {
+      // High priority: temporarily hide until authorization proof arrives (48h window tracked via SLA).
+      RestaurantService.instance.setHidden(restaurant.id, true);
+      _event(listingNo, 'Temporarily hidden pending authorization proof', '48h window');
+    }
+    _rebuildCases(promoted: {'10482137', if (restaurant?.isPromoted == true) listingNo});
+    _attachRestaurantDuplicateFlags();
     _audit(
       actorId: id,
       actorRole: 'reporter',
@@ -954,6 +1019,18 @@ class ModerationService extends ChangeNotifier {
     }
     notifyListeners();
     return TGPublicReportResult(report: report);
+  }
+
+  void _attachRestaurantDuplicateFlags() {
+    for (final c in cases.values) {
+      final resto = RestaurantService.instance.byListingNo(c.listingNo);
+      if (resto == null) continue;
+      final dupes = RestaurantService.instance.samePremises(resto);
+      if (dupes.isEmpty) continue;
+      if (!c.flags.contains('Possible duplicate (same premises)')) {
+        c.flags = [...c.flags, 'Possible duplicate (same premises)'];
+      }
+    }
   }
 
   void respondAsSeller({
@@ -1388,6 +1465,22 @@ List<TGEmailTemplate> _seedTemplates() {
     TGEmailTemplate(id: 'request_info', name: 'Prośba o informacje', lang: 'pl', subject: 'Potrzebujemy informacji · ogłoszenie {listingNo}', body: 'Dzień dobry {seller},\n\nProsimy o uzupełnienie informacji do ogłoszenia {listingNo} w ciągu {days} dni. Ogłoszenie jest w weryfikacji.\n\n$platform'),
     TGEmailTemplate(id: 'request_proof', name: 'Request proof', lang: 'en', subject: 'Please verify listing {listingNo}', body: 'Hello {seller},\n\nA report flagged photos on listing {listingNo} as possibly fake. Please send a 5–10 second video or photos that show the unit beside you and in working condition. Individual sellers are not asked for invoices.\n\n$platform'),
     TGEmailTemplate(id: 'request_proof', name: 'Prośba o dowód', lang: 'pl', subject: 'Potwierdź ogłoszenie {listingNo}', body: 'Dzień dobry {seller},\n\nZgłoszono, że zdjęcia ogłoszenia {listingNo} mogą być nieautentyczne. Prosimy o 5–10-sekundowy film lub zdjęcia z urządzeniem obok Pani/Pana i w ruchu. Od sprzedawców prywatnych nie wymagamy faktury.\n\n$platform'),
+    TGEmailTemplate(
+      id: 'request_authorization',
+      name: 'Request proof of authorization',
+      lang: 'en',
+      subject: 'Proof of authorization required · listing {listingNo}',
+      body:
+          'Hello {seller},\n\nPlease send proof that you are authorized to offer the premises on listing {listingNo}. Acceptable documents: the relevant page of the lease, a letter of authorization from the owner, or an agency (pośrednik) contract. The listing stays hidden until we receive this (typically within 48 hours).\n\n$platform',
+    ),
+    TGEmailTemplate(
+      id: 'request_authorization',
+      name: 'Prośba o uprawnienie',
+      lang: 'pl',
+      subject: 'Wymagane potwierdzenie uprawnienia · {listingNo}',
+      body:
+          'Dzień dobry {seller},\n\nProsimy o dokument potwierdzający uprawnienie do oferowania lokalu w ogłoszeniu {listingNo}: odpowiednia strona umowy najmu, upoważnienie właściciela lub umowa pośrednika. Ogłoszenie pozostaje ukryte do czasu weryfikacji (zwykle 48 godzin).\n\n$platform',
+    ),
     TGEmailTemplate(id: 'remove_seller', name: 'Remove · statement of reasons', lang: 'en', subject: 'Listing {listingNo} was removed', body: 'Hello {seller},\n\nListing {listingNo} was removed. Reason: {reason}.\n{description}\n\nYou may appeal from your dashboard.\n\n$platform'),
     TGEmailTemplate(id: 'remove_seller', name: 'Usunięcie · uzasadnienie', lang: 'pl', subject: 'Ogłoszenie {listingNo} zostało usunięte', body: 'Dzień dobry {seller},\n\nOgłoszenie {listingNo} zostało usunięte. Powód: {reason}.\n{description}\n\nOdwołanie można złożyć w panelu.\n\n$platform'),
     TGEmailTemplate(id: 'hide_notice', name: 'Hide notice', lang: 'en', subject: 'Listing {listingNo} is hidden', body: 'Hello {seller},\n\nListing {listingNo} is temporarily hidden while we review a report.\n\n$platform'),

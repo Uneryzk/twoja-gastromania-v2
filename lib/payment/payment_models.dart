@@ -8,7 +8,7 @@ enum TGPayMethod { blik, przelewy24, card }
 
 enum TGBlikOutcome { success, incorrect, declined, noConfirmation }
 
-enum TGCheckoutKind { listing, renew, renewBulk, store }
+enum TGCheckoutKind { listing, renew, renewBulk, store, restaurantListing, restaurantRenew }
 
 class TGCheckoutLine {
   const TGCheckoutLine(this.label, this.amountPln);
@@ -26,6 +26,7 @@ class TGCheckoutCart {
     this.early = false,
     this.storePlanId,
     this.period,
+    this.useFreeIntro = false,
   });
 
   final TGCheckoutKind kind;
@@ -37,6 +38,8 @@ class TGCheckoutCart {
   /// `basic` | `pro` | `enterprise`
   final String? storePlanId;
   final TGBillingPeriod? period;
+  /// Restaurant: activate with free_intro after promote-only payment.
+  final bool useFreeIntro;
 
   double get totalPln => lines.fold(0, (a, l) => a + l.amountPln);
 
@@ -90,6 +93,48 @@ class TGCheckoutCart {
       kind: TGCheckoutKind.renewBulk,
       listingIds: ids,
       lines: [TGCheckoutLine('Renew ${ids.length} listings', (unitFee * ids.length).toDouble())],
+    );
+  }
+
+  factory TGCheckoutCart.restaurantListing({
+    required String listingId,
+    required int listingFee,
+    required int promoteFee,
+    required int promoteDays,
+    bool useFreeIntro = false,
+  }) {
+    final lines = <TGCheckoutLine>[
+      if (listingFee > 0) TGCheckoutLine('Restaurant listing · 90 days', listingFee.toDouble()),
+      if (promoteFee > 0)
+        TGCheckoutLine(promoteDays == 30 ? 'Promote 30 days' : 'Promote 14 days', promoteFee.toDouble()),
+    ];
+    return TGCheckoutCart(
+      kind: TGCheckoutKind.restaurantListing,
+      listingId: listingId,
+      lines: lines,
+      promoteDays: promoteDays,
+      useFreeIntro: useFreeIntro,
+    );
+  }
+
+  factory TGCheckoutCart.restaurantRenew({
+    required String listingId,
+    required int listingFee,
+    required int promoteFee,
+    required int promoteDays,
+    required bool early,
+  }) {
+    final lines = <TGCheckoutLine>[
+      TGCheckoutLine(early ? 'Renew early' : 'Renew', listingFee.toDouble()),
+      if (promoteFee > 0)
+        TGCheckoutLine(promoteDays == 30 ? 'Promote 30 days' : 'Promote 14 days', promoteFee.toDouble()),
+    ];
+    return TGCheckoutCart(
+      kind: TGCheckoutKind.restaurantRenew,
+      listingId: listingId,
+      lines: lines,
+      promoteDays: promoteDays,
+      early: early,
     );
   }
 

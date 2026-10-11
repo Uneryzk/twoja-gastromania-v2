@@ -93,6 +93,10 @@ class AddProductDraft extends ChangeNotifier {
   AddProductPromote promote = AddProductPromote.none;
   int reviewTab = 0;
 
+  /// RESTO-4: separate sale link back to restaurant inventory.
+  String? extraRestoListingId;
+  String? extraInventoryItemId;
+
   static const brands = ['Bartscher', 'Rational', 'Hobart', 'Winterhalter', 'Convotherm', 'Electrolux', 'Zanussi', 'Metos', 'Other'];
 
   static const sampleAssets = [

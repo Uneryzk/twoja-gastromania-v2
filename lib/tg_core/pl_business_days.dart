@@ -66,4 +66,17 @@ abstract final class PLBusinessDays {
     }
     return cursor;
   }
+
+  /// Business days from [from] until [to] (0 if [to] is on/before [from]).
+  static int businessDaysBetween(DateTime from, DateTime to) {
+    var a = _dateOnly(from);
+    final b = _dateOnly(to);
+    if (!b.isAfter(a)) return 0;
+    var n = 0;
+    while (a.isBefore(b)) {
+      a = a.add(const Duration(days: 1));
+      if (isBusinessDay(a)) n++;
+    }
+    return n;
+  }
 }

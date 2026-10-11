@@ -9,6 +9,8 @@ import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
 Future<void> showAdminDismiss(BuildContext context, String listingNo) async {
   final auth = context.read<FakeAuthState>();
@@ -124,7 +126,16 @@ Future<void> showAdminHide(BuildContext context, String listingNo) async {
 
 Future<void> showAdminRemove(BuildContext context, String listingNo) async {
   final auth = context.read<FakeAuthState>();
-  var reason = TGRemoveReason.fraud;
+  final isRestaurant = RestaurantService.instance.byListingNo(listingNo) != null;
+  const restoReasons = [
+    TGRemoveReason.duplicate,
+    TGRemoveReason.notAuthorized,
+    TGRemoveReason.misleadingFigures,
+    TGRemoveReason.fraud,
+    TGRemoveReason.prohibited,
+    TGRemoveReason.other,
+  ];
+  var reason = isRestaurant ? TGRemoveReason.notAuthorized : TGRemoveReason.fraud;
   var description = '';
   var notify = true;
   var others = false;
@@ -138,6 +149,7 @@ Future<void> showAdminRemove(BuildContext context, String listingNo) async {
           lang: lang,
           vars: {'listingNo': listingNo, 'reason': reason.label, 'description': description, 'seller': 'seller', 'to': 'seller@example.com'},
         );
+        final reasons = isRestaurant ? restoReasons : TGRemoveReason.values;
         return AdminDialogScaffold(
           title: ctx.t('ui_remove_listing_action'),
           actions: [
@@ -152,8 +164,12 @@ Future<void> showAdminRemove(BuildContext context, String listingNo) async {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  for (final r in TGRemoveReason.values)
-                    ChoiceChip(label: Text(ctx.t('ui_reason_${r.name}')), selected: reason == r, onSelected: (_) => setSt(() => reason = r)),
+                  for (final r in reasons)
+                    ChoiceChip(
+                      label: Text(isRestaurant ? r.label : ctx.t('ui_reason_${r.name}')),
+                      selected: reason == r,
+                      onSelected: (_) => setSt(() => reason = r),
+                    ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -358,6 +374,50 @@ Future<void> showAdminRequestProof(BuildContext context, String listingNo) async
   );
   if (ok == true && context.mounted) {
     await ModerationService.instance.requestProof(listingNo: listingNo, actorId: auth.userId, actorRole: auth.role.name, lang: lang);
+  }
+}
+
+Future<void> showAdminRequestAuthorization(BuildContext context, String listingNo) async {
+  final auth = context.read<FakeAuthState>();
+  var lang = 'pl';
+  final ok = await showAdminDialog<bool>(
+    context: context,
+    builder: (ctx) {
+      return StatefulBuilder(builder: (ctx, setSt) {
+        final preview = ModerationService.instance.previewEmail(
+          templateId: 'request_authorization',
+          lang: lang,
+          vars: {'listingNo': listingNo, 'seller': 'seller', 'to': 'seller@example.com'},
+        );
+        return AdminDialogScaffold(
+          title: 'Request proof of authorization',
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t('ui_cancel'))),
+            const SizedBox(width: 8),
+            TGButton(onPressed: () => Navigator.pop(ctx, true), label: ctx.t('ui_send'), height: 40),
+          ],
+          child: Column(
+            children: [
+              _LangToggle(value: lang, onChanged: (v) => setSt(() => lang = v)),
+              const SizedBox(height: 8),
+              const Text(
+                'Asks for the relevant lease page, owner authorization letter, or agency (pośrednik) contract. Sent to seller and reporter. Listing stays hidden.',
+              ),
+              const SizedBox(height: 8),
+              EmailPreviewBlock(email: preview),
+            ],
+          ),
+        );
+      });
+    },
+  );
+  if (ok == true && context.mounted) {
+    await ModerationService.instance.requestAuthorization(
+      listingNo: listingNo,
+      actorId: auth.userId,
+      actorRole: auth.role.name,
+      lang: lang,
+    );
   }
 }
 
@@ -578,6 +638,49 @@ class AdminActionBar extends StatelessWidget {
       TGButton(key: const Key('admin-action-hide'), onPressed: () => showAdminHide(context, listingNo), label: context.t('ui_hide'), height: 40, variant: TGButtonVariant.outline),
       TGButton(key: const Key('admin-action-remove'), onPressed: () => showAdminRemove(context, listingNo), label: context.t('ui_remove'), height: 40),
       TGButton(onPressed: () => showAdminRequestProof(context, listingNo), label: context.t('ui_request_proof'), height: 40, variant: TGButtonVariant.ghost),
+      TGButton(onPressed: () => showAdminRequestAuthorization(context, listingNo), label: 'Request proof of authorization', height: 40, variant: TGButtonVariant.ghost),
+      TGButton(
+        onPressed: () {
+          final err = RestaurantAdminActions.approveAuthorization(listingNo, actorId: auth.userId);
+          if (!context.mounted) return;
+          if (err != null) {
+            showTGToast(context, err);
+            return;
+          }
+          showTGToast(
+            context,
+            'Authorization approved · Undo 10s',
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(
+              label: 'Undo',
+              textColor: TGColors.cta,
+              onPressed: () => RestaurantAdminActions.undo(listingNo, actorId: auth.userId),
+            ),
+          );
+        },
+        label: 'Approve authorization',
+        height: 40,
+        variant: TGButtonVariant.outline,
+      ),
+      TGButton(
+        onPressed: () {
+          RestaurantAdminActions.rejectAuthorization(listingNo, actorId: auth.userId);
+          if (!context.mounted) return;
+          showTGToast(
+            context,
+            'Authorization rejected · Undo 10s',
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(
+              label: 'Undo',
+              textColor: TGColors.cta,
+              onPressed: () => RestaurantAdminActions.undo(listingNo, actorId: auth.userId),
+            ),
+          );
+        },
+        label: 'Reject authorization',
+        height: 40,
+        variant: TGButtonVariant.outline,
+      ),
       TGButton(onPressed: () => showAdminContact(context, listingNo, seller: true), label: context.t('ui_contact_seller'), height: 40, variant: TGButtonVariant.ghost),
       TGButton(onPressed: () => showAdminContact(context, listingNo, seller: false), label: context.t('ui_contact_reporter'), height: 40, variant: TGButtonVariant.ghost),
       if (auth.isAdmin) ...[

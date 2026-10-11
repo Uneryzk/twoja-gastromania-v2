@@ -8,6 +8,7 @@ import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_inventory_sync_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 
 const kNeutralMatchCopy = 'Request sent if an account matches';
@@ -382,6 +383,10 @@ class DealService extends ChangeNotifier {
     final patched = listing.copyWith(status: nextStatus, isHidden: true, soldReason: reason.name, soldDealId: dealId);
     auth.upsertOwned(patched);
     TGProductService.instance.upsert(patched);
+    // RESTO-4: only Mark as sold (not "No longer selling" / removed) syncs restaurant inventory.
+    if (nextStatus == TGListingStatus.sold) {
+      RestaurantInventorySyncService.instance.onSeparateListingSold(patched);
+    }
     notifyListeners();
   }
 

@@ -12,12 +12,30 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
+import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_models/tg_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 
 const _kListingReasons = <TGReportReason>[
+  TGReportReason.duplicate,
+  TGReportReason.copied,
+  TGReportReason.sold,
+  TGReportReason.misleading,
+  TGReportReason.fraud,
+  TGReportReason.wrongCategory,
+  TGReportReason.prohibited,
+  TGReportReason.offensive,
+  TGReportReason.other,
+];
+
+const _kRestaurantReasons = <TGReportReason>[
+  TGReportReason.restoUnauthorized,
+  TGReportReason.restoMisleadingFigures,
+  TGReportReason.restoScamDeposit,
+  TGReportReason.restoMultiPoster,
+  TGReportReason.restoInaccurateInventory,
   TGReportReason.duplicate,
   TGReportReason.copied,
   TGReportReason.sold,
@@ -56,6 +74,14 @@ const _kRequestReasons = <TGReportReason>[
 class TGReportSubject {
   const TGReportSubject.listing(this.product)
       : kind = TGReportTarget.listing,
+        restaurant = null,
+        seller = null,
+        review = null,
+        purchaseReview = null,
+        request = null;
+  const TGReportSubject.restaurant(this.restaurant)
+      : kind = TGReportTarget.listing,
+        product = null,
         seller = null,
         review = null,
         purchaseReview = null,
@@ -63,42 +89,47 @@ class TGReportSubject {
   const TGReportSubject.seller(this.seller)
       : kind = TGReportTarget.seller,
         product = null,
+        restaurant = null,
         review = null,
         purchaseReview = null,
         request = null;
   const TGReportSubject.review(this.review, this.seller)
       : kind = TGReportTarget.review,
         product = null,
+        restaurant = null,
         purchaseReview = null,
         request = null;
   const TGReportSubject.purchaseReview(this.purchaseReview, this.seller)
       : kind = TGReportTarget.review,
         product = null,
+        restaurant = null,
         review = null,
         request = null;
   const TGReportSubject.request(this.request)
       : kind = TGReportTarget.request,
         product = null,
+        restaurant = null,
         seller = null,
         review = null,
         purchaseReview = null;
 
   final TGReportTarget kind;
   final TGProduct? product;
+  final RestaurantListing? restaurant;
   final TGStoreProfile? seller;
   final TGStoreReview? review;
   final TGPurchaseReview? purchaseReview;
   final TGSpecialRequest? request;
 
   String get targetId => switch (kind) {
-        TGReportTarget.listing => product?.listingNo ?? product?.id ?? '',
+        TGReportTarget.listing => restaurant?.listingNo ?? product?.listingNo ?? product?.id ?? '',
         TGReportTarget.seller => seller?.sellerKey ?? '',
         TGReportTarget.review => purchaseReview?.id ?? review?.id ?? '',
         TGReportTarget.request => request?.requestNo ?? request?.id ?? '',
       };
 
   List<TGReportReason> get reasons => switch (kind) {
-        TGReportTarget.listing => _kListingReasons,
+        TGReportTarget.listing => restaurant != null ? _kRestaurantReasons : _kListingReasons,
         TGReportTarget.seller => _kSellerReasons,
         TGReportTarget.review => _kReviewReasons,
         TGReportTarget.request => _kRequestReasons,
@@ -118,7 +149,10 @@ Future<void> showReportListingFlow(BuildContext context, TGProduct product) =>
     showReportFlow(context, TGReportSubject.listing(product));
 
 Future<void> showReportFlow(BuildContext context, TGReportSubject subject) {
-  if (subject.kind == TGReportTarget.listing && subject.product != null) {
+  if (subject.kind == TGReportTarget.listing && subject.restaurant != null) {
+    TGAnalytics.track('resto_report_open', {'listingNo': subject.restaurant!.listingNo});
+    TGAnalytics.track('report_open', {'listingNo': subject.restaurant!.listingNo, 'kind': 'restaurant'});
+  } else if (subject.kind == TGReportTarget.listing && subject.product != null) {
     TGAnalytics.track('report_open', TGAnalytics.listingProps(subject.product!));
     TGAnalytics.track('report_listing', TGAnalytics.listingProps(subject.product!));
   } else if (subject.kind == TGReportTarget.seller) {
@@ -263,7 +297,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
       reporterId: auth.isLoggedIn ? auth.userId : 'guest',
       name: _name.text.trim().isEmpty ? null : _name.text.trim(),
       text: _details.text.trim(),
-      sellerId: subject.seller?.sellerKey ?? subject.product?.seller.id,
+      sellerId: subject.seller?.sellerKey ?? subject.product?.seller.id ?? subject.restaurant?.seller.id,
       reviewId: subject.kind == TGReportTarget.review ? subject.targetId : null,
       otherListingRef: _otherRef.text.trim().isEmpty ? null : _otherRef.text.trim(),
       originalListingRef: _originalRef.text.trim().isEmpty ? null : _originalRef.text.trim(),
@@ -272,6 +306,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
       fraudSignals: _fraud.toList(),
       evidenceUrls: List.of(_evidence),
       product: subject.product,
+      restaurant: subject.restaurant,
     );
     setState(() {
       _submitting = false;
@@ -641,6 +676,27 @@ class _TargetSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (subject.kind == TGReportTarget.listing && subject.restaurant != null) {
+      final r = subject.restaurant!;
+      return Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(width: 56, height: 42, child: TGSmartImage(url: r.imageUrl, fit: BoxFit.cover)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                Text('No. ${r.listingNo}', style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
     if (subject.kind == TGReportTarget.listing && subject.product != null) {
       final product = subject.product!;
       return Row(

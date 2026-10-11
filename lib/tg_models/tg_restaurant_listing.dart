@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart' show TGSeller;
 
@@ -276,6 +277,32 @@ class RestaurantDetails {
   final String? systems;
   final List<String> brandAssets;
 
+  RestaurantDetails copyWith({
+    RestaurantGarden? garden,
+    RestaurantPlayArea? playArea,
+    String? otherInfo,
+    String? conceptMenu,
+    String? customersLocation,
+    String? hoursSeasonality,
+    bool? deliveryOnline,
+    String? staffContracts,
+    String? systems,
+    List<String>? brandAssets,
+    bool clearOtherInfo = false,
+  }) =>
+      RestaurantDetails(
+        garden: garden ?? this.garden,
+        playArea: playArea ?? this.playArea,
+        otherInfo: clearOtherInfo ? null : (otherInfo ?? this.otherInfo),
+        conceptMenu: conceptMenu ?? this.conceptMenu,
+        customersLocation: customersLocation ?? this.customersLocation,
+        hoursSeasonality: hoursSeasonality ?? this.hoursSeasonality,
+        deliveryOnline: deliveryOnline ?? this.deliveryOnline,
+        staffContracts: staffContracts ?? this.staffContracts,
+        systems: systems ?? this.systems,
+        brandAssets: brandAssets ?? this.brandAssets,
+      );
+
   Map<String, dynamic> toJson() => {
         'garden': garden.toJson(),
         'playArea': playArea.toJson(),
@@ -375,6 +402,37 @@ class RestaurantInventoryItem {
   final DateTime? statusChangedAt;
   final DateTime? reviewDueAt;
 
+  RestaurantInventoryItem copyWith({
+    String? name,
+    int? qty,
+    String? brand,
+    String? model,
+    RestaurantInventoryCondition? condition,
+    List<String>? photos,
+    RestaurantInventoryAvailability? availability,
+    RestaurantInventoryStatus? status,
+    DateTime? statusChangedAt,
+    DateTime? reviewDueAt,
+    bool clearReviewDue = false,
+    String? linkedListingNo,
+    bool clearLinked = false,
+  }) =>
+      RestaurantInventoryItem(
+        id: id,
+        category: category,
+        name: name ?? this.name,
+        qty: qty ?? this.qty,
+        brand: brand ?? this.brand,
+        model: model ?? this.model,
+        condition: condition ?? this.condition,
+        photos: photos ?? this.photos,
+        availability: availability ?? this.availability,
+        linkedListingNo: clearLinked ? null : (linkedListingNo ?? this.linkedListingNo),
+        status: status ?? this.status,
+        statusChangedAt: statusChangedAt ?? this.statusChangedAt,
+        reviewDueAt: clearReviewDue ? null : (reviewDueAt ?? this.reviewDueAt),
+      );
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'category': category.name,
@@ -429,6 +487,12 @@ class RestaurantEngagement {
   final int uniqueFavorites;
 
   bool get hasInterest => uniqueContacts > 0 || uniqueFavorites > 0 || views > 20;
+
+  RestaurantEngagement copyWith({int? views, int? uniqueContacts, int? uniqueFavorites}) => RestaurantEngagement(
+        views: views ?? this.views,
+        uniqueContacts: uniqueContacts ?? this.uniqueContacts,
+        uniqueFavorites: uniqueFavorites ?? this.uniqueFavorites,
+      );
 
   Map<String, dynamic> toJson() => {
         'views': views,
@@ -544,6 +608,7 @@ class RestaurantListing {
     required this.seller,
     this.phone = '+48 (532) 784-074',
     this.foundViaPlatform,
+    this.updatedAt,
   });
 
   final String id;
@@ -608,8 +673,9 @@ class RestaurantListing {
   final TGSeller seller;
   final String phone;
   final bool? foundViaPlatform;
+  final DateTime? updatedAt;
 
-  bool get isPromoted => promotedUntil != null && promotedUntil!.isAfter(DateTime.now());
+  bool get isPromoted => promotedUntil != null && promotedUntil!.isAfter(TGClock.now());
 
   /// Hub / SEO: only active + not hidden.
   bool get isPubliclyVisible => status == RestaurantListingStatus.active && !isHidden;
@@ -618,8 +684,43 @@ class RestaurantListing {
 
   String get imageUrl => images.isNotEmpty ? images.first : '';
 
-  int get inventoryIncludedCount =>
-      inventory.where((i) => i.availability == RestaurantInventoryAvailability.included && i.status == RestaurantInventoryStatus.active).fold<int>(0, (a, b) => a + b.qty);
+  int get inventoryIncludedCount => inventory
+      .where(
+        (i) =>
+            i.availability != RestaurantInventoryAvailability.excluded &&
+            i.status == RestaurantInventoryStatus.active,
+      )
+      .fold<int>(0, (a, b) => a + b.qty);
+
+  /// Public transfer list: active items only (pending sold-separately are hidden).
+  List<RestaurantInventoryItem> get publicInventory =>
+      inventory.where((i) => i.status == RestaurantInventoryStatus.active).toList(growable: false);
+
+  int get separatelyListedCount => inventory
+      .where(
+        (i) =>
+            i.availability == RestaurantInventoryAvailability.maySellSeparately &&
+            i.linkedListingNo != null &&
+            i.status != RestaurantInventoryStatus.archived,
+      )
+      .length;
+
+  /// 9 optional detail sections for progress meter (garden…systems/brand).
+  int get detailsFilledCount {
+    var n = 0;
+    if (details.garden.kind != RestaurantGardenKind.none || (details.garden.areaM2 ?? 0) > 0) n++;
+    if (alcoholPermit.status != RestaurantAlcoholPermitStatus.unknown) n++;
+    if (details.playArea.kind != RestaurantPlayAreaKind.none) n++;
+    if ((details.conceptMenu ?? '').trim().isNotEmpty) n++;
+    if ((details.customersLocation ?? '').trim().isNotEmpty) n++;
+    if ((details.hoursSeasonality ?? '').trim().isNotEmpty) n++;
+    if (details.deliveryOnline || (details.systems ?? '').toLowerCase().contains('delivery')) n++;
+    if ((details.staffContracts ?? '').trim().isNotEmpty) n++;
+    if ((details.systems ?? '').trim().isNotEmpty || details.brandAssets.isNotEmpty) n++;
+    return n;
+  }
+
+  static const int detailsSectionTotal = 9;
 
   String get detailPath => '/restaurants/$listingNo-$slug';
 
@@ -630,34 +731,66 @@ class RestaurantListing {
         city,
       ].where((e) => e.trim().isNotEmpty).join(', ');
 
+  bool get allowsPublicContact => status == RestaurantListingStatus.active && !isHidden;
+
+  bool get canBeReported => status == RestaurantListingStatus.active && !isHidden;
+
+  int daysUntilExpiry([DateTime? now]) {
+    final exp = expiresAt;
+    if (exp == null) return 0;
+    // Prefer TGClock when caller omits now — import avoided; pass TGClock.now() from UI.
+    return exp.difference(now ?? DateTime.now()).inDays;
+  }
+
+  bool isExpiringSoon([DateTime? now]) {
+    final days = daysUntilExpiry(now);
+    return status == RestaurantListingStatus.active && days >= 0 && days <= 14;
+  }
+
   RestaurantListing copyWith({
+    String? listingNo,
     RestaurantListingStatus? status,
     bool? isHidden,
     DateTime? publishedAt,
     DateTime? expiresAt,
     DateTime? promotedUntil,
     bool? freeExtensionGranted,
+    RestaurantListingSource? source,
     RestaurantEngagement? engagement,
     List<String>? images,
+    bool? foundViaPlatform,
+    bool clearFoundViaPlatform = false,
+    List<RestaurantInventoryItem>? inventory,
+    List<String>? documents,
+    String? phone,
+    String? title,
+    String? description,
+    RestaurantPosterRole? posterRole,
+    bool? authorizationConfirmed,
+    String? floorPlanUrl,
+    RestaurantDetails? details,
+    List<RestaurantCostLine>? costLines,
+    RestaurantAlcoholPermit? alcoholPermit,
+    DateTime? updatedAt,
   }) =>
       RestaurantListing(
         id: id,
-        listingNo: listingNo,
+        listingNo: listingNo ?? this.listingNo,
         slug: slug,
         status: status ?? this.status,
         isHidden: isHidden ?? this.isHidden,
         publishedAt: publishedAt ?? this.publishedAt,
         expiresAt: expiresAt ?? this.expiresAt,
-        source: source,
+        source: source ?? this.source,
         freeExtensionGranted: freeExtensionGranted ?? this.freeExtensionGranted,
         promotedUntil: promotedUntil ?? this.promotedUntil,
         ownerId: ownerId,
-        posterRole: posterRole,
-        authorizationConfirmed: authorizationConfirmed,
+        posterRole: posterRole ?? this.posterRole,
+        authorizationConfirmed: authorizationConfirmed ?? this.authorizationConfirmed,
         premisesKey: premisesKey,
         businessType: businessType,
-        title: title,
-        description: description,
+        title: title ?? this.title,
+        description: description ?? this.description,
         reasonForSale: reasonForSale,
         availableFrom: availableFrom,
         city: city,
@@ -687,22 +820,23 @@ class RestaurantListing {
         transferFee: transferFee,
         negotiable: negotiable,
         equipmentIncluded: equipmentIncluded,
-        alcoholPermit: alcoholPermit,
+        alcoholPermit: alcoholPermit ?? this.alcoholPermit,
         sanitaryApproval: sanitaryApproval,
         staffTakeover: staffTakeover,
         declaredMonthlyRevenue: declaredMonthlyRevenue,
         declaredAsOf: declaredAsOf,
-        documents: documents,
+        documents: documents ?? this.documents,
         images: images ?? this.images,
-        floorPlanUrl: floorPlanUrl,
+        floorPlanUrl: floorPlanUrl ?? this.floorPlanUrl,
         photoCount: photoCount,
-        details: details,
-        costLines: costLines,
-        inventory: inventory,
+        details: details ?? this.details,
+        costLines: costLines ?? this.costLines,
+        inventory: inventory ?? this.inventory,
         engagement: engagement ?? this.engagement,
         seller: seller,
-        phone: phone,
-        foundViaPlatform: foundViaPlatform,
+        phone: phone ?? this.phone,
+        foundViaPlatform: clearFoundViaPlatform ? null : (foundViaPlatform ?? this.foundViaPlatform),
+        updatedAt: updatedAt ?? this.updatedAt,
       );
 
   static String businessTypeLabel(RestaurantBusinessType t) => switch (t) {

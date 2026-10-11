@@ -22,9 +22,13 @@ export 'package:twoja_gastromania/special_order/manufacturer_dashboard_page.dart
 export 'package:twoja_gastromania/special_order/founders_page.dart' show FoundersPage;
 
 export 'package:twoja_gastromania/products/products_widget.dart' show ProductsPageWidget;
-export 'package:twoja_gastromania/restaurants/restaurants_widget.dart'
-    show RestaurantsPageWidget, RestaurantDetailPlaceholderPage, RestaurantNewPlaceholderPage;
+export 'package:twoja_gastromania/restaurants/restaurants_widget.dart' show RestaurantsPageWidget;
+export 'package:twoja_gastromania/restaurants/restaurant_detail_page.dart' show RestaurantDetailPage;
+export 'package:twoja_gastromania/restaurants/restaurant_wizard_page.dart' show RestaurantWizardPage;
+export 'package:twoja_gastromania/restaurants/restaurant_success_page.dart' show RestaurantSuccessPage;
+export 'package:twoja_gastromania/restaurants/restaurant_details_editor.dart' show RestaurantDetailsEditorPage;
 export 'package:twoja_gastromania/dashboard/listings_dashboard_widget.dart' show ListingsDashboardPage;
+export 'package:twoja_gastromania/dashboard/bulk_add_page.dart' show BulkAddPage;
 export 'package:twoja_gastromania/dashboard/messages_page.dart' show MessagesPage;
 export 'package:twoja_gastromania/deals/seller_deals_page.dart' show SellerDealsPage;
 export 'package:twoja_gastromania/deals/buyer_deals_page.dart' show BuyerDealsPage;
@@ -41,4 +45,6 @@ export 'package:twoja_gastromania/admin/admin_priority_page.dart' show AdminPrio
 export 'package:twoja_gastromania/admin/admin_founders_page.dart' show AdminFoundersHost;
 export 'package:twoja_gastromania/admin/admin_audits_page.dart' show AdminAuditsHost;
 export 'package:twoja_gastromania/admin/admin_sponsor_slots_page.dart' show AdminSponsorSlotsHost;
+export 'package:twoja_gastromania/admin/admin_ads_page.dart' show AdminAdsHost;
+export 'package:twoja_gastromania/dashboard/advertising_page.dart' show AdvertisingPage;
 export 'package:twoja_gastromania/admin/admin_target_pages.dart' show AdminSellerCaseHost, AdminReviewCaseHost;

@@ -23,6 +23,16 @@ enum TGReportReason {
   spamRequest,
   othersPersonalData,
   outOfScope,
+  /// Restaurant: business/premises not for sale or seller unauthorized (High).
+  restoUnauthorized,
+  /// Restaurant: misleading rent / transfer fee / area.
+  restoMisleadingFigures,
+  /// Restaurant: deposit/advance asked before lease is shown.
+  restoScamDeposit,
+  /// Restaurant: same premises posted by several parties.
+  restoMultiPoster,
+  /// Restaurant: equipment list inaccurate.
+  restoInaccurateInventory,
   other,
 }
 
@@ -58,7 +68,7 @@ enum TGModerationActionType {
   other,
 }
 
-enum TGRemoveReason { duplicate, stolenContent, fraud, prohibited, misleading, other }
+enum TGRemoveReason { duplicate, stolenContent, fraud, prohibited, misleading, notAuthorized, misleadingFigures, other }
 
 enum TGSlaTone { ok, warning, overdue }
 
@@ -390,6 +400,7 @@ class TGQueueCase {
     required this.slaDeadline,
     this.sellerId,
     this.assignedTo,
+    this.flags = const [],
   });
 
   final String listingNo;
@@ -400,6 +411,8 @@ class TGQueueCase {
   final DateTime firstReportedAt;
   DateTime slaDeadline;
   String? assignedTo;
+  /// Soft admin hints, e.g. "Possible duplicate (same premises)".
+  List<String> flags;
 
   TGModerationReport get primary => reports.first;
   int get reportCount => reports.length;
@@ -445,6 +458,11 @@ extension TGReportReasonLabel on TGReportReason {
         TGReportReason.spamRequest => 'Spam or not a real project',
         TGReportReason.othersPersonalData => 'Contains personal data of others',
         TGReportReason.outOfScope => 'Out of scope or prohibited',
+        TGReportReason.restoUnauthorized => 'Business or premises not actually for sale / seller not authorized',
+        TGReportReason.restoMisleadingFigures => 'Misleading figures (rent, transfer fee, area)',
+        TGReportReason.restoScamDeposit => 'Suspected scam (deposit or advance payment before the lease is shown)',
+        TGReportReason.restoMultiPoster => 'Same premises posted by several parties',
+        TGReportReason.restoInaccurateInventory => 'Equipment list is inaccurate',
         TGReportReason.other => 'Other',
       };
 
@@ -480,6 +498,8 @@ extension TGRemoveReasonLabel on TGRemoveReason {
         TGRemoveReason.fraud => 'Fraud',
         TGRemoveReason.prohibited => 'Prohibited',
         TGRemoveReason.misleading => 'Misleading',
+        TGRemoveReason.notAuthorized => 'Not authorized',
+        TGRemoveReason.misleadingFigures => 'Misleading figures',
         TGRemoveReason.other => 'Other',
       };
 }

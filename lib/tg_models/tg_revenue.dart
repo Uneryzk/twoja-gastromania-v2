@@ -18,6 +18,7 @@ class TGRevenueFlags {
     this.sponsorSlots = false,
     this.auditProgram = false,
     this.founderProgram = false,
+    this.bannerAds = false,
   });
 
   final bool priorityForSale;
@@ -26,6 +27,8 @@ class TGRevenueFlags {
   final bool sponsorSlots;
   final bool auditProgram;
   final bool founderProgram;
+  /// Homepage hero AdSlot purchase (RESTO-5). Phase 2 only.
+  final bool bannerAds;
 
   TGRevenueFlags copyWith({
     bool? priorityForSale,
@@ -34,6 +37,7 @@ class TGRevenueFlags {
     bool? sponsorSlots,
     bool? auditProgram,
     bool? founderProgram,
+    bool? bannerAds,
   }) =>
       TGRevenueFlags(
         priorityForSale: priorityForSale ?? this.priorityForSale,
@@ -42,6 +46,7 @@ class TGRevenueFlags {
         sponsorSlots: sponsorSlots ?? this.sponsorSlots,
         auditProgram: auditProgram ?? this.auditProgram,
         founderProgram: founderProgram ?? this.founderProgram,
+        bannerAds: bannerAds ?? this.bannerAds,
       );
 
   static TGRevenueFlags forPhase(int phase) => switch (phase) {
@@ -54,8 +59,32 @@ class TGRevenueFlags {
             bulkBilling: true,
             sponsorSlots: true,
             auditProgram: true,
+            bannerAds: true,
           ),
       };
+}
+
+@immutable
+class TGBannerAdsConfig {
+  const TGBannerAdsConfig({
+    this.adSlotPln14 = 299,
+    this.enterpriseIncludedSlidesPerMonth = 1,
+    this.maxLiveHeroSlides = 3,
+  });
+  final int adSlotPln14;
+  final int enterpriseIncludedSlidesPerMonth;
+  final int maxLiveHeroSlides;
+
+  TGBannerAdsConfig copyWith({
+    int? adSlotPln14,
+    int? enterpriseIncludedSlidesPerMonth,
+    int? maxLiveHeroSlides,
+  }) =>
+      TGBannerAdsConfig(
+        adSlotPln14: adSlotPln14 ?? this.adSlotPln14,
+        enterpriseIncludedSlidesPerMonth: enterpriseIncludedSlidesPerMonth ?? this.enterpriseIncludedSlidesPerMonth,
+        maxLiveHeroSlides: maxLiveHeroSlides ?? this.maxLiveHeroSlides,
+      );
 }
 
 @immutable
@@ -375,12 +404,14 @@ class TGRevenueConfig {
       bulkBilling: true,
       sponsorSlots: true,
       auditProgram: true,
+      bannerAds: true,
     ),
     this.priority = const TGPriorityConfig(),
     this.waves = const TGWaveConfig(),
     this.quietMonthThreshold = 3,
     this.founder = const TGFounderConfig(),
     this.audit = const TGAuditConfig(),
+    this.bannerAds = const TGBannerAdsConfig(),
   });
 
   final int phase;
@@ -391,6 +422,7 @@ class TGRevenueConfig {
   final int quietMonthThreshold;
   final TGFounderConfig founder;
   final TGAuditConfig audit;
+  final TGBannerAdsConfig bannerAds;
 
   TGRevenueConfig copyWith({
     int? phase,
@@ -401,6 +433,7 @@ class TGRevenueConfig {
     int? quietMonthThreshold,
     TGFounderConfig? founder,
     TGAuditConfig? audit,
+    TGBannerAdsConfig? bannerAds,
   }) =>
       TGRevenueConfig(
         phase: phase ?? this.phase,
@@ -411,6 +444,7 @@ class TGRevenueConfig {
         quietMonthThreshold: quietMonthThreshold ?? this.quietMonthThreshold,
         founder: founder ?? this.founder,
         audit: audit ?? this.audit,
+        bannerAds: bannerAds ?? this.bannerAds,
       );
 
   static TGRevenueConfig mockDefault() => const TGRevenueConfig();

@@ -31,6 +31,8 @@ import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_services/account_identity_service.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -104,8 +106,72 @@ class _AddProductPageState extends State<AddProductPage> {
     _autosave = Timer.periodic(const Duration(seconds: 5), (_) => _saveDraft(silent: true));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       TGAnalytics.emit('wizard_step_view', {'step': 0});
+      _applyRestoPrefill();
       _maybeGate();
+      _maybeChooser();
     });
+  }
+
+  void _applyRestoPrefill() {
+    if (!mounted) return;
+    final uri = GoRouterState.of(context).uri;
+    final title = uri.queryParameters['title'];
+    if (title == null || title.isEmpty) return;
+    draft.title = title;
+    draft.city = uri.queryParameters['city'] ?? draft.city;
+    final phone = uri.queryParameters['phone'] ?? '';
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length >= 9) {
+      draft.phoneDigits = digits.substring(digits.length - 9);
+      draft.phoneVerified = true;
+    }
+    final photo = uri.queryParameters['photo'];
+    if (photo != null && photo.isNotEmpty) {
+      draft.photos.add(AddProductPhoto(id: 'pre_${DateTime.now().microsecondsSinceEpoch}', assetPath: photo));
+    }
+    draft.extraRestoListingId = uri.queryParameters['resto'];
+    draft.extraInventoryItemId = uri.queryParameters['inv'];
+    draft.markDirty();
+  }
+
+  Future<void> _maybeChooser() async {
+    if (!mounted) return;
+    final uri = GoRouterState.of(context).uri;
+    // Skip when explicitly opening equipment wizard (e.g. after chooser / resto separate sale).
+    if (uri.queryParameters['kind'] == 'equipment') return;
+    if (uri.queryParameters['inv'] != null) return;
+    final pick = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('What are you listing?', style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.kitchen_outlined),
+              title: const Text('Equipment', style: TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: const Text('Machines, furniture, spare parts'),
+              onTap: () => Navigator.pop(ctx, 'equipment'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.storefront_outlined),
+              title: const Text('Restaurant for sale', style: TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: const Text('Business & premises transfer'),
+              onTap: () => Navigator.pop(ctx, 'restaurant'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (pick == 'restaurant') {
+      context.go('/restaurants/new');
+    } else if (pick == 'equipment') {
+      context.go('/add-product?kind=equipment');
+    }
   }
 
   @override
@@ -279,9 +345,32 @@ class _AddProductPageState extends State<AddProductPage> {
       TGAnalytics.emit('free_slot_used');
     }
     final published = auth.publishOwned(draft.toProduct(), promoteDays: draft.promoteDays);
+    _linkRestoInventoryIfNeeded(published);
     await TGProductService.instance.upsert(published);
     if (!mounted) return;
     context.go('/add-product/success?id=${published.id}');
+  }
+
+  void _linkRestoInventoryIfNeeded(TGProduct published) {
+    final restoId = draft.extraRestoListingId;
+    final invId = draft.extraInventoryItemId;
+    final no = published.listingNo;
+    if (restoId == null || restoId.isEmpty || invId == null || invId.isEmpty || no == null) return;
+    final r = RestaurantService.instance.byId(restoId);
+    if (r == null) return;
+    final next = [
+      for (final i in r.inventory)
+        if (i.id == invId)
+          i.copyWith(
+            linkedListingNo: no,
+            availability: RestaurantInventoryAvailability.maySellSeparately,
+            status: RestaurantInventoryStatus.active,
+          )
+        else
+          i,
+    ];
+    RestaurantService.instance.replace(r.copyWith(inventory: next));
+    TGAnalytics.track('separate_listing_create', {'listingNo': no, 'restoId': restoId, 'itemId': invId});
   }
 
   @override

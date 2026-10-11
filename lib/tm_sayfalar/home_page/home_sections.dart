@@ -8,10 +8,13 @@ import 'package:twoja_gastromania/products/products_results.dart' show gridColum
 import 'package:twoja_gastromania/tg_components/tg_hover_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_rating_stars.dart';
+import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_ad_slot.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 
 /// Section heading used on the home page.
 class HomeSectionTitle extends StatelessWidget {
@@ -52,19 +55,33 @@ class HomeSectionTitle extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Hero carousel (the four ad pages)
+// Hero carousel (organic ad pages + up to 3 sponsored AdSlots)
 // ---------------------------------------------------------------------------
 
 class _HeroSlide {
-  const _HeroSlide({required this.image, required this.titleKey, required this.subtitleKey, required this.routeName});
+  const _HeroSlide.organic({required this.image, required this.titleKey, required this.subtitleKey, required this.routeName})
+      : sponsored = false,
+        ad = null,
+        title = null,
+        targetUrl = null;
 
+  const _HeroSlide.sponsored({required this.ad, required this.image, required this.title, required this.targetUrl})
+      : sponsored = true,
+        titleKey = null,
+        subtitleKey = null,
+        routeName = null;
+
+  final bool sponsored;
+  final TGAdSlot? ad;
   final String image;
-  final String titleKey;
-  final String subtitleKey;
-  final String routeName;
+  final String? titleKey;
+  final String? subtitleKey;
+  final String? routeName;
+  final String? title;
+  final String? targetUrl;
 }
 
-/// Auto-playing carousel; every slide opens one of the ad pages.
+/// Auto-playing carousel; organic slides open ad pages; sponsored open targetUrl.
 class HomeHeroCarousel extends StatefulWidget {
   const HomeHeroCarousel({super.key, required this.slideRouteNames});
 
@@ -82,13 +99,53 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
   Timer? _timer;
   int _index = 0;
   bool _paused = false;
+  final Set<String> _impressed = {};
 
-  late final List<_HeroSlide> _slides = [
-    _HeroSlide(image: TGListingImages.heroSlide(0), titleKey: 'i8m5wr2h', subtitleKey: '7d6qkq0f', routeName: widget.slideRouteNames[0]),
-    _HeroSlide(image: TGListingImages.heroSlide(1), titleKey: '0y0mdwe3', subtitleKey: 'gn0cgz8h', routeName: widget.slideRouteNames[1]),
-    _HeroSlide(image: TGListingImages.heroSlide(2), titleKey: 'z2t2enej', subtitleKey: 'yhrj1i0w', routeName: widget.slideRouteNames[2]),
-    _HeroSlide(image: TGListingImages.heroSlide(3), titleKey: 'fd2vmdbm', subtitleKey: 'ghe86x4x', routeName: widget.slideRouteNames[3]),
-  ];
+  List<_HeroSlide> _organic() => [
+        _HeroSlide.organic(image: TGListingImages.heroSlide(0), titleKey: 'i8m5wr2h', subtitleKey: '7d6qkq0f', routeName: widget.slideRouteNames[0]),
+        _HeroSlide.organic(image: TGListingImages.heroSlide(1), titleKey: '0y0mdwe3', subtitleKey: 'gn0cgz8h', routeName: widget.slideRouteNames[1]),
+        _HeroSlide.organic(image: TGListingImages.heroSlide(2), titleKey: 'z2t2enej', subtitleKey: 'yhrj1i0w', routeName: widget.slideRouteNames[2]),
+        _HeroSlide.organic(image: TGListingImages.heroSlide(3), titleKey: 'fd2vmdbm', subtitleKey: 'ghe86x4x', routeName: widget.slideRouteNames[3]),
+      ];
+
+  /// Organic slides unchanged; sponsored interleaved between them (max 3).
+  List<_HeroSlide> _compose() {
+    final organic = _organic();
+    final ads = AdSlotService.instance.liveSlides;
+    if (ads.isEmpty) return organic;
+    final out = <_HeroSlide>[];
+    var si = 0;
+    for (var i = 0; i < organic.length; i++) {
+      out.add(organic[i]);
+      if (si < ads.length && si < 3) {
+        final a = ads[si++];
+        out.add(_HeroSlide.sponsored(ad: a, image: a.imageUrl, title: a.title, targetUrl: a.targetUrl));
+      }
+    }
+    while (si < ads.length && si < 3) {
+      final a = ads[si++];
+      out.add(_HeroSlide.sponsored(ad: a, image: a.imageUrl, title: a.title, targetUrl: a.targetUrl));
+    }
+    return out;
+  }
+
+  void _recordImpression(_HeroSlide s) {
+    final id = s.ad?.id;
+    if (id == null || _impressed.contains(id)) return;
+    _impressed.add(id);
+    AdSlotService.instance.recordImpression(id);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    AdSlotService.instance.ensureSeeded();
+    AdSlotService.instance.addListener(_onAds);
+  }
+
+  void _onAds() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void didChangeDependencies() {
@@ -101,7 +158,9 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
 
   void _advance() {
     if (_paused || !mounted || !_controller.hasClients) return;
-    _goTo((_index + 1) % _slides.length);
+    final n = _compose().length;
+    if (n == 0) return;
+    _goTo((_index + 1) % n);
   }
 
   void _goTo(int i) {
@@ -116,161 +175,229 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
 
   @override
   void dispose() {
+    AdSlotService.instance.removeListener(_onAds);
     _timer?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _openSlide(_HeroSlide s) {
+    if (s.sponsored) {
+      final id = s.ad?.id;
+      if (id != null) AdSlotService.instance.recordClick(id);
+      final url = s.targetUrl;
+      if (url != null && url.isNotEmpty) context.go(url);
+      return;
+    }
+    context.pushNamed(s.routeName!);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final l10n = FFLocalizations.of(context);
+    final slides = _compose();
+    if (_index >= slides.length) _index = 0;
+    if (slides.isNotEmpty) _recordImpression(slides[_index]);
 
     return LayoutBuilder(
       builder: (context, c) {
         final phone = c.maxWidth < TGBreakpoints.phone;
         final height = (c.maxWidth * (phone ? 0.78 : 0.36)).clamp(280.0, 440.0);
-        return MouseRegion(
-          onEnter: (_) => _paused = true,
-          onExit: (_) => _paused = false,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(TGRadius.card),
-            child: SizedBox(
-              height: height,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  PageView.builder(
-                    controller: _controller,
-                    itemCount: _slides.length,
-                    onPageChanged: (i) => setState(() => _index = i),
-                    itemBuilder: (context, i) {
-                      final s = _slides[i];
-                      final title = l10n.getText(s.titleKey);
-                      return Semantics(
-                        button: true,
-                        label: title,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => context.pushNamed(s.routeName),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Image.asset(
-                                  s.image,
-                                  fit: BoxFit.cover,
-                                  cacheWidth: 1400,
-                                  gaplessPlayback: true,
-                                  errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate),
-                                ),
-                                // Scrim keeps the white copy readable on any photo.
-                                DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.bottomCenter,
-                                      end: Alignment.topCenter,
-                                      colors: [Colors.black.withValues(alpha: 0.82), Colors.black.withValues(alpha: 0.35), Colors.transparent],
-                                      stops: const [0, 0.55, 1],
+        return Semantics(
+          label: 'Homepage hero carousel',
+          child: MouseRegion(
+            onEnter: (_) => _paused = true,
+            onExit: (_) => _paused = false,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(TGRadius.card),
+              child: SizedBox(
+                height: height,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    PageView.builder(
+                      controller: _controller,
+                      itemCount: slides.length,
+                      onPageChanged: (i) {
+                        setState(() => _index = i);
+                        if (i < slides.length) _recordImpression(slides[i]);
+                      },
+                      itemBuilder: (context, i) {
+                        final s = slides[i];
+                        final title = s.sponsored ? (s.title ?? '') : l10n.getText(s.titleKey!);
+                        final label = s.sponsored ? 'Sponsored. $title' : title;
+                        return Focus(
+                          child: Builder(
+                            builder: (ctx) {
+                              final focused = Focus.of(ctx).hasFocus;
+                              return Semantics(
+                                button: true,
+                                label: label,
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () => _openSlide(s),
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        border: focused ? Border.all(color: TGColors.cta, width: 2) : null,
+                                      ),
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          if (s.sponsored)
+                                            TGSmartImage(url: s.image, fit: BoxFit.cover, cacheWidth: 1400)
+                                          else
+                                            Image.asset(
+                                              s.image,
+                                              fit: BoxFit.cover,
+                                              cacheWidth: 1400,
+                                              gaplessPlayback: true,
+                                              errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate),
+                                            ),
+                                          if (s.sponsored)
+                                            const DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.centerLeft,
+                                                  end: Alignment.centerRight,
+                                                  colors: [Color(0xE0121212), Color(0x00000000)],
+                                                ),
+                                              ),
+                                            )
+                                          else
+                                            DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.bottomCenter,
+                                                  end: Alignment.topCenter,
+                                                  colors: [Colors.black.withValues(alpha: 0.82), Colors.black.withValues(alpha: 0.35), Colors.transparent],
+                                                  stops: const [0, 0.55, 1],
+                                                ),
+                                              ),
+                                            ),
+                                          if (s.sponsored)
+                                            Positioned(
+                                              left: phone ? 18 : 36,
+                                              top: phone ? 16 : 20,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.circular(TGRadius.pill),
+                                                  border: Border.all(color: Colors.white70),
+                                                ),
+                                                child: Text(
+                                                  l10n.getText('ui_sponsored'),
+                                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11),
+                                                ),
+                                              ),
+                                            ),
+                                          Positioned(
+                                            left: phone ? 18 : 36,
+                                            right: phone ? 18 : 120,
+                                            bottom: phone ? 48 : 52,
+                                            child: ConstrainedBox(
+                                              constraints: const BoxConstraints(maxWidth: 680),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    title,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: theme.headlineMedium.override(
+                                                      color: Colors.white,
+                                                      fontSize: phone ? 24 : 38,
+                                                      fontWeight: FontWeight.w900,
+                                                      lineHeight: 1.1,
+                                                    ),
+                                                  ),
+                                                  if (!s.sponsored) ...[
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      l10n.getText(s.subtitleKey!),
+                                                      maxLines: phone ? 2 : 3,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: theme.bodyLarge.override(
+                                                        color: Colors.white.withValues(alpha: 0.88),
+                                                        fontSize: phone ? 13.5 : 17,
+                                                        lineHeight: 1.4,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  const SizedBox(height: 14),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                                    decoration: BoxDecoration(
+                                                      color: theme.primary,
+                                                      borderRadius: BorderRadius.circular(TGRadius.pill),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Text(
+                                                          s.sponsored ? 'View' : 'Read more',
+                                                          style: theme.bodySmall.override(color: TGColors.onCta, fontWeight: FontWeight.w900),
+                                                        ),
+                                                        const SizedBox(width: 6),
+                                                        const Icon(Icons.arrow_forward_rounded, size: 16, color: TGColors.onCta),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                                Positioned(
-                                  left: phone ? 18 : 36,
-                                  right: phone ? 18 : 120,
-                                  bottom: phone ? 48 : 52,
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 680),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          title,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.headlineMedium.override(
-                                            color: Colors.white,
-                                            fontSize: phone ? 24 : 38,
-                                            fontWeight: FontWeight.w900,
-                                            lineHeight: 1.1,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          l10n.getText(s.subtitleKey),
-                                          maxLines: phone ? 2 : 3,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.bodyLarge.override(
-                                            color: Colors.white.withValues(alpha: 0.88),
-                                            fontSize: phone ? 13.5 : 17,
-                                            lineHeight: 1.4,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 14),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: theme.primary,
-                                            borderRadius: BorderRadius.circular(TGRadius.pill),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text('Read more', style: theme.bodySmall.override(color: TGColors.onCta, fontWeight: FontWeight.w900)),
-                                              const SizedBox(width: 6),
-                                              const Icon(Icons.arrow_forward_rounded, size: 16, color: TGColors.onCta),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  if (!phone) ...[
-                    Positioned(left: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_left_rounded, label: 'Previous slide', onTap: () => _goTo((_index - 1 + _slides.length) % _slides.length)))),
-                    Positioned(right: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_right_rounded, label: 'Next slide', onTap: () => _goTo((_index + 1) % _slides.length)))),
-                  ],
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 16,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var i = 0; i < _slides.length; i++)
-                          Semantics(
-                            button: true,
-                            selected: i == _index,
-                            label: 'Slide ${i + 1}',
-                            child: GestureDetector(
-                              onTap: () => _goTo(i),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 220),
-                                  width: i == _index ? 26 : 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: i == _index ? theme.primary : Colors.white.withValues(alpha: 0.55),
-                                    borderRadius: BorderRadius.circular(TGRadius.pill),
+                        );
+                      },
+                    ),
+                    if (!phone) ...[
+                      Positioned(left: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_left_rounded, label: 'Previous slide', onTap: () => _goTo((_index - 1 + slides.length) % slides.length)))),
+                      Positioned(right: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_right_rounded, label: 'Next slide', onTap: () => _goTo((_index + 1) % slides.length)))),
+                    ],
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 16,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var i = 0; i < slides.length; i++)
+                            Semantics(
+                              button: true,
+                              selected: i == _index,
+                              label: 'Slide ${i + 1}${slides[i].sponsored ? ', Sponsored' : ''}',
+                              child: GestureDetector(
+                                onTap: () => _goTo(i),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                  child: AnimatedContainer(
+                                    duration: Duration(milliseconds: (MediaQuery.maybeOf(context)?.disableAnimations ?? false) ? 0 : 220),
+                                    width: i == _index ? 26 : 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: i == _index ? theme.primary : Colors.white.withValues(alpha: 0.55),
+                                      borderRadius: BorderRadius.circular(TGRadius.pill),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

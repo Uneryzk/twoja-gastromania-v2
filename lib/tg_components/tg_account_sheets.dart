@@ -15,6 +15,10 @@ import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
+import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_inventory_sync_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_post_publish_service.dart';
 
 Future<void> _showTGSheet(BuildContext context, WidgetBuilder builder) {
   return showModalBottomSheet<void>(
@@ -55,10 +59,34 @@ void _devAdvanceClock(int days) {
   DealService.instance.ensureSeeded();
   DealModerationService.instance.ensureSeeded();
   TGSpecialOrderService.instance.ensureSeeded();
+  RestaurantLifecycleService.instance.ensureSeeded();
   TGClock.advance(Duration(days: days));
   DealService.instance.onClockAdvanced();
   DealModerationService.instance.onClockAdvanced();
   TGSpecialOrderService.instance.onClockAdvanced();
+  RestaurantLifecycleService.instance.onClockAdvanced();
+  RestaurantPostPublishService.instance.onClockAdvanced();
+  RestaurantInventorySyncService.instance.onClockAdvanced();
+  AdSlotService.instance.onClockAdvanced();
+}
+
+void _devAdvanceBusinessDays(int days) {
+  var advanced = 0;
+  var guard = 0;
+  while (advanced < days && guard < 400) {
+    TGClock.advance(const Duration(days: 1));
+    guard++;
+    final t = TGClock.now();
+    if (t.weekday == DateTime.saturday || t.weekday == DateTime.sunday) continue;
+    advanced++;
+  }
+  DealService.instance.onClockAdvanced();
+  DealModerationService.instance.onClockAdvanced();
+  TGSpecialOrderService.instance.onClockAdvanced();
+  RestaurantLifecycleService.instance.onClockAdvanced();
+  RestaurantPostPublishService.instance.onClockAdvanced();
+  RestaurantInventorySyncService.instance.onClockAdvanced();
+  AdSlotService.instance.onClockAdvanced();
 }
 
 /// Applies a Dev Switcher pick: updates [FakeAuthState], then navigates via [router].
@@ -118,7 +146,21 @@ void applyTGDevSwitchPick(GoRouter router, FakeAuthState auth, Object picked) {
     router.go('/dashboard/listings');
     return;
   }
+  if (picked is RestoSellerDevPick) {
+    auth.actAsRestoSeller(picked);
+    router.go('/dashboard/listings');
+    return;
+  }
+  if (picked is _DevBusinessDays) {
+    _devAdvanceBusinessDays(picked.days);
+    return;
+  }
   if (picked is int) _devAdvanceClock(picked);
+}
+
+class _DevBusinessDays {
+  const _DevBusinessDays(this.days);
+  final int days;
 }
 
 String _devClockLabel(BuildContext context, int days) {
@@ -174,9 +216,18 @@ Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
       _devSection(context, t('ui_dev_sec_transfer')),
       PopupMenuItem(value: DevrenSellerDevPick.listingOwner, child: Text(t('ui_dev_transfer_owner'), style: itemStyle)),
       const PopupMenuDivider(),
+      _devSection(context, 'Restaurant Seller'),
+      PopupMenuItem(value: RestoSellerDevPick.ownerFreeAvailable, child: Text('Owner (individual, free start available)', style: itemStyle)),
+      PopupMenuItem(value: RestoSellerDevPick.ownerFreeUsed, child: Text('Owner (free start used)', style: itemStyle)),
+      PopupMenuItem(value: RestoSellerDevPick.agentBasicStore, child: Text('Agent (Basic store)', style: itemStyle)),
+      PopupMenuItem(value: RestoSellerDevPick.withExpired, child: Text('With expired listing', style: itemStyle)),
+      PopupMenuItem(value: RestoSellerDevPick.underReview, child: Text('With listing under review', style: itemStyle)),
+      const PopupMenuDivider(),
       _devSection(context, t('ui_dev_sec_clock')),
       for (final d in const [1, 2, 3, 5, 10, 14, 25])
         PopupMenuItem(value: d, child: Text(_devClockLabel(context, d), style: itemStyle)),
+      for (final d in const [1, 3, 5, 10])
+        PopupMenuItem(value: _DevBusinessDays(d), child: Text('Advance $d business days', style: itemStyle)),
     ],
   );
   if (picked == null) return;

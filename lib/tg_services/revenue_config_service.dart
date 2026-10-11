@@ -72,6 +72,7 @@ class TGRevenueConfigService extends ChangeNotifier {
       'sponsorSlots' => f.copyWith(sponsorSlots: value),
       'auditProgram' => f.copyWith(auditProgram: value),
       'founderProgram' => f.copyWith(founderProgram: value),
+      'bannerAds' => f.copyWith(bannerAds: value),
       _ => f,
     };
     applyConfig(_config.copyWith(flags: next), actorId: actorId, action: 'flag_$name', reason: reason, detail: '$name=$value');

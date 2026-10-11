@@ -17,6 +17,8 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_invoice.dart';
 import 'package:twoja_gastromania/tg_services/invoicing_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -196,6 +198,27 @@ Future<void> completeCheckout(BuildContext context, {TGInvoiceBuyer? buyer}) asy
       auth.subscribeStore(cart.storePlanId ?? 'basic');
       auth.clearCheckout();
       if (context.mounted) context.go('/dashboard/listings');
+    case TGCheckoutKind.restaurantListing:
+      final id = cart.listingId;
+      final pending = id == null ? null : RestaurantService.instance.byId(id);
+      if (pending != null) {
+        final live = RestaurantLifecycleService.instance.activate(
+          listing: pending,
+          useFreeIntro: cart.useFreeIntro,
+          promoteDays: cart.promoteDays,
+        );
+        auth.clearCheckout();
+        TGAnalytics.track('payment_success', {'kind': 'restaurant_listing', 'listingNo': live.listingNo});
+        if (context.mounted) context.go('/restaurants/success?id=${live.id}');
+      }
+    case TGCheckoutKind.restaurantRenew:
+      final id = cart.listingId;
+      if (id != null) {
+        RestaurantLifecycleService.instance.renew(listingId: id, promoteDays: cart.promoteDays, early: cart.early);
+        auth.clearCheckout();
+        TGAnalytics.track('payment_success', {'kind': 'restaurant_renew', 'listingId': id});
+        if (context.mounted) context.go('/dashboard/listings?renewed=$id');
+      }
   }
 }
 

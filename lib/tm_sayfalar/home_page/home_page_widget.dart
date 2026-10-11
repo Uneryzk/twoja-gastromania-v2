@@ -11,6 +11,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'home_page_model.dart';
+import 'home_resto_strip.dart';
 import 'home_sections.dart';
 
 export 'home_page_model.dart';
@@ -103,6 +104,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   top: 12,
                 ),
                 section(HomeCategorySection(listingCounts: counts)),
+                section(const HomeRestaurantsStrip()),
                 if (promoted.isNotEmpty) section(HomePromotedSection(products: promoted)),
                 section(const HomeBestSellers()),
                 section(const HomeStatsSection()),

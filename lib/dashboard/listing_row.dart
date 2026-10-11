@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/dashboard/seller_moderation_sheets.dart';
 import 'package:twoja_gastromania/deals/sold_flow_sheet.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 
@@ -185,8 +186,13 @@ class ListingRow extends StatelessWidget {
             onSelected: (v) {
               if (v == 'sold') showSoldFlow(context, product, mode: SoldFlowMode.markSold);
               if (v == 'remove') showSoldFlow(context, product, mode: SoldFlowMode.removeListing);
+              if (v == 'banner') {
+                context.go('/dashboard/advertising?target=${Uri.encodeComponent(product.detailPath)}');
+              }
             },
             itemBuilder: (_) => [
+              if (product.status == TGListingStatus.active && AdSlotService.instance.purchaseVisible)
+                const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
               PopupMenuItem(value: 'sold', child: Text(context.t('ui_mark_sold'))),
               PopupMenuItem(value: 'remove', child: Text(context.t('ui_remove_listing'))),
             ],

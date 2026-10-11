@@ -8,8 +8,13 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_inventory_sync_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:go_router/go_router.dart';
 
 class AdminQueuePage extends StatefulWidget {
   const AdminQueuePage({super.key, this.filter});
@@ -77,9 +82,113 @@ class _AdminQueuePageState extends State<AdminQueuePage> {
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final theme = FlutterFlowTheme.of(context);
 
+    final pendingAuth = RestaurantService.instance.all
+        .where((r) => r.status == RestaurantListingStatus.pendingAuthorization)
+        .toList();
+    final descChecks = RestaurantInventorySyncService.instance
+      ..ensureSeeded();
+    final openDesc = descChecks.descriptionCases.where((c) => !c.resolved).toList();
+    AdSlotService.instance.ensureSeeded();
+    final pendingAds = AdSlotService.instance.pendingReview;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (pendingAds.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Material(
+              color: TGColors.cta.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Ad review', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 8),
+                    for (final a in pendingAds.take(5))
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(a.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                        subtitle: Text('${a.kind.name} · ${a.pricePln} PLN · ${a.targetUrl}'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.go('/admin/ads'),
+                      ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(onPressed: () => context.go('/admin/ads'), child: const Text('Open Ad review')),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        if (openDesc.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Material(
+              color: TGColors.surfaceHover,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Description check · target 2 business days',
+                      style: theme.titleSmall.override(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final c in openDesc)
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('${c.itemName} · No. ${c.listingNo}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                        subtitle: Text(
+                          c.matchedSentences.isEmpty ? 'Possible description conflict' : c.matchedSentences.first,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.go('/admin/l/${c.listingNo}?descCheck=${c.id}'),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        if (pendingAuth.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Material(
+              color: TGColors.slaAmber.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pending authorization · target 2 business days',
+                      style: theme.titleSmall.override(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final r in pendingAuth)
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(r.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                        subtitle: Text('No. ${r.listingNo} · ${r.fullAddress} · Restaurant'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.go('/admin/l/${r.listingNo}'),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
           child: Wrap(
@@ -293,7 +402,20 @@ class _QueueTable extends StatelessWidget {
         DataCell(
           InkWell(
             onTap: onOpen,
-            child: Text(row.listingNo, style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800, decoration: TextDecoration.underline, fontSize: 12)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(row.listingNo, style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800, decoration: TextDecoration.underline, fontSize: 12)),
+                if (RestaurantService.instance.byListingNo(row.listingNo) != null) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(border: Border.all(color: TGColors.cta), borderRadius: BorderRadius.circular(99)),
+                    child: const Text('Restaurant', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: TGColors.cta)),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
         DataCell(row.reports.isEmpty ? Text(context.t('ui_appeal')) : AdminReasonChip(reason: row.primary.reason)),
@@ -357,6 +479,14 @@ class _QueueCards extends StatelessWidget {
                   Row(
                     children: [
                       Text(row.listingNo, style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w900)),
+                      if (RestaurantService.instance.byListingNo(row.listingNo) != null) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(border: Border.all(color: TGColors.cta), borderRadius: BorderRadius.circular(99)),
+                          child: const Text('Restaurant', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: TGColors.cta)),
+                        ),
+                      ],
                       const Spacer(),
                       Text(context.t('ui_target_${row.target.name}'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
                       const SizedBox(width: 8),

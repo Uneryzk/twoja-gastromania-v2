@@ -4,6 +4,8 @@ import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
 enum TGStorePlanKind { basic, pro, enterprise }
 
@@ -249,6 +251,15 @@ class SpecialOrderBuyerDevPick {
 /// Sentinel for Dev Switcher → Devren İlan Sahibi.
 enum DevrenSellerDevPick { listingOwner }
 
+/// Dev Switcher: restaurant (dükkan) seller personas.
+enum RestoSellerDevPick {
+  ownerFreeAvailable,
+  ownerFreeUsed,
+  agentBasicStore,
+  withExpired,
+  underReview,
+}
+
 extension TGUserRoleLabel on TGUserRole {
   String get label => switch (this) {
         TGUserRole.visitor => 'Visitor',
@@ -325,12 +336,31 @@ class FakeAuthState extends ChangeNotifier {
   List<TGProduct> get ownedExpiringSoon => ownedActive.where((p) => p.isExpiringSoon).toList();
   List<TGProduct> get ownedNeedsAttention => ownedListings.where((p) => p.status == TGListingStatus.underReview).toList();
 
+  /// Product + restaurant expired count for header pill.
+  int get expiredListingCount => ownedExpired.length + RestaurantService.instance.ownedExpired(userId).length;
+
+  /// Product + restaurant expiring ≤7d count for header pill ("ends in Nd").
+  int get expiringListingCount =>
+      ownedExpiringSoon.length + RestaurantService.instance.ownedExpiringSoon(userId).length;
+
+  int get nearestExpiringDays {
+    final productDays = ownedExpiringSoon.map((p) => p.daysUntilExpiry());
+    final restoDays = RestaurantService.instance.ownedExpiringSoon(userId).map((r) => r.daysUntilExpiry());
+    final all = [...productDays, ...restoDays];
+    if (all.isEmpty) return 0;
+    return all.reduce((a, b) => a < b ? a : b);
+  }
+
   TGHeaderPillKind get pillKind {
+    final restoExpired = RestaurantService.instance.ownedExpired(userId);
+    final restoExpiring = RestaurantService.instance.ownedExpiringSoon(userId);
     if (ownedNeedsAttention.isNotEmpty) return TGHeaderPillKind.needsAttention;
-    if (ownedExpired.isNotEmpty) return TGHeaderPillKind.expiredListings;
-    if (ownedExpiringSoon.isNotEmpty) return TGHeaderPillKind.expiringListings;
+    if (ownedExpired.isNotEmpty || restoExpired.isNotEmpty) return TGHeaderPillKind.expiredListings;
+    if (ownedExpiringSoon.isNotEmpty || restoExpiring.isNotEmpty) return TGHeaderPillKind.expiringListings;
     if (storePlan != null) return TGHeaderPillKind.store;
-    if (publishedListings.isEmpty) return TGHeaderPillKind.noListings;
+    if (publishedListings.isEmpty && RestaurantService.instance.ownedBy(userId).isEmpty) {
+      return TGHeaderPillKind.noListings;
+    }
     if (freeListingsLeft <= 0) return TGHeaderPillKind.noQuota;
     return TGHeaderPillKind.freeQuota;
   }
@@ -342,8 +372,12 @@ class FakeAuthState extends ChangeNotifier {
 
   int get mobileBadgeCount {
     if (pillKind == TGHeaderPillKind.needsAttention) return ownedNeedsAttention.length;
-    if (pillKind == TGHeaderPillKind.expiredListings) return ownedExpired.length;
-    if (pillKind == TGHeaderPillKind.expiringListings) return ownedExpiringSoon.length;
+    if (pillKind == TGHeaderPillKind.expiredListings) {
+      return ownedExpired.length + RestaurantService.instance.ownedExpired(userId).length;
+    }
+    if (pillKind == TGHeaderPillKind.expiringListings) {
+      return ownedExpiringSoon.length + RestaurantService.instance.ownedExpiringSoon(userId).length;
+    }
     if (storePlan != null) return 0;
     return freeListingsLeft;
   }
@@ -605,6 +639,52 @@ class FakeAuthState extends ChangeNotifier {
     displayName = 'Devren İlan Sahibi';
     phoneVerified = true;
     storePlan = null;
+    notifyListeners();
+  }
+
+  void actAsRestoSeller(RestoSellerDevPick pick) {
+    RestaurantLifecycleService.instance.ensureSeeded();
+    _isLoggedIn = true;
+    role = TGUserRole.seller;
+    phoneVerified = true;
+    storePlan = null;
+    switch (pick) {
+      case RestoSellerDevPick.ownerFreeAvailable:
+        userId = 'seller_resto_new';
+        userInitials = 'RN';
+        displayName = 'Resto Owner (free available)';
+        sellerType = TGSellerType.private;
+      case RestoSellerDevPick.ownerFreeUsed:
+        userId = mockOwnerId;
+        userInitials = 'TG';
+        displayName = 'TG Demo (free used)';
+        sellerType = TGSellerType.private;
+        final r = RestaurantService.instance.byId('r001');
+        if (r != null) {
+          RestaurantLifecycleService.instance.markFreeStartUsed(
+            ownerId: userId,
+            premisesKey: r.premisesKey,
+            phone: r.phone,
+          );
+        }
+      case RestoSellerDevPick.agentBasicStore:
+        userId = mockStoreSellerId;
+        userInitials = 'GP';
+        displayName = 'GastroPL Agent';
+        sellerType = TGSellerType.store;
+        storePlan = TGStorePlanKind.basic;
+        storePlanLabel = 'Basic Store';
+      case RestoSellerDevPick.withExpired:
+        userId = mockOwnerId;
+        userInitials = 'TG';
+        displayName = 'TG Demo (expired resto)';
+        sellerType = TGSellerType.private;
+      case RestoSellerDevPick.underReview:
+        userId = 'seller_mateusz';
+        userInitials = 'MK';
+        displayName = 'Mateusz K. (under review)';
+        sellerType = TGSellerType.private;
+    }
     notifyListeners();
   }
 

@@ -13,6 +13,12 @@ import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_components/tg_inline_translate.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_inventory_sync_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 
 class AdminCasePage extends StatefulWidget {
   const AdminCasePage({super.key, required this.listingNo});
@@ -46,6 +52,8 @@ class _AdminCasePageState extends State<AdminCasePage> {
     return null;
   }
 
+  RestaurantListing? get _restaurant => RestaurantService.instance.byListingNo(widget.listingNo);
+
   @override
   Widget build(BuildContext context) {
     final mod = context.watch<ModerationService>();
@@ -53,8 +61,9 @@ class _AdminCasePageState extends State<AdminCasePage> {
     final phone = w < TGBreakpoints.phone;
     final twoCol = w >= 1280;
     final product = _product;
+    final restaurant = _restaurant;
     final kase = mod.caseFor(widget.listingNo);
-    final sellerId = kase?.sellerId ?? product?.seller.id ?? '';
+    final sellerId = kase?.sellerId ?? product?.seller.id ?? restaurant?.seller.id ?? '';
     final profile = mod.sellerById(sellerId);
     final reports = mod.reportsFor(widget.listingNo);
     final matches = mod.matchesFor(widget.listingNo);
@@ -66,11 +75,26 @@ class _AdminCasePageState extends State<AdminCasePage> {
     ];
     events.sort((a, b) => b.at.compareTo(a.at));
 
+    final flags = <String>[
+      ...?kase?.flags,
+      if (restaurant != null && restaurant.status == RestaurantListingStatus.pendingAuthorization)
+        'Possible duplicate (same premises)',
+    ];
+
+    final descCases = RestaurantInventorySyncService.instance
+      ..ensureSeeded();
+    final openDesc = descCases.descriptionCases
+        .where((c) => c.listingNo == widget.listingNo && !c.resolved)
+        .toList();
+
     final left = _LeftColumn(
       listingNo: widget.listingNo,
       product: product,
+      restaurant: restaurant,
       reports: reports,
       events: events,
+      flags: flags,
+      descCases: openDesc,
     );
     final right = _RightColumn(
       listingNo: widget.listingNo,
@@ -117,16 +141,28 @@ class _AdminCasePageState extends State<AdminCasePage> {
 }
 
 class _LeftColumn extends StatelessWidget {
-  const _LeftColumn({required this.listingNo, required this.product, required this.reports, required this.events});
+  const _LeftColumn({
+    required this.listingNo,
+    required this.product,
+    required this.reports,
+    required this.events,
+    this.restaurant,
+    this.flags = const [],
+    this.descCases = const [],
+  });
   final String listingNo;
   final TGProduct? product;
+  final RestaurantListing? restaurant;
   final List<TGModerationReport> reports;
   final List<TGCaseEvent> events;
+  final List<String> flags;
+  final List<RestoDescriptionCheckCase> descCases;
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final fmt = DateFormat('d MMM yyyy · HH:mm');
+    final r = restaurant;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -134,7 +170,50 @@ class _LeftColumn extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (product != null) ...[
+              if (r != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(border: Border.all(color: TGColors.cta), borderRadius: BorderRadius.circular(99)),
+                  child: const Text('Restaurant', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: TGColors.cta)),
+                ),
+                const SizedBox(height: 8),
+                if (r.images.isNotEmpty)
+                  SizedBox(
+                    height: 160,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        for (final img in r.images)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(img, width: 200, height: 160, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 200, height: 160, child: ColoredBox(color: TGColors.surfaceHover))),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 10),
+                Text(r.title, style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+                Text('No. ${r.listingNo} · ${r.status.name}', style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+                const SizedBox(height: 6),
+                Text(r.fullAddress, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                Text('Unit: ${r.unitNo?.isNotEmpty == true ? r.unitNo : 'No unit number'}', style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+                const SizedBox(height: 8),
+                Text(
+                  'Views ${r.engagement.views} · Contacts ${r.engagement.uniqueContacts} · Favorites ${r.engagement.uniqueFavorites}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                ),
+                if (r.documents.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('Authorization document', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+                  for (final d in r.documents) Text('· $d', style: const TextStyle(fontSize: 12)),
+                ] else if (r.status == RestaurantListingStatus.pendingAuthorization) ...[
+                  const SizedBox(height: 8),
+                  Text('Authorization document: not uploaded yet', style: theme.bodySmall.override(color: TGColors.slaAmber, fontWeight: FontWeight.w700)),
+                ],
+              ] else if (product != null) ...[
                 SizedBox(
                   height: 160,
                   child: ListView(
@@ -164,13 +243,32 @@ class _LeftColumn extends StatelessWidget {
               const SizedBox(height: 10),
               TextButton.icon(
                 key: const Key('admin-open-public'),
-                onPressed: product == null ? null : () => context.go(product!.detailPath),
+                onPressed: r != null
+                    ? () => context.go(r.detailPath)
+                    : product == null
+                        ? null
+                        : () => context.go(product!.detailPath),
                 icon: const Icon(Icons.open_in_new, size: 16),
                 label: Text(context.t('ui_open_public_page')),
               ),
+              if (flags.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                for (final f in flags)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      f,
+                      style: theme.bodySmall.override(color: TGColors.slaAmber, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
+        if (descCases.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          for (final c in descCases) _DescriptionCheckCard(kase: c, restaurant: restaurant),
+        ],
         const SizedBox(height: 12),
         Text(context.t('ui_reports'), style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
@@ -356,5 +454,154 @@ class _RightColumn extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _DescriptionCheckCard extends StatefulWidget {
+  const _DescriptionCheckCard({required this.kase, this.restaurant});
+  final RestoDescriptionCheckCase kase;
+  final RestaurantListing? restaurant;
+
+  @override
+  State<_DescriptionCheckCard> createState() => _DescriptionCheckCardState();
+}
+
+class _DescriptionCheckCardState extends State<_DescriptionCheckCard> {
+  String? _selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final auth = context.read<FakeAuthState>();
+    final sync = RestaurantInventorySyncService.instance;
+    final r = widget.restaurant;
+    final before = r?.description ?? '';
+    return AdminCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Description check · ${widget.kase.itemName}', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          Text('Target 2 business days', style: theme.bodySmall.override(color: TGColors.slaAmber, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          for (final s in widget.kase.matchedSentences)
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              value: _selected == s,
+              onChanged: (_) => setState(() => _selected = s),
+              title: Text(s, style: const TextStyle(backgroundColor: Color(0x33E6B800), fontSize: 12)),
+            ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              TGButton(
+                onPressed: () => _act(context, auth, sync, r, before, RestoDescriptionCheckAction.removeSentence),
+                label: 'Remove sentence',
+                height: 36,
+                borderRadius: BorderRadius.circular(TGRadius.pill),
+              ),
+              TGButton(
+                onPressed: () => _act(context, auth, sync, r, before, RestoDescriptionCheckAction.editMinimally),
+                label: 'Edit minimally',
+                variant: TGButtonVariant.outline,
+                height: 36,
+                borderRadius: BorderRadius.circular(TGRadius.pill),
+              ),
+              TGButton(
+                onPressed: () => _act(context, auth, sync, r, before, RestoDescriptionCheckAction.dismiss),
+                label: 'Dismiss (no conflict)',
+                variant: TGButtonVariant.ghost,
+                height: 36,
+                borderRadius: BorderRadius.circular(TGRadius.pill),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _act(
+    BuildContext context,
+    FakeAuthState auth,
+    RestaurantInventorySyncService sync,
+    RestaurantListing? r,
+    String before,
+    RestoDescriptionCheckAction action,
+  ) async {
+    if (r == null) return;
+    var after = before;
+    String? minimal;
+    if (action == RestoDescriptionCheckAction.removeSentence) {
+      if (_selected == null) {
+        showTGToast(context, 'Select a sentence');
+        return;
+      }
+      after = before.replaceFirst(_selected!, '').trim();
+    } else if (action == RestoDescriptionCheckAction.editMinimally) {
+      minimal = await showDialog<String>(
+        context: context,
+        builder: (ctx) {
+          final c = TextEditingController(text: before);
+          return AlertDialog(
+            title: const Text('Edit minimally'),
+            content: TextField(controller: c, maxLines: 8),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx, c.text), child: const Text('Preview'))],
+          );
+        },
+      );
+      if (minimal == null) return;
+      after = minimal;
+    }
+    final email = sync.previewDescriptionEmail(listing: r, before: before, after: after, action: action);
+    if (!context.mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(action == RestoDescriptionCheckAction.dismiss ? 'Dismiss?' : 'Diff + email preview'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Before', style: TextStyle(fontWeight: FontWeight.w800)),
+              Text(before, style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 8),
+              const Text('After', style: TextStyle(fontWeight: FontWeight.w800)),
+              Text(after, style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 12),
+              Text('Email → ${email.to}', style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(email.subject, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              Text(email.body, style: const TextStyle(fontSize: 11)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm')),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final err = sync.applyDescriptionAction(
+      caseId: widget.kase.id,
+      action: action,
+      actorId: auth.userId,
+      actorRole: auth.role.name,
+      sentence: _selected,
+      minimalEdit: minimal,
+    );
+    if (!context.mounted) return;
+    showTGToast(
+      context,
+      err ?? 'Done · Undo 10s',
+      duration: const Duration(seconds: 10),
+      action: SnackBarAction(
+        label: 'Undo',
+        onPressed: () => sync.undoDescriptionCase(widget.kase.id),
+      ),
+    );
+    setState(() {});
   }
 }

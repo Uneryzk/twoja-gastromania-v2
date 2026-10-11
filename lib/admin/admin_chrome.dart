@@ -31,6 +31,7 @@ abstract final class TGAdminNav {
   static const founders = '/admin/founders';
   static const audits = '/admin/audits';
   static const sponsorSlots = '/admin/sponsor-slots';
+  static const ads = '/admin/ads';
   static const projectReviews = '/admin/deals?queue=project_reviews';
   static String soCasePath(String requestNo) => '$specialOrders/$requestNo';
   static String soQueuePath(TGSoAdminQueue queue) =>
@@ -315,6 +316,7 @@ class AdminSideMenu extends StatelessWidget {
           _NavTile(selected: section == 'founders', icon: Icons.emoji_events_outlined, label: 'Founders', onTap: () => context.go(TGAdminNav.founders)),
           _NavTile(selected: section == 'audits', icon: Icons.fact_check_outlined, label: 'Audits', onTap: () => context.go(TGAdminNav.audits)),
           _NavTile(selected: section == 'sponsor_slots', icon: Icons.campaign_outlined, label: 'Sponsor slots', onTap: () => context.go(TGAdminNav.sponsorSlots)),
+          _NavTile(selected: section == 'ads', icon: Icons.view_carousel_outlined, label: 'Banner ads', onTap: () => context.go(TGAdminNav.ads)),
           const SizedBox(height: 8),
           _NavTile(selected: section == 'audit', icon: Icons.receipt_long_outlined, label: context.t('ui_admin_audit'), onTap: () => context.go(TGAdminNav.audit)),
           if (isAdmin)
@@ -481,6 +483,7 @@ class _MobileAdminTabs extends StatelessWidget {
               _tab(context, 'founders', Icons.emoji_events_outlined, TGAdminNav.founders),
               _tab(context, 'audits', Icons.fact_check_outlined, TGAdminNav.audits),
               _tab(context, 'sponsor_slots', Icons.campaign_outlined, TGAdminNav.sponsorSlots),
+              _tab(context, 'ads', Icons.view_carousel_outlined, TGAdminNav.ads),
               _tab(context, 'audit', Icons.receipt_long_outlined, TGAdminNav.audit),
               if (isAdmin) _tab(context, 'templates', Icons.email_outlined, TGAdminNav.templates),
             ],
@@ -498,7 +501,8 @@ class _MobileAdminTabs extends StatelessWidget {
         (id == 'priority' && section == 'priority') ||
         (id == 'founders' && section == 'founders') ||
         (id == 'audits' && section == 'audits') ||
-        (id == 'sponsor_slots' && section == 'sponsor_slots');
+        (id == 'sponsor_slots' && section == 'sponsor_slots') ||
+        (id == 'ads' && section == 'ads');
     return Expanded(
       child: InkWell(
         onTap: () => context.go(path),

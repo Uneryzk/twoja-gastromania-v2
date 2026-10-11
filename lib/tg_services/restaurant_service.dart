@@ -16,6 +16,10 @@ class RestaurantService extends ChangeNotifier {
   static final RestaurantService instance = RestaurantService._();
 
   final List<RestaurantListing> _all = [];
+  final Set<String> _viewKeys = {};
+  final Set<String> _contactKeys = {};
+  final Set<String> _favoriteKeys = {};
+  final Map<String, _RestoTransferUndo> _transferUndos = {};
 
   List<RestaurantListing> get all => List.unmodifiable(_all);
 
@@ -24,6 +28,15 @@ class RestaurantService extends ChangeNotifier {
     if (TGRevenueConfigService.instance.productionMode) return const [];
     return _all.where((r) => r.isPubliclyVisible).toList(growable: false);
   }
+
+  List<RestaurantListing> ownedBy(String ownerId) =>
+      _all.where((r) => r.ownerId == ownerId).toList(growable: false);
+
+  List<RestaurantListing> ownedExpired(String ownerId) =>
+      ownedBy(ownerId).where((r) => r.status == RestaurantListingStatus.expired).toList(growable: false);
+
+  List<RestaurantListing> ownedExpiringSoon(String ownerId) =>
+      ownedBy(ownerId).where((r) => r.isExpiringSoon() && r.daysUntilExpiry() <= 7).toList(growable: false);
 
   RestaurantListing? byId(String id) {
     for (final r in _all) {
@@ -54,10 +67,169 @@ class RestaurantService extends ChangeNotifier {
     return byListingNo(no);
   }
 
+  List<RestaurantListing> similarTo(RestaurantListing listing, {int limit = 4}) {
+    final rows = publicListings
+        .where((r) => r.id != listing.id && r.businessType == listing.businessType && r.city == listing.city)
+        .toList();
+    if (rows.length < limit) {
+      final extra = publicListings
+          .where((r) => r.id != listing.id && r.city == listing.city && !rows.any((x) => x.id == r.id))
+          .toList();
+      rows.addAll(extra);
+    }
+    if (rows.length < limit) {
+      final extra = publicListings
+          .where((r) => r.id != listing.id && r.businessType == listing.businessType && !rows.any((x) => x.id == r.id))
+          .toList();
+      rows.addAll(extra);
+    }
+    return rows.take(limit).toList(growable: false);
+  }
+
+  List<RestaurantListing> moreFromSeller(RestaurantListing listing, {int limit = 4}) {
+    return publicListings.where((r) => r.id != listing.id && r.ownerId == listing.ownerId).take(limit).toList(growable: false);
+  }
+
+  List<RestaurantListing> samePremises(RestaurantListing listing) {
+    return _all.where((r) => r.id != listing.id && r.premisesKey == listing.premisesKey).toList(growable: false);
+  }
+
+  void replace(RestaurantListing next) {
+    final i = _all.indexWhere((r) => r.id == next.id);
+    var toStore = next;
+    if (i >= 0) {
+      final prev = _all[i];
+      // Days spent under_review pause the timer (added back on restore).
+      final wasPaused = prev.status == RestaurantListingStatus.underReview || prev.isHidden;
+      final nowPaused = next.status == RestaurantListingStatus.underReview || next.isHidden;
+      if (!wasPaused && nowPaused) {
+        _hiddenSince[next.id] = TGClock.now();
+      } else if (wasPaused && !nowPaused) {
+        final since = _hiddenSince.remove(next.id);
+        final days = since == null ? 0 : TGClock.now().difference(since).inDays;
+        if (days > 0 && next.expiresAt != null) {
+          toStore = next.copyWith(expiresAt: next.expiresAt!.add(Duration(days: days)));
+        }
+      }
+      _all[i] = toStore;
+    } else {
+      _all.add(toStore);
+    }
+    notifyListeners();
+  }
+
+  /// Alias used by the wizard for draft upserts.
+  void upsertDraft(RestaurantListing draft) => replace(draft);
+
+  /// View engagement: unique per session+day. Owner / staff / bot excluded by caller.
+  bool recordView({required String listingId, required String sessionKey, required bool count}) {
+    if (!count) return false;
+    final day = DateTime.now().toIso8601String().substring(0, 10);
+    final key = 'v:$listingId:$sessionKey:$day';
+    if (!_viewKeys.add(key)) return false;
+    final cur = byId(listingId);
+    if (cur == null) return false;
+    replace(cur.copyWith(engagement: cur.engagement.copyWith(views: cur.engagement.views + 1)));
+    return true;
+  }
+
+  bool recordContact({required String listingId, required String sessionKey, required bool count}) {
+    if (!count) return false;
+    final key = 'c:$listingId:$sessionKey';
+    if (!_contactKeys.add(key)) return false;
+    final cur = byId(listingId);
+    if (cur == null) return false;
+    replace(cur.copyWith(engagement: cur.engagement.copyWith(uniqueContacts: cur.engagement.uniqueContacts + 1)));
+    return true;
+  }
+
+  bool recordFavorite({required String listingId, required String userId, required bool on, required bool count}) {
+    if (!count || !on) return false;
+    final key = 'f:$listingId:$userId';
+    if (!_favoriteKeys.add(key)) return false;
+    final cur = byId(listingId);
+    if (cur == null) return false;
+    replace(cur.copyWith(engagement: cur.engagement.copyWith(uniqueFavorites: cur.engagement.uniqueFavorites + 1)));
+    return true;
+  }
+
+  final Map<String, DateTime> _hiddenSince = {};
+
+  void setHidden(String listingId, bool hidden) {
+    final cur = byId(listingId);
+    if (cur == null) return;
+    replace(cur.copyWith(isHidden: hidden));
+  }
+
+  void attachAuthorizationProof(String listingId, String docLabel) {
+    final cur = byId(listingId);
+    if (cur == null) return;
+    replace(cur.copyWith(documents: [...cur.documents, docLabel]));
+  }
+
+  /// Mark transferred (sold). Optional linked equipment keep/remove. 10s undo.
+  RestaurantListing? markTransferred({
+    required String listingId,
+    required bool foundViaPlatform,
+    Set<String> removeLinkedListingNos = const {},
+  }) {
+    final cur = byId(listingId);
+    if (cur == null) return null;
+    final snapshot = cur;
+    var inv = cur.inventory;
+    if (removeLinkedListingNos.isNotEmpty) {
+      inv = [
+        for (final item in inv)
+          if (item.linkedListingNo != null && removeLinkedListingNos.contains(item.linkedListingNo))
+            item.copyWith(status: RestaurantInventoryStatus.archived, statusChangedAt: DateTime.now())
+          else
+            item,
+      ];
+    }
+    final next = cur.copyWith(
+      status: RestaurantListingStatus.sold,
+      foundViaPlatform: foundViaPlatform,
+      inventory: inv,
+    );
+    replace(next);
+    _transferUndos[listingId] = _RestoTransferUndo(snapshot: snapshot, until: DateTime.now().add(const Duration(seconds: 10)));
+    notifyListeners();
+    return next;
+  }
+
+  /// Direct remove (no longer selling / other) — status removed.
+  RestaurantListing? markRemoved(String listingId) {
+    final cur = byId(listingId);
+    if (cur == null) return null;
+    final next = cur.copyWith(status: RestaurantListingStatus.removed);
+    replace(next);
+    return next;
+  }
+
+  bool undoTransfer(String listingId) {
+    final u = _transferUndos[listingId];
+    if (u == null || DateTime.now().isAfter(u.until)) {
+      _transferUndos.remove(listingId);
+      return false;
+    }
+    replace(u.snapshot);
+    _transferUndos.remove(listingId);
+    return true;
+  }
+
+  bool canUndoTransfer(String listingId) {
+    final u = _transferUndos[listingId];
+    return u != null && !DateTime.now().isAfter(u.until);
+  }
+
   void reset() {
     _all
       ..clear()
       ..addAll(_buildSeed());
+    _viewKeys.clear();
+    _contactKeys.clear();
+    _favoriteKeys.clear();
+    _transferUndos.clear();
     notifyListeners();
   }
 
@@ -66,6 +238,12 @@ class RestaurantService extends ChangeNotifier {
       ..clear()
       ..addAll(_buildSeed());
   }
+}
+
+class _RestoTransferUndo {
+  _RestoTransferUndo({required this.snapshot, required this.until});
+  final RestaurantListing snapshot;
+  final DateTime until;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +259,7 @@ List<RestaurantListing> _buildSeed() {
   const ownerMateusz = TGSeller(id: 'seller_mateusz', name: 'Mateusz K.', type: TGSellerType.private, verified: false, rating: 4.4);
   const ownerAnna = TGSeller(id: 'seller_anna', name: 'Anna P.', type: TGSellerType.private, verified: false, rating: 4.6);
   const agentTechnica = TGSeller(id: 'seller_technica', name: 'Technica Pro', type: TGSellerType.store, verified: false, rating: 4.2);
+  const ownerTg = TGSeller(id: 'seller_tg', name: 'TG Demo', type: TGSellerType.private, verified: false, rating: 4.5);
 
   List<String> imgs(String id, RestaurantBusinessType type, String title, int n) =>
       TGListingImages.galleryForTheme(
@@ -90,22 +269,43 @@ List<RestaurantListing> _buildSeed() {
         count: n,
       );
 
-  List<RestaurantInventoryItem> inv(String prefix, int count, {int maySell = 2}) {
+  List<RestaurantInventoryItem> inv(String prefix, int count, {int maySell = 2, int excluded = 1, List<String> linkedNos = const []}) {
     final cats = RestaurantInventoryCategory.values;
+    final photoPool = TGListingImages.galleryForTheme(id: 'resto-$prefix-inv', theme: 'cooking', title: 'inventory', count: 4);
     return [
       for (var i = 0; i < count; i++)
         RestaurantInventoryItem(
           id: '$prefix-inv-$i',
           category: cats[i % cats.length],
-          name: 'Item ${i + 1}',
+          name: switch (cats[i % cats.length]) {
+            RestaurantInventoryCategory.cooking => 'Combi oven ${i + 1}',
+            RestaurantInventoryCategory.refrigeration => 'Fridge ${i + 1}',
+            RestaurantInventoryCategory.warewashing => 'Dishwasher ${i + 1}',
+            RestaurantInventoryCategory.foodPrep => 'Prep table ${i + 1}',
+            RestaurantInventoryCategory.stainlessFurniture => 'Stainless unit ${i + 1}',
+            RestaurantInventoryCategory.barBeverage => 'Bar fridge ${i + 1}',
+            RestaurantInventoryCategory.other => 'Item ${i + 1}',
+          },
           qty: 1 + (i % 3),
           brand: i.isEven ? 'Bartscher' : 'Hobart',
           model: 'M-${100 + i}',
           condition: i % 5 == 0 ? RestaurantInventoryCondition.newItem : RestaurantInventoryCondition.used,
-          availability: i < maySell ? RestaurantInventoryAvailability.maySellSeparately : RestaurantInventoryAvailability.included,
+          photos: i.isEven ? [photoPool[i % photoPool.length]] : const [],
+          availability: i < maySell
+              ? RestaurantInventoryAvailability.maySellSeparately
+              : (i >= count - excluded ? RestaurantInventoryAvailability.excluded : RestaurantInventoryAvailability.included),
+          linkedListingNo: i < maySell && i < linkedNos.length ? linkedNos[i] : (i < maySell ? '10482137' : null),
         ),
     ];
   }
+
+  const demoCosts = [
+    RestaurantCostLine(key: RestaurantCostKey.electricity, label: 'Electricity', amountPln: 2800, basis: RestaurantCostBasis.netto, period: RestaurantCostPeriod.avg12m),
+    RestaurantCostLine(key: RestaurantCostKey.gas, label: 'Gas', amountPln: 1200, basis: RestaurantCostBasis.brutto, period: RestaurantCostPeriod.lastBill),
+    RestaurantCostLine(key: RestaurantCostKey.waterSewage, label: 'Water & sewage', amountPln: 450, basis: RestaurantCostBasis.unspecified, period: RestaurantCostPeriod.estimate),
+    RestaurantCostLine(key: RestaurantCostKey.waste, label: 'Waste', amountPln: 320, basis: RestaurantCostBasis.netto, period: RestaurantCostPeriod.avg12m, includedInRent: true),
+    RestaurantCostLine(key: RestaurantCostKey.internetPhone, label: 'Internet', amountPln: 180, basis: RestaurantCostBasis.brutto, period: RestaurantCostPeriod.lastBill),
+  ];
 
   RestaurantListing L({
     required String id,
@@ -148,6 +348,11 @@ List<RestaurantListing> _buildSeed() {
     bool authConfirmed = true,
     DateTime? availableFrom,
     String? description,
+    List<RestaurantCostLine> costLines = const [],
+    List<String> documents = const [],
+    String? floorPlanUrl,
+    RestaurantEquipmentIncluded? equipmentIncluded,
+    RestaurantDetails? detailsOverride,
   }) {
     final published = now.subtract(Duration(days: publishedDaysAgo));
     final expires = expiresInDays == null
@@ -201,29 +406,43 @@ List<RestaurantListing> _buildSeed() {
       landlordConsent: RestaurantLandlordConsent.toBeArranged,
       transferFee: fee,
       negotiable: negotiable,
-      equipmentIncluded: inventory.isEmpty ? RestaurantEquipmentIncluded.partial : RestaurantEquipmentIncluded.all,
+      equipmentIncluded: equipmentIncluded ??
+          (inventory.isEmpty ? RestaurantEquipmentIncluded.none : RestaurantEquipmentIncluded.all),
       alcoholPermit: alcohol
-          ? const RestaurantAlcoholPermit(
+          ? RestaurantAlcoholPermit(
               status: RestaurantAlcoholPermitStatus.hasPermit,
-              classes: [RestaurantAlcoholClass.upTo45AndBeer, RestaurantAlcoholClass.from45To18],
-              scope: [RestaurantAlcoholScope.onPremises],
+              classes: const [RestaurantAlcoholClass.upTo45AndBeer, RestaurantAlcoholClass.from45To18],
+              scope: const [RestaurantAlcoholScope.onPremises],
+              validUntil: DateTime(now.year + 1, 12, 31),
             )
           : const RestaurantAlcoholPermit(status: RestaurantAlcoholPermitStatus.none),
       sanitaryApproval: true,
       staffTakeover: RestaurantStaffTakeover.negotiable,
       declaredMonthlyRevenue: revenue,
       declaredAsOf: revenue == null ? null : DateTime(now.year, now.month, 1).subtract(const Duration(days: 1)),
+      documents: documents.isEmpty
+          ? const ['Lease agreement', 'Sanitary approval', 'Floor plan']
+          : documents,
       images: imgs(id, type, title, 6 + (id.hashCode % 5)),
-      details: RestaurantDetails(
-        garden: garden
-            ? const RestaurantGarden(kind: RestaurantGardenKind.own, areaM2: 40)
-            : const RestaurantGarden(),
-        playArea: play
-            ? const RestaurantPlayArea(kind: RestaurantPlayAreaKind.indoor, areaM2: 18)
-            : const RestaurantPlayArea(),
-        deliveryOnline: delivery,
-        otherInfo: 'No ask-for-price: rent and transfer fee always visible.',
-      ),
+      floorPlanUrl: floorPlanUrl ?? imgs(id, type, title, 1).first,
+      details: detailsOverride ??
+          RestaurantDetails(
+            garden: garden
+                ? const RestaurantGarden(kind: RestaurantGardenKind.own, areaM2: 40)
+                : const RestaurantGarden(),
+            playArea: play
+                ? const RestaurantPlayArea(kind: RestaurantPlayAreaKind.indoor, areaM2: 18)
+                : const RestaurantPlayArea(),
+            deliveryOnline: delivery,
+            conceptMenu: 'Seasonal Polish & European menu; lunch set on weekdays.',
+            customersLocation: 'Office & tourist footfall; evening dining peak Fri–Sat.',
+            hoursSeasonality: 'Mon–Thu 12–22, Fri–Sat 12–24, Sun 12–21.',
+            staffContracts: '2 FT kitchen, 3 waitstaff — negotiable takeover.',
+            systems: 'POS + online reservations.',
+            brandAssets: const ['Trade name', 'Social media handles'],
+            otherInfo: 'No ask-for-price: rent and transfer fee always visible.',
+          ),
+      costLines: costLines,
       inventory: inventory,
       engagement: engagement,
       seller: seller,
@@ -234,7 +453,7 @@ List<RestaurantListing> _buildSeed() {
   final reviewDue = PLBusinessDays.addBusinessDays(now, cfg.soldItemReviewBusinessDays);
 
   final rows = <RestaurantListing>[
-    // 1 — day 5 free, promoted, restaurant Katowice
+    // 1 — day 5 free, promoted, restaurant Katowice (owned by mock seller_tg)
     L(
       id: 'r001',
       no: '51010001',
@@ -245,12 +464,13 @@ List<RestaurantListing> _buildSeed() {
       district: 'Śródmieście',
       street: 'ul. Mariacka',
       buildingNo: '12',
+      unitNo: '1',
       area: 180,
       rent: 14500,
       rentBasis: RestaurantVatBasis.netto,
       fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 120000, basis: RestaurantVatBasis.netto),
-      seller: storeGastro,
-      role: RestaurantPosterRole.agent,
+      seller: ownerTg,
+      role: RestaurantPosterRole.owner,
       status: RestaurantListingStatus.active,
       source: RestaurantListingSource.freeIntro,
       publishedDaysAgo: 5,
@@ -259,8 +479,10 @@ List<RestaurantListing> _buildSeed() {
       terrace: 35,
       garden: true,
       alcohol: true,
-      inventory: inv('r001', 18),
+      inventory: inv('r001', 34, maySell: 2, linkedNos: const ['10482137', '14120395']),
+      costLines: demoCosts,
       engagement: const RestaurantEngagement(views: 210, uniqueContacts: 8, uniqueFavorites: 12),
+      revenue: 78000,
     ),
     // 2 — day 28 free with interest, cafe Rybnik
     L(
@@ -301,18 +523,20 @@ List<RestaurantListing> _buildSeed() {
       rent: 8900,
       rentBasis: RestaurantVatBasis.netto,
       fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 70000),
-      seller: ownerMateusz,
+      seller: ownerTg,
       role: RestaurantPosterRole.owner,
       status: RestaurantListingStatus.active,
       source: RestaurantListingSource.freeIntro,
       publishedDaysAgo: 30,
       freeExtension: true,
-      expiresInDays: 30,
+      expiresInDays: 5,
+      promoted: true,
       seats: 50,
       alcohol: true,
+      inventory: inv('r003', 10),
       engagement: const RestaurantEngagement(views: 22, uniqueContacts: 0, uniqueFavorites: 1),
     ),
-    // 4 — expired (had interest), pizzeria Kraków
+    // 4 — expired (had interest), pizzeria Kraków — owned by seller_tg for renew UI
     L(
       id: 'r004',
       no: '51010004',
@@ -327,12 +551,12 @@ List<RestaurantListing> _buildSeed() {
       rent: 11000,
       rentBasis: RestaurantVatBasis.netto,
       fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 95000),
-      seller: storePrime,
-      role: RestaurantPosterRole.agent,
+      seller: ownerTg,
+      role: RestaurantPosterRole.owner,
       status: RestaurantListingStatus.expired,
       source: RestaurantListingSource.freeIntro,
       publishedDaysAgo: 45,
-      expiresInDays: -10,
+      expiresInDays: -3,
       seats: 40,
       delivery: true,
       inventory: inv('r004', 15),
@@ -389,7 +613,7 @@ List<RestaurantListing> _buildSeed() {
       seats: 24,
       play: true,
     ),
-    // 7 — sold, catering Katowice
+    // 7 — sold, same premises as r001 (duplicate flag demo)
     L(
       id: 'r007',
       no: '51010007',
@@ -397,8 +621,9 @@ List<RestaurantListing> _buildSeed() {
       title: 'Dark kitchen + catering hub – Katowice',
       city: 'Katowice',
       voivodeship: 'Śląskie',
-      street: 'ul. Gliwicka',
-      buildingNo: '210',
+      street: 'ul. Mariacka',
+      buildingNo: '12',
+      unitNo: '1',
       area: 220,
       rent: 9800,
       rentBasis: RestaurantVatBasis.netto,
@@ -589,7 +814,8 @@ List<RestaurantListing> _buildSeed() {
       publishedDaysAgo: 20,
       alcohol: false,
       extraction: true,
-      inventory: inv('r014', 26, maySell: 5).map((e) {
+      // RESTO-4 mock: 3 linked separate listings; first is sold → sync pending.
+      inventory: inv('r014', 26, maySell: 3, linkedNos: const ['10482137', '14120395', '15230486']).map((e) {
         if (e.id.endsWith('-0')) {
           return RestaurantInventoryItem(
             id: e.id,
@@ -600,7 +826,8 @@ List<RestaurantListing> _buildSeed() {
             model: e.model,
             condition: e.condition,
             photos: e.photos,
-            availability: e.availability,
+            availability: RestaurantInventoryAvailability.maySellSeparately,
+            linkedListingNo: '10482137',
             status: RestaurantInventoryStatus.soldSeparatelyPending,
             statusChangedAt: now.subtract(const Duration(days: 2)),
             reviewDueAt: reviewDue,
@@ -609,6 +836,102 @@ List<RestaurantListing> _buildSeed() {
         return e;
       }).toList(),
       engagement: const RestaurantEngagement(views: 200, uniqueContacts: 7, uniqueFavorites: 11),
+    ),
+    // RESTO-3 mocks: 3 drafts, 2 payment_pending (r006 already pending_authorization)
+    L(
+      id: 'r_draft_1',
+      no: 'D00000001',
+      type: RestaurantBusinessType.cafe,
+      title: 'Draft café concept – Katowice',
+      city: 'Katowice',
+      voivodeship: 'Śląskie',
+      street: 'ul. 3 Maja',
+      buildingNo: '1',
+      area: 80,
+      rent: 5000,
+      rentBasis: RestaurantVatBasis.netto,
+      fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.none),
+      seller: ownerTg,
+      role: RestaurantPosterRole.owner,
+      status: RestaurantListingStatus.draft,
+      source: RestaurantListingSource.freeIntro,
+      publishedDaysAgo: 1,
+    ),
+    L(
+      id: 'r_draft_2',
+      no: 'D00000002',
+      type: RestaurantBusinessType.bar,
+      title: 'Draft wine bar – Kraków',
+      city: 'Kraków',
+      voivodeship: 'Małopolskie',
+      street: 'ul. Floriańska',
+      buildingNo: '9',
+      area: 60,
+      rent: 9000,
+      rentBasis: RestaurantVatBasis.netto,
+      fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 40000),
+      seller: ownerTg,
+      role: RestaurantPosterRole.owner,
+      status: RestaurantListingStatus.draft,
+      source: RestaurantListingSource.freeIntro,
+      publishedDaysAgo: 2,
+    ),
+    L(
+      id: 'r_draft_3',
+      no: 'D00000003',
+      type: RestaurantBusinessType.restaurant,
+      title: 'Draft bistro – Gliwice',
+      city: 'Gliwice',
+      voivodeship: 'Śląskie',
+      street: 'ul. Dolnych Wałów',
+      buildingNo: '4',
+      area: 100,
+      rent: 7000,
+      rentBasis: RestaurantVatBasis.netto,
+      fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 50000),
+      seller: ownerTg,
+      role: RestaurantPosterRole.owner,
+      status: RestaurantListingStatus.draft,
+      source: RestaurantListingSource.paid,
+      publishedDaysAgo: 0,
+    ),
+    L(
+      id: 'r_pay_1',
+      no: '51010015',
+      type: RestaurantBusinessType.fastFood,
+      title: 'Payment pending – burger corner Warszawa',
+      city: 'Warszawa',
+      voivodeship: 'Mazowieckie',
+      street: 'ul. Marszałkowska',
+      buildingNo: '50',
+      area: 55,
+      rent: 14000,
+      rentBasis: RestaurantVatBasis.netto,
+      fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 80000),
+      seller: ownerTg,
+      role: RestaurantPosterRole.owner,
+      status: RestaurantListingStatus.paymentPending,
+      source: RestaurantListingSource.paid,
+      publishedDaysAgo: 0,
+    ),
+    L(
+      id: 'r_pay_2',
+      no: '51010016',
+      type: RestaurantBusinessType.bakeryPatisserie,
+      title: 'Payment pending – bakery Rybnik',
+      city: 'Rybnik',
+      voivodeship: 'Śląskie',
+      street: 'ul. Dworek',
+      buildingNo: '2',
+      area: 90,
+      rent: 4800,
+      rentBasis: RestaurantVatBasis.netto,
+      fee: const RestaurantTransferFee(kind: RestaurantTransferFeeKind.amount, amountPln: 30000),
+      seller: ownerTg,
+      role: RestaurantPosterRole.owner,
+      status: RestaurantListingStatus.paymentPending,
+      source: RestaurantListingSource.paid,
+      publishedDaysAgo: 1,
     ),
   ];
 
