@@ -85,10 +85,10 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
   bool _paused = false;
 
   late final List<_HeroSlide> _slides = [
-    _HeroSlide(image: 'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg', titleKey: 'i8m5wr2h', subtitleKey: '7d6qkq0f', routeName: widget.slideRouteNames[0]),
-    _HeroSlide(image: 'assets/images/blog-26.jpg', titleKey: '0y0mdwe3', subtitleKey: 'gn0cgz8h', routeName: widget.slideRouteNames[1]),
-    _HeroSlide(image: 'assets/images/17594161762353ebc282350944289b81f72b29ad94_square_thumbnail_405x552.jpg', titleKey: 'z2t2enej', subtitleKey: 'yhrj1i0w', routeName: widget.slideRouteNames[2]),
-    _HeroSlide(image: 'assets/images/IMG_3696-scaled.webp', titleKey: 'fd2vmdbm', subtitleKey: 'ghe86x4x', routeName: widget.slideRouteNames[3]),
+    _HeroSlide(image: TGListingImages.heroSlide(0), titleKey: 'i8m5wr2h', subtitleKey: '7d6qkq0f', routeName: widget.slideRouteNames[0]),
+    _HeroSlide(image: TGListingImages.heroSlide(1), titleKey: '0y0mdwe3', subtitleKey: 'gn0cgz8h', routeName: widget.slideRouteNames[1]),
+    _HeroSlide(image: TGListingImages.heroSlide(2), titleKey: 'z2t2enej', subtitleKey: 'yhrj1i0w', routeName: widget.slideRouteNames[2]),
+    _HeroSlide(image: TGListingImages.heroSlide(3), titleKey: 'fd2vmdbm', subtitleKey: 'ghe86x4x', routeName: widget.slideRouteNames[3]),
   ];
 
   @override
@@ -159,7 +159,11 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
-                                Image.asset(s.image, fit: BoxFit.cover, cacheWidth: 1400, gaplessPlayback: true, errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate)),
+                                TGSmartImage(
+                                  url: s.image,
+                                  cacheWidth: 1400,
+                                  fallback: (_) => ColoredBox(color: theme.alternate),
+                                ),
                                 // Scrim keeps the white copy readable on any photo.
                                 DecoratedBox(
                                   decoration: BoxDecoration(

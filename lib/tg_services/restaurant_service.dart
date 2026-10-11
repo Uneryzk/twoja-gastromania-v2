@@ -4,7 +4,7 @@ import 'package:twoja_gastromania/tg_core/restaurant_config.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
-import 'package:twoja_gastromania/tg_models/tg_product.dart' show TGCategory, TGSeller, TGSellerType;
+import 'package:twoja_gastromania/tg_models/tg_product.dart' show TGSeller, TGSellerType;
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 
@@ -82,8 +82,13 @@ List<RestaurantListing> _buildSeed() {
   const ownerAnna = TGSeller(id: 'seller_anna', name: 'Anna P.', type: TGSellerType.private, verified: false, rating: 4.6);
   const agentTechnica = TGSeller(id: 'seller_technica', name: 'Technica Pro', type: TGSellerType.store, verified: false, rating: 4.2);
 
-  List<String> imgs(String id, TGCategory cat, String title, int n) =>
-      TGListingImages.gallery(id: 'resto-$id', category: cat, title: title, count: n);
+  List<String> imgs(String id, RestaurantBusinessType type, String title, int n) =>
+      TGListingImages.galleryForTheme(
+        id: 'resto-$id',
+        theme: RestaurantListing.businessTypeSlug(type),
+        title: title,
+        count: n,
+      );
 
   List<RestaurantInventoryItem> inv(String prefix, int count, {int maySell = 2}) {
     final cats = RestaurantInventoryCategory.values;
@@ -208,7 +213,7 @@ List<RestaurantListing> _buildSeed() {
       staffTakeover: RestaurantStaffTakeover.negotiable,
       declaredMonthlyRevenue: revenue,
       declaredAsOf: revenue == null ? null : DateTime(now.year, now.month, 1).subtract(const Duration(days: 1)),
-      images: imgs(id, TGCategory.cookingEquipment, title, 6 + (id.hashCode % 5)),
+      images: imgs(id, type, title, 6 + (id.hashCode % 5)),
       details: RestaurantDetails(
         garden: garden
             ? const RestaurantGarden(kind: RestaurantGardenKind.own, areaM2: 40)

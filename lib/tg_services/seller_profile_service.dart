@@ -487,23 +487,18 @@ List<TGStoreProfile> _seedProfiles() {
 }
 
 List<TGStoreProject> _projects(int count, String title, String city) {
-  const photos = [
-    'assets/images/blog-26.jpg',
-    'assets/images/bartscher_2002170.webp',
-    'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg',
-    'assets/images/IMG_3696-scaled.webp',
-    'assets/images/Food_Prepering_table.jpg',
-    'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg',
-    'assets/images/image.png',
-    'assets/images/10befb6d92142e17d926d07d605d82d8.jpg',
-  ];
   return [
     for (var i = 0; i < count; i++)
       TGStoreProject(
         title: '$title ${i + 1}',
         city: city,
         year: 2024 - (i % 4),
-        photos: photos.take(3 + (i % 5)).toList(),
+        photos: TGListingImages.galleryForTheme(
+          id: 'project-$city-$i',
+          theme: 'restaurant',
+          title: title,
+          count: 3 + (i % 5),
+        ),
         description: 'Reference install $title ${i + 1} in $city. Layout, delivery and commissioning handled by our project desk.',
       ),
   ];
