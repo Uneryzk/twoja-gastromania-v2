@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
@@ -11,7 +13,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
-/// Homepage "Restaurants for Sale" — promoted-only strip (hidden if empty).
+/// Homepage "Restaurants for Sale" — promoted first, up to 8, horizontal scroll.
 class HomeRestaurantsStrip extends StatefulWidget {
   const HomeRestaurantsStrip({super.key});
 
@@ -20,13 +22,60 @@ class HomeRestaurantsStrip extends StatefulWidget {
 }
 
 class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
+  static const int _limit = 8;
+  static const Duration _autoEvery = Duration(seconds: 3);
+
+  final ScrollController _scroll = ScrollController();
+  Timer? _timer;
   bool _viewed = false;
+  bool _paused = false;
+  bool _timerArmed = false;
+  static const double _cardW = 280;
+  static const double _gap = 14;
 
   List<RestaurantListing> _pick() {
     final now = TGClock.now();
     final seed = now.day * 17 + now.month;
-    final candidates = RestaurantService.instance.publicListings.where((r) => r.isPromoted);
-    return pickPromotedRestaurants(candidates, seed: seed, limit: 4);
+    final public = RestaurantService.instance.publicListings;
+    final promoted = pickPromotedRestaurants(public.where((r) => r.isPromoted), seed: seed, limit: _limit);
+    if (promoted.length >= _limit) return promoted;
+    final ids = promoted.map((r) => r.id).toSet();
+    final filler = public.where((r) => !ids.contains(r.id)).take(_limit - promoted.length);
+    return [...promoted, ...filler];
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _armTimer(bool reduce, int count) {
+    if (_timerArmed) return;
+    _timerArmed = true;
+    _timer?.cancel();
+    if (reduce || count <= 3) {
+      _timer = null;
+      return;
+    }
+    _timer = Timer.periodic(_autoEvery, (_) => _advance());
+  }
+
+  void _advance() {
+    if (_paused || !mounted || !_scroll.hasClients) return;
+    final max = _scroll.position.maxScrollExtent;
+    if (max <= 0) return;
+    var next = _scroll.offset + _cardW + _gap;
+    if (next > max + 1) next = 0;
+    _scroll.animateTo(next.clamp(0.0, max), duration: const Duration(milliseconds: 420), curve: Curves.easeOutCubic);
+  }
+
+  void _nudge(double dir) {
+    if (!_scroll.hasClients) return;
+    final max = _scroll.position.maxScrollExtent;
+    final next = (_scroll.offset + dir * (_cardW + _gap)).clamp(0.0, max);
+    _scroll.animateTo(next, duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
   }
 
   @override
@@ -41,9 +90,79 @@ class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
     }
     final theme = FlutterFlowTheme.of(context);
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _armTimer(reduce, items.length);
+    });
+
+    final list = SizedBox(
+      height: phone ? 500 : 520,
+      child: MouseRegion(
+        onEnter: (_) => _paused = true,
+        onExit: (_) => _paused = false,
+        child: Stack(
+          children: [
+            ListView.separated(
+              controller: _scroll,
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.hardEdge,
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 20),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(width: _gap),
+              itemBuilder: (_, i) => SizedBox(
+                width: _cardW,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: RestaurantCard(
+                    listing: items[i],
+                    onTap: () {
+                      TGAnalytics.track('home_resto_card_click', {'listingNo': items[i].listingNo});
+                      context.go(items[i].detailPath);
+                    },
+                  ),
+                ),
+              ),
+            ),
+            if (!phone && items.length > 3) ...[
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 20,
+                child: Center(
+                  child: Material(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => _nudge(-1),
+                      child: const SizedBox(width: 40, height: 40, child: Icon(Icons.chevron_left_rounded, color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 20,
+                child: Center(
+                  child: Material(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => _nudge(1),
+                      child: const SizedBox(width: 40, height: 40, child: Icon(Icons.chevron_right_rounded, color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
 
     return Padding(
-      // Extra bottom space so hover lift / glow never collide with the next section.
       padding: const EdgeInsets.only(bottom: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -64,59 +183,7 @@ class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
             ),
           ),
           const SizedBox(height: 22),
-          if (phone)
-            SizedBox(
-              // Tall enough for full card + hover lift; clip so nothing bleeds below.
-              height: 520,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.hardEdge,
-                padding: const EdgeInsets.fromLTRB(0, 8, 0, 20),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 14),
-                itemBuilder: (_, i) => SizedBox(
-                  width: 280,
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: RestaurantCard(
-                      listing: items[i],
-                      onTap: () {
-                        TGAnalytics.track('home_resto_card_click', {'listingNo': items[i].listingNo});
-                        context.go(items[i].detailPath);
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            )
-          else
-            LayoutBuilder(
-              builder: (context, c) {
-                final cols = c.maxWidth >= 1100 ? 4 : (c.maxWidth >= 800 ? 3 : 2);
-                final gap = 16.0;
-                final w = (c.maxWidth - gap * (cols - 1)) / cols;
-                return Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Wrap(
-                    spacing: gap,
-                    runSpacing: gap + 8,
-                    children: [
-                      for (final item in items)
-                        SizedBox(
-                          width: w,
-                          child: RestaurantCard(
-                            listing: item,
-                            onTap: () {
-                              TGAnalytics.track('home_resto_card_click', {'listingNo': item.listingNo});
-                              context.go(item.detailPath);
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
+          list,
         ],
       ),
     );

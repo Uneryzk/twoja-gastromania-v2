@@ -62,7 +62,17 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final pad = phone ? 16.0 : 24.0;
 
-    final promoted = _all.where((p) => p.isActive && p.isPromoted).take(3).toList();
+    // Promoted first, then active listings (private sellers preferred). Cap 20 for homepage.
+    final active = _all.where((p) => p.isActive && p.isPubliclyVisible).toList();
+    final featured = [
+      ...active.where((p) => p.isPromoted),
+      ...active.where((p) => !p.isPromoted).toList()
+        ..sort((a, b) {
+          final ap = a.seller.type == TGSellerType.private ? 0 : 1;
+          final bp = b.seller.type == TGSellerType.private ? 0 : 1;
+          return ap.compareTo(bp);
+        }),
+    ].take(20).toList();
     final counts = {for (final c in TGCategory.values) c: _all.where((p) => p.isPubliclyVisible && p.category == c).length};
 
     Widget section(Widget child, {double top = 56}) => Center(
@@ -104,8 +114,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   top: 12,
                 ),
                 section(HomeCategorySection(listingCounts: counts)),
+                if (featured.isNotEmpty) section(HomePromotedSection(products: featured)),
                 section(const HomeRestaurantsStrip()),
-                if (promoted.isNotEmpty) section(HomePromotedSection(products: promoted)),
                 section(const HomeBestSellers()),
                 section(const HomeStatsSection()),
                 const SizedBox(height: 72),

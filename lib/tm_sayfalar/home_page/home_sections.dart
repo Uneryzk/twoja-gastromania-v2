@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
-import 'package:twoja_gastromania/products/products_results.dart' show gridColumnsFor, kTGGridGutter;
+import 'package:twoja_gastromania/products/products_results.dart' show kTGGridGutter;
 import 'package:twoja_gastromania/tg_components/tg_hover_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_rating_stars.dart';
@@ -351,7 +351,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                                       mainAxisSize: MainAxisSize.min,
                                                       children: [
                                                         Text(
-                                                          s.sponsored ? context.t('ui_view') : 'Read more',
+                                                          s.sponsored ? context.t('ui_view') : context.t('ui_read_more'),
                                                           style: theme.bodySmall.override(color: TGColors.onCta, fontWeight: FontWeight.w900),
                                                         ),
                                                         const SizedBox(width: 6),
@@ -490,7 +490,7 @@ class HomeCategorySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        HomeSectionTitle(title: l10n.getText('5w70mdov'), subtitle: l10n.getText('3u75e0ef')),
+        HomeSectionTitle(title: context.t('ui_gastronomy_categories'), subtitle: l10n.getText('3u75e0ef')),
         const SizedBox(height: 22),
         LayoutBuilder(
           builder: (context, c) {
@@ -607,19 +607,80 @@ class _CategoryCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Promoted listings
+// Promoted / featured listings (private-seller first catalogue strip)
 // ---------------------------------------------------------------------------
 
-/// A row of the currently promoted listings (real catalogue data).
-class HomePromotedSection extends StatelessWidget {
+/// Homepage featured products:
+/// - desktop: 5 cards wide
+/// - ≤5: static row · 6–10: two rows · >10: auto-scroll (2s) + manual
+class HomePromotedSection extends StatefulWidget {
   const HomePromotedSection({super.key, required this.products});
 
   final List<TGProduct> products;
 
   @override
+  State<HomePromotedSection> createState() => _HomePromotedSectionState();
+}
+
+class _HomePromotedSectionState extends State<HomePromotedSection> {
+  static const int _desktopVisible = 5;
+  static const Duration _autoEvery = Duration(seconds: 2);
+
+  final ScrollController _scroll = ScrollController();
+  Timer? _timer;
+  bool _paused = false;
+  bool _timerArmed = false;
+  double _cardStep = 0;
+
+  @override
+  void didUpdateWidget(covariant HomePromotedSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.products.length != widget.products.length) {
+      _timerArmed = false;
+      _timer?.cancel();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _armTimer(bool reduce) {
+    if (_timerArmed) return;
+    _timerArmed = true;
+    _timer?.cancel();
+    if (reduce || widget.products.length <= 10) {
+      _timer = null;
+      return;
+    }
+    _timer = Timer.periodic(_autoEvery, (_) => _advance());
+  }
+
+  void _advance() {
+    if (_paused || !mounted || !_scroll.hasClients || _cardStep <= 0) return;
+    final max = _scroll.position.maxScrollExtent;
+    if (max <= 0) return;
+    var next = _scroll.offset + _cardStep;
+    if (next > max + 1) next = 0;
+    _scroll.animateTo(next.clamp(0.0, max), duration: const Duration(milliseconds: 420), curve: Curves.easeOutCubic);
+  }
+
+  void _nudge(double dir) {
+    if (!_scroll.hasClients || _cardStep <= 0) return;
+    final max = _scroll.position.maxScrollExtent;
+    final next = (_scroll.offset + dir * _cardStep).clamp(0.0, max);
+    _scroll.animateTo(next, duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final products = widget.products;
     if (products.isEmpty) return const SizedBox.shrink();
     final theme = FlutterFlowTheme.of(context);
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -627,25 +688,30 @@ class HomePromotedSection extends StatelessWidget {
         HomeSectionTitle(
           title: context.t('ui_promoted_listings'),
           subtitle: context.t('ui_promoted_listings_sub'),
-          action: TextButton.icon(
+          action: TextButton(
             onPressed: () => TGNav.products(context),
-            icon: Icon(Icons.arrow_forward_rounded, size: 18, color: theme.primary),
-            label: Text(context.t('ui_view_all'), style: theme.bodyMedium.override(color: theme.primary, fontWeight: FontWeight.w800)),
-            iconAlignment: IconAlignment.end,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(context.t('ui_view_all'), style: theme.bodyMedium.override(color: theme.primary, fontWeight: FontWeight.w800)),
+                const SizedBox(width: 4),
+                Icon(Icons.arrow_forward_rounded, size: 18, color: theme.primary),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 22),
         LayoutBuilder(
           builder: (context, c) {
             final scaler = MediaQuery.textScalerOf(context);
-            final cols = gridColumnsFor(c.maxWidth);
-            if (c.maxWidth < TGBreakpoints.phone) {
+            final phone = c.maxWidth < TGBreakpoints.phone;
+            if (phone) {
               const cardW = 292.0;
               return SizedBox(
                 height: TGProductCard.gridExtent(cardW, scaler) + 28,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  clipBehavior: Clip.none,
+                  clipBehavior: Clip.hardEdge,
                   padding: const EdgeInsets.only(top: 8, bottom: 16),
                   itemCount: products.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 14),
@@ -653,20 +719,82 @@ class HomePromotedSection extends StatelessWidget {
                 ),
               );
             }
-            final cardW = (c.maxWidth - kTGGridGutter * (cols - 1)) / cols;
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              clipBehavior: Clip.none,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                crossAxisSpacing: kTGGridGutter,
-                mainAxisSpacing: kTGGridGutter,
-                mainAxisExtent: TGProductCard.gridExtent(cardW, scaler),
+
+            final n = products.length;
+            // 6–10 → two static rows of up to 5.
+            if (n <= 10) {
+              final row1 = products.take(_desktopVisible).toList();
+              final row2 = n > _desktopVisible ? products.skip(_desktopVisible).take(_desktopVisible).toList() : const <TGProduct>[];
+              final cardW = (c.maxWidth - kTGGridGutter * (_desktopVisible - 1)) / _desktopVisible;
+              final h = TGProductCard.gridExtent(cardW, scaler);
+              Widget row(List<TGProduct> items) => Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < items.length; i++) ...[
+                        if (i > 0) const SizedBox(width: kTGGridGutter),
+                        SizedBox(width: cardW, height: h, child: TGProductCard(product: items[i])),
+                      ],
+                    ],
+                  );
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  row(row1),
+                  if (row2.isNotEmpty) ...[const SizedBox(height: kTGGridGutter), row(row2)],
+                ],
+              );
+            }
+
+            // >10 → horizontal carousel, 5 visible, auto 2s + manual.
+            final cardW = (c.maxWidth - kTGGridGutter * (_desktopVisible - 1)) / _desktopVisible;
+            _cardStep = cardW + kTGGridGutter;
+            final h = TGProductCard.gridExtent(cardW, scaler);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _armTimer(reduce);
+            });
+            return MouseRegion(
+              onEnter: (_) => _paused = true,
+              onExit: (_) => _paused = false,
+              child: Stack(
+                children: [
+                  SizedBox(
+                    height: h + 16,
+                    child: ListView.separated(
+                      controller: _scroll,
+                      scrollDirection: Axis.horizontal,
+                      clipBehavior: Clip.hardEdge,
+                      padding: const EdgeInsets.only(top: 4, bottom: 12),
+                      itemCount: products.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: kTGGridGutter),
+                      itemBuilder: (_, i) => SizedBox(width: cardW, height: h, child: TGProductCard(product: products[i])),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 12,
+                    child: Center(
+                      child: _ArrowButton(
+                        icon: Icons.chevron_left_rounded,
+                        label: 'Previous',
+                        onTap: () => _nudge(-1),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    bottom: 12,
+                    child: Center(
+                      child: _ArrowButton(
+                        icon: Icons.chevron_right_rounded,
+                        label: 'Next',
+                        onTap: () => _nudge(1),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              itemCount: products.length,
-              itemBuilder: (_, i) => TGProductCard(product: products[i]),
             );
           },
         ),
