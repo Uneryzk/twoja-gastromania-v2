@@ -1,0 +1,6 @@
+{
+  "name": "twoja-gastromania",
+  "dependencies": {
+    "netlify-plugin-flutter": "^1.0.0"
+  }
+}
