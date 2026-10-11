@@ -11,8 +11,8 @@ class TGProductService {
   TGProductService._();
   static final TGProductService instance = TGProductService._();
 
-  /// Bumped when seed image strategy changes (Picsum → curated Unsplash).
-  static const _storageKey = '__tg_products_v9__';
+  /// Bumped when seed image strategy changes (multi-pool → 6 fixed gastro URLs).
+  static const _storageKey = '__tg_products_v10__';
 
   List<TGProduct>? _cache;
 

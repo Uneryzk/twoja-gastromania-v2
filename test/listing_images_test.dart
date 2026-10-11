@@ -3,99 +3,76 @@ import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 
 void main() {
-  group('TGListingImages', () {
-    test('cover is curated Unsplash URL (never Picsum)', () {
-      final url = TGListingImages.cover(
-        id: 'p001',
-        category: TGCategory.cookingEquipment,
-        title: 'Piec konwekcyjny',
-      );
-      expect(url, startsWith('https://images.unsplash.com/photo-'));
-      expect(url, isNot(contains('picsum')));
-      expect(url, contains('auto=format'));
-    });
-
-    test('different ids produce different URLs within theme', () {
-      final a = TGListingImages.cover(id: 'p001', category: TGCategory.cookingEquipment, title: 'A');
-      final b = TGListingImages.cover(id: 'p002', category: TGCategory.cookingEquipment, title: 'B');
-      expect(a, isNot(equals(b)));
-    });
-
-    test('same inputs are stable', () {
-      final a = TGListingImages.cover(id: 'p001', category: TGCategory.warewashing, title: 'Zmywarka');
-      final b = TGListingImages.cover(id: 'p001', category: TGCategory.warewashing, title: 'Zmywarka');
-      expect(a, equals(b));
-    });
-
-    test('gallery entries stay on Unsplash and cover-first', () {
-      final gallery = TGListingImages.gallery(
-        id: 'p003',
-        category: TGCategory.refrigerationEquipment,
-        title: 'Szafa chłodnicza',
-        count: 5,
-      );
-      expect(gallery, hasLength(5));
-      expect(gallery.every((u) => u.startsWith('https://images.unsplash.com/photo-')), isTrue);
-      expect(gallery.first, TGListingImages.cover(id: 'p003', category: TGCategory.refrigerationEquipment, title: 'Szafa chłodnicza'));
-    });
-
-    test('category covers are fixed photo IDs (no search / no Picsum)', () {
-      expect(
-        TGListingImages.categoryCover(TGCategory.cookingEquipment),
-        'https://images.unsplash.com/photo-1556910103-1c02745aae0f?auto=format&fit=crop&w=800&q=80',
-      );
-      expect(
-        TGListingImages.categoryCover(TGCategory.refrigerationEquipment),
-        'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80',
-      );
-      expect(
-        TGListingImages.categoryCover(TGCategory.warewashing),
-        'https://images.unsplash.com/photo-1585837575652-267c041d77d4?auto=format&fit=crop&w=800&q=80',
-      );
-      expect(
-        TGListingImages.categoryCover(TGCategory.foodPreparation),
-        'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=800&q=80',
-      );
-      expect(
-        TGListingImages.categoryCover(TGCategory.stainlessSteelFurniture),
-        'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
-      );
-      expect(
-        TGListingImages.categoryCover(TGCategory.barAndBeverageEquipment),
-        'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80',
-      );
-      for (final url in TGListingImages.categoryCoverUrls.values) {
-        expect(url, isNot(contains('picsum')));
-        expect(url, isNot(contains('source.unsplash')));
-        expect(url, isNot(contains('/search')));
+  group('TGListingImages — 6 fixed gastro URLs only', () {
+    test('allFixed has exactly the 6 mandated URLs', () {
+      expect(TGListingImages.allFixed, [
+        TGListingImages.cooking,
+        TGListingImages.refrigeration,
+        TGListingImages.warewashing,
+        TGListingImages.foodPrep,
+        TGListingImages.stainless,
+        TGListingImages.barCafe,
+      ]);
+      expect(TGListingImages.allFixed, hasLength(6));
+      for (final u in TGListingImages.allFixed) {
+        expect(u, startsWith('https://images.unsplash.com/photo-'));
+        expect(u, contains('w=1200'));
+        expect(u, isNot(contains('picsum')));
       }
     });
 
-    test('title keywords select oven / cafe / warewash / fridge themes', () {
-      expect(TGListingImages.themeKey(title: 'Piec konwekcyjno-parowy Bartscher'), 'oven');
-      expect(TGListingImages.themeKey(title: 'Ekspres kolbowy 2-grupowy'), 'cafe');
-      expect(TGListingImages.themeKey(title: 'Zmywarka podblatowa Öztiryakiler'), 'warewash');
-      expect(TGListingImages.themeKey(title: 'Szafa chłodnicza 700L'), 'fridge');
-      expect(TGListingImages.themeKey(title: 'Stół ze stali nierdzewnej'), 'inox');
-      expect(TGListingImages.themeKey(title: 'Pizza oven wood-fired'), 'pizza');
+    test('category covers match the 6 fixed URLs', () {
+      expect(TGListingImages.categoryCover(TGCategory.cookingEquipment), TGListingImages.cooking);
+      expect(TGListingImages.categoryCover(TGCategory.refrigerationEquipment), TGListingImages.refrigeration);
+      expect(TGListingImages.categoryCover(TGCategory.warewashing), TGListingImages.warewashing);
+      expect(TGListingImages.categoryCover(TGCategory.foodPreparation), TGListingImages.foodPrep);
+      expect(TGListingImages.categoryCover(TGCategory.stainlessSteelFurniture), TGListingImages.stainless);
+      expect(TGListingImages.categoryCover(TGCategory.barAndBeverageEquipment), TGListingImages.barCafe);
     });
 
-    test('normalizeCategory covers TR/PL/EN labels', () {
-      expect(TGListingImages.normalizeCategory('Pişirme Ekipmanları'), 'cooking');
-      expect(TGListingImages.normalizeCategory('Soğutma'), 'fridge');
-      expect(TGListingImages.normalizeCategory('Bulaşık Yıkama'), 'warewash');
-      expect(TGListingImages.normalizeCategory('Yiyecek Hazırlama'), 'prep');
-      expect(TGListingImages.normalizeCategory('Paslanmaz Çelik Mobilya'), 'inox');
-      expect(TGListingImages.normalizeCategory('Bar ve İçecek'), 'bar');
-      expect(TGListingImages.normalizeCategory('Cooking Equipment'), 'cooking');
-      expect(TGListingImages.normalizeCategory('Warewashing'), 'warewash');
+    test('listing cover / gallery never leave the 6 URLs', () {
+      for (final cat in TGCategory.values) {
+        final cover = TGListingImages.cover(id: 'x', category: cat, title: 'test');
+        expect(TGListingImages.allFixed, contains(cover));
+        final gallery = TGListingImages.gallery(id: 'x', category: cat, title: 'test', count: 5);
+        expect(gallery.every(TGListingImages.allFixed.contains), isTrue);
+      }
     });
 
-    test('hero slides are gastronomy Unsplash URLs', () {
-      for (var i = 0; i < 4; i++) {
-        final u = TGListingImages.heroSlide(i);
-        expect(u, startsWith('https://images.unsplash.com/photo-'));
-        expect(u, isNot(contains('picsum')));
+    test('title keywords still map onto the 6 URLs only', () {
+      expect(
+        TGListingImages.cover(id: '1', category: TGCategory.cookingEquipment, title: 'Piec konwekcyjny'),
+        TGListingImages.cooking,
+      );
+      expect(
+        TGListingImages.cover(id: '2', category: TGCategory.cookingEquipment, title: 'Zmywarka Hobart'),
+        TGListingImages.warewashing,
+      );
+      expect(
+        TGListingImages.cover(id: '3', category: TGCategory.cookingEquipment, title: 'Szafa chłodnicza'),
+        TGListingImages.refrigeration,
+      );
+      expect(
+        TGListingImages.cover(id: '4', category: TGCategory.cookingEquipment, title: 'Ekspres kolbowy'),
+        TGListingImages.barCafe,
+      );
+      expect(
+        TGListingImages.cover(id: '5', category: TGCategory.cookingEquipment, title: 'Stół nierdzewny'),
+        TGListingImages.stainless,
+      );
+    });
+
+    test('hero slides cycle only within the 6 URLs', () {
+      for (var i = 0; i < 12; i++) {
+        expect(TGListingImages.allFixed, contains(TGListingImages.heroSlide(i)));
+      }
+    });
+
+    test('theme helpers never invent external photo IDs', () {
+      final themes = ['restaurant', 'pizza', 'bakery', 'cafe', 'oven', 'default', 'unknown-xyz'];
+      for (final t in themes) {
+        final url = TGListingImages.coverForTheme(id: 'r', theme: t, title: t);
+        expect(TGListingImages.allFixed, contains(url));
       }
     });
   });
