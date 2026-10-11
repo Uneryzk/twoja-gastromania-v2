@@ -1,30 +1,24 @@
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 
-/// Single source of truth for marketplace / hub imagery.
+/// Local FlutterFlow / project assets for listings, category tiles and banners.
 ///
-/// **Only these 6 fixed industrial-kitchen Unsplash URLs are allowed.**
-/// No Picsum, no keyword search, no other photo IDs — ever.
+/// **No Unsplash / Picsum / remote placeholders.** Every path is under `assets/images/`.
 class TGListingImages {
   TGListingImages._();
 
   // ---------------------------------------------------------------------------
-  // THE ONLY allowed images (global constants)
+  // Category → original local asset (FlutterFlow marketplace art)
   // ---------------------------------------------------------------------------
 
-  static const String cooking =
-      'https://images.unsplash.com/photo-1556910103-1c02745aae0f?auto=format&fit=crop&w=1200&q=80';
-  static const String refrigeration =
-      'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80';
+  static const String cooking = 'assets/images/bartscher_2002170.webp';
+  static const String refrigeration = 'assets/images/IMG_20200120_131650.jpg';
   static const String warewashing =
-      'https://images.unsplash.com/photo-1585837575652-267c041d77d4?auto=format&fit=crop&w=1200&q=80';
-  static const String foodPrep =
-      'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=1200&q=80';
-  static const String stainless =
-      'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1200&q=80';
-  static const String barCafe =
-      'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80';
+      'assets/images/oztiryakiler-sanayi-tipi-bulasik-yikama-makinesitouch-ekran-oby-50t-tahliye-pompali-tezgah-alti-bulasik-makineleri-oztiryakiler-52978-19-B.webp';
+  static const String foodPrep = 'assets/images/Food_Prepering_table.jpg';
+  static const String stainless = 'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg';
+  static const String barCafe = 'assets/images/Bar_&_Beverage_Equipment.jpg';
 
-  /// All allowed URLs (order = cooking → … → bar).
+  /// All six category covers (stable order for hero rotation).
   static const List<String> allFixed = [
     cooking,
     refrigeration,
@@ -34,7 +28,7 @@ class TGListingImages {
     barCafe,
   ];
 
-  /// Category tile + listing cover map — one fixed URL per [TGCategory].
+  /// Featured Offers / category tiles — fixed local paths only.
   static const Map<TGCategory, String> categoryCoverUrls = {
     TGCategory.cookingEquipment: cooking,
     TGCategory.refrigerationEquipment: refrigeration,
@@ -44,8 +38,26 @@ class TGListingImages {
     TGCategory.barAndBeverageEquipment: barCafe,
   };
 
+  /// Shared local gallery pool (gastronomy assets only).
+  static const List<String> listingPool = [
+    cooking,
+    stainless,
+    warewashing,
+    refrigeration,
+    'assets/images/pol_pm_Wanna-bemarowa-3X-GN-1-1-Komat-KCB-001-031-2808_2.png',
+    'assets/images/blog-26.jpg',
+    'assets/images/images.jpeg',
+    'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg',
+    'assets/images/IMG_3696-scaled.webp',
+    'assets/images/17594161762353ebc282350944289b81f72b29ad94_square_thumbnail_405x552.jpg',
+    foodPrep,
+    'assets/images/image.png',
+    'assets/images/10befb6d92142e17d926d07d605d82d8.jpg',
+    barCafe,
+  ];
+
   // ---------------------------------------------------------------------------
-  // Public API — always returns one of [allFixed]
+  // Public API
   // ---------------------------------------------------------------------------
 
   static String cover({
@@ -55,7 +67,7 @@ class TGListingImages {
     int width = 1200,
     int height = 800,
   }) =>
-      _urlFor(category: category, title: title);
+      _assetFor(category: category, title: title);
 
   static String coverForTheme({
     required String id,
@@ -65,7 +77,7 @@ class TGListingImages {
     int height = 800,
     int index = 0,
   }) =>
-      _urlForTheme(theme, title);
+      _assetForTheme(_normalizeTheme(theme, title));
 
   static List<String> gallery({
     required String id,
@@ -75,10 +87,40 @@ class TGListingImages {
     int width = 1200,
     int height = 800,
   }) {
-    final url = _urlFor(category: category, title: title);
     final n = count.clamp(1, 12);
-    // Same on-theme industrial photo for every gallery slot (no off-theme fillers).
-    return List<String>.filled(n, url, growable: false);
+    final cover = _assetFor(category: category, title: title);
+    final out = <String>[cover];
+    final start = id.hashCode.abs();
+    for (var i = 0; i < listingPool.length && out.length < n; i++) {
+      final next = listingPool[(start + i) % listingPool.length];
+      if (!out.contains(next)) out.add(next);
+    }
+    while (out.length < n) {
+      out.add(cover);
+    }
+    // Prefer listing-specific seed cover when caller already set imageUrl via gallery[0]=cover.
+    return out;
+  }
+
+  /// Gallery that keeps an existing seed [primary] as the first photo.
+  static List<String> galleryWithPrimary({
+    required String primary,
+    required String id,
+    required TGCategory category,
+    String? title,
+    int count = 4,
+  }) {
+    final n = count.clamp(1, 12);
+    final out = <String>[if (primary.startsWith('assets/')) primary else _assetFor(category: category, title: title)];
+    final start = id.hashCode.abs();
+    for (var i = 0; i < listingPool.length && out.length < n; i++) {
+      final next = listingPool[(start + i) % listingPool.length];
+      if (!out.contains(next)) out.add(next);
+    }
+    while (out.length < n) {
+      out.add(out.first);
+    }
+    return out;
   }
 
   static List<String> galleryForTheme({
@@ -89,9 +131,17 @@ class TGListingImages {
     int width = 1200,
     int height = 800,
   }) {
-    final url = _urlForTheme(theme, title);
-    final n = count.clamp(1, 12);
-    return List<String>.filled(n, url, growable: false);
+    final key = _normalizeTheme(theme, title);
+    // Map theme → nearest TGCategory for gallery fill.
+    final cat = switch (key) {
+      'fridge' => TGCategory.refrigerationEquipment,
+      'warewash' => TGCategory.warewashing,
+      'prep' || 'bakery' => TGCategory.foodPreparation,
+      'inox' => TGCategory.stainlessSteelFurniture,
+      'bar' || 'cafe' => TGCategory.barAndBeverageEquipment,
+      _ => TGCategory.cookingEquipment,
+    };
+    return gallery(id: id, category: cat, title: title, count: count);
   }
 
   static String forIndex({
@@ -101,15 +151,24 @@ class TGListingImages {
     int index = 0,
     int width = 1200,
     int height = 800,
-  }) =>
-      _urlFor(category: category, title: title);
+  }) {
+    final g = gallery(id: id, category: category, title: title, count: (index + 1).clamp(1, 12));
+    return g[index.clamp(0, g.length - 1)];
+  }
 
   static String categoryCover(TGCategory category, {int width = 1200, int height = 800}) =>
       categoryCoverUrls[category] ?? cooking;
 
-  /// Hero / banner — cycles only through the 6 fixed URLs.
-  static String heroSlide(int index, {int width = 1200, int height = 800}) =>
-      allFixed[index.abs() % allFixed.length];
+  /// Home hero slides — local industrial-kitchen assets only.
+  static String heroSlide(int index, {int width = 1200, int height = 800}) {
+    const heroes = [
+      'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg',
+      'assets/images/blog-26.jpg',
+      'assets/images/17594161762353ebc282350944289b81f72b29ad94_square_thumbnail_405x552.jpg',
+      'assets/images/IMG_3696-scaled.webp',
+    ];
+    return heroes[index.abs() % heroes.length];
+  }
 
   static String themeKey({TGCategory? category, String? label, String? title}) {
     if (label != null && label.trim().isNotEmpty) return _normalizeTheme(label, title);
@@ -123,15 +182,12 @@ class TGListingImages {
   // Internals
   // ---------------------------------------------------------------------------
 
-  static String _urlFor({required TGCategory category, String? title}) {
+  static String _assetFor({required TGCategory category, String? title}) {
     final theme = _themeForCategory(category, title);
-    return _urlForThemeKey(theme);
+    return _assetForTheme(theme);
   }
 
-  static String _urlForTheme(String theme, String? title) =>
-      _urlForThemeKey(_normalizeTheme(theme, title));
-
-  static String _urlForThemeKey(String theme) => switch (theme) {
+  static String _assetForTheme(String theme) => switch (theme) {
         'cooking' || 'oven' || 'pizza' || 'restaurant' || 'default' => cooking,
         'fridge' => refrigeration,
         'warewash' => warewashing,
@@ -156,12 +212,9 @@ class TGListingImages {
         TGCategory.barAndBeverageEquipment => 'bar',
       };
 
-  /// Maps free-text (TR / PL / EN) onto one of the 6 theme keys.
   static String _normalizeTheme(String category, String? title) {
     final t = _fold('${category.toLowerCase()} ${title?.toLowerCase() ?? ''}');
 
-    if (_any(t, const ['pizza', 'pizzer', 'piec pizza', 'wood-fired'])) return 'cooking';
-    // Warewash before bar — brands like "Hobart" contain the letters "bar".
     if (_any(t, const [
       'dishwasher', 'zmywarka', 'bulasik', 'bulaşık', 'warewash', 'sink', 'zlew',
       'hobart', 'oztiryak', 'öztiryak', 'warewashing',
@@ -172,7 +225,7 @@ class TGListingImages {
       'oven', 'piec', 'firin', 'fırın', 'combi', 'konwekcyj', 'konveksiyon',
       'steam oven', 'piekarnik', 'rational', 'icomb', 'ocak', 'palnik', 'gazowa',
       'fryer', 'frytown', 'griddle', 'grill', 'cook', 'pisir', 'pişir', 'kuchnia',
-      'cooking', 'range', 'pisirme', 'pişirme',
+      'cooking', 'range', 'pisirme', 'pişirme', 'pizza', 'pizzer',
     ])) {
       return 'cooking';
     }
@@ -210,10 +263,10 @@ class TGListingImages {
     if (_any(t, const [
       'restaurant', 'restoran', 'restauracj', 'dining', 'gastro', 'lokale',
       'lokal ', 'club', 'catering', 'dark kitchen', 'fast food', 'fast_food',
+      'cooking equipment',
     ])) {
       return 'cooking';
     }
-    if (_any(t, const ['cooking equipment'])) return 'cooking';
     if (_any(t, const ['bar & beverage', 'bar and beverage', 'beverage equipment'])) return 'bar';
     return 'default';
   }
@@ -225,7 +278,6 @@ class TGListingImages {
     return false;
   }
 
-  /// Whole-word match (avoids "bar" inside "Hobart").
   static bool _hasWord(String haystack, String word) {
     final w = _fold(word);
     final re = RegExp('(?:^|[^a-z0-9])$w(?:[^a-z0-9]|\$)');

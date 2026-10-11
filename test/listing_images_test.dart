@@ -3,25 +3,14 @@ import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 
 void main() {
-  group('TGListingImages — 6 fixed gastro URLs only', () {
-    test('allFixed has exactly the 6 mandated URLs', () {
-      expect(TGListingImages.allFixed, [
-        TGListingImages.cooking,
-        TGListingImages.refrigeration,
-        TGListingImages.warewashing,
-        TGListingImages.foodPrep,
-        TGListingImages.stainless,
-        TGListingImages.barCafe,
-      ]);
-      expect(TGListingImages.allFixed, hasLength(6));
-      for (final u in TGListingImages.allFixed) {
-        expect(u, startsWith('https://images.unsplash.com/photo-'));
-        expect(u, contains('w=1200'));
-        expect(u, isNot(contains('picsum')));
+  group('TGListingImages — local assets only', () {
+    test('category covers are assets/images paths', () {
+      for (final url in TGListingImages.categoryCoverUrls.values) {
+        expect(url, startsWith('assets/images/'));
+        expect(url, isNot(contains('unsplash')));
+        expect(url, isNot(contains('picsum')));
+        expect(url, isNot(contains('http')));
       }
-    });
-
-    test('category covers match the 6 fixed URLs', () {
       expect(TGListingImages.categoryCover(TGCategory.cookingEquipment), TGListingImages.cooking);
       expect(TGListingImages.categoryCover(TGCategory.refrigerationEquipment), TGListingImages.refrigeration);
       expect(TGListingImages.categoryCover(TGCategory.warewashing), TGListingImages.warewashing);
@@ -30,50 +19,36 @@ void main() {
       expect(TGListingImages.categoryCover(TGCategory.barAndBeverageEquipment), TGListingImages.barCafe);
     });
 
-    test('listing cover / gallery never leave the 6 URLs', () {
+    test('cover / gallery / hero never leave assets/images', () {
       for (final cat in TGCategory.values) {
         final cover = TGListingImages.cover(id: 'x', category: cat, title: 'test');
-        expect(TGListingImages.allFixed, contains(cover));
+        expect(cover, startsWith('assets/images/'));
         final gallery = TGListingImages.gallery(id: 'x', category: cat, title: 'test', count: 5);
-        expect(gallery.every(TGListingImages.allFixed.contains), isTrue);
+        expect(gallery.every((u) => u.startsWith('assets/images/')), isTrue);
+      }
+      for (var i = 0; i < 4; i++) {
+        expect(TGListingImages.heroSlide(i), startsWith('assets/images/'));
       }
     });
 
-    test('title keywords still map onto the 6 URLs only', () {
-      expect(
-        TGListingImages.cover(id: '1', category: TGCategory.cookingEquipment, title: 'Piec konwekcyjny'),
-        TGListingImages.cooking,
+    test('galleryWithPrimary keeps seed cover first', () {
+      const primary = 'assets/images/bartscher_2002170.webp';
+      final g = TGListingImages.galleryWithPrimary(
+        primary: primary,
+        id: 'p001',
+        category: TGCategory.cookingEquipment,
+        title: 'Piec',
+        count: 4,
       );
-      expect(
-        TGListingImages.cover(id: '2', category: TGCategory.cookingEquipment, title: 'Zmywarka Hobart'),
-        TGListingImages.warewashing,
-      );
-      expect(
-        TGListingImages.cover(id: '3', category: TGCategory.cookingEquipment, title: 'Szafa chłodnicza'),
-        TGListingImages.refrigeration,
-      );
-      expect(
-        TGListingImages.cover(id: '4', category: TGCategory.cookingEquipment, title: 'Ekspres kolbowy'),
-        TGListingImages.barCafe,
-      );
-      expect(
-        TGListingImages.cover(id: '5', category: TGCategory.cookingEquipment, title: 'Stół nierdzewny'),
-        TGListingImages.stainless,
-      );
+      expect(g.first, primary);
+      expect(g, hasLength(4));
+      expect(g.every((u) => u.startsWith('assets/images/')), isTrue);
     });
 
-    test('hero slides cycle only within the 6 URLs', () {
-      for (var i = 0; i < 12; i++) {
-        expect(TGListingImages.allFixed, contains(TGListingImages.heroSlide(i)));
-      }
-    });
-
-    test('theme helpers never invent external photo IDs', () {
-      final themes = ['restaurant', 'pizza', 'bakery', 'cafe', 'oven', 'default', 'unknown-xyz'];
-      for (final t in themes) {
-        final url = TGListingImages.coverForTheme(id: 'r', theme: t, title: t);
-        expect(TGListingImages.allFixed, contains(url));
-      }
+    test('no remote URL constants remain', () {
+      expect(TGListingImages.cooking, isNot(contains('http')));
+      expect(TGListingImages.allFixed.every((u) => u.startsWith('assets/images/')), isTrue);
+      expect(TGListingImages.listingPool.every((u) => u.startsWith('assets/images/')), isTrue);
     });
   });
 }

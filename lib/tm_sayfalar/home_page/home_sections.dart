@@ -8,7 +8,6 @@ import 'package:twoja_gastromania/products/products_results.dart' show gridColum
 import 'package:twoja_gastromania/tg_components/tg_hover_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_rating_stars.dart';
-import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -159,10 +158,12 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
-                                TGSmartImage(
-                                  url: s.image,
+                                Image.asset(
+                                  s.image,
+                                  fit: BoxFit.cover,
                                   cacheWidth: 1400,
-                                  fallback: (_) => ColoredBox(color: theme.alternate),
+                                  gaplessPlayback: true,
+                                  errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate),
                                 ),
                                 // Scrim keeps the white copy readable on any photo.
                                 DecoratedBox(
@@ -314,11 +315,11 @@ class _CategoryData {
   final TGCategory category;
   final String titleKey;
 
-  /// Fixed Unsplash photo URL (never keyword-search / Picsum).
+  /// Local `assets/images/…` path (FlutterFlow originals).
   final String image;
 }
 
-/// Featured category tiles — images from [TGListingImages.categoryCoverUrls] only.
+/// Featured category tiles — local assets from [TGListingImages.categoryCoverUrls] only.
 final List<_CategoryData> _categories = [
   for (final e in TGListingImages.categoryCoverUrls.entries)
     _CategoryData(
@@ -401,10 +402,11 @@ class _CategoryCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          TGSmartImage(
-            url: data.image,
+          Image.asset(
+            data.image,
+            fit: BoxFit.cover,
             cacheWidth: 800,
-            fallback: (_) => ColoredBox(color: theme.alternate),
+            errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate),
           ),
           DecoratedBox(
             decoration: BoxDecoration(

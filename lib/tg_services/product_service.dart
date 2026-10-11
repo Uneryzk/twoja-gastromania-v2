@@ -11,8 +11,8 @@ class TGProductService {
   TGProductService._();
   static final TGProductService instance = TGProductService._();
 
-  /// Bumped when seed image strategy changes (multi-pool → 6 fixed gastro URLs).
-  static const _storageKey = '__tg_products_v10__';
+  /// Bumped when seed image strategy changes (remote Unsplash → local assets).
+  static const _storageKey = '__tg_products_v11__';
 
   List<TGProduct>? _cache;
 
@@ -584,8 +584,9 @@ class TGProductService {
     final numbered = [
       for (final p in seeded)
         p.copyWith(
-          imageUrl: TGListingImages.cover(id: p.id, category: p.category, title: p.title),
-          imageUrls: TGListingImages.gallery(
+          // Keep seed cover asset; fill gallery from local gastronomy pool only.
+          imageUrls: TGListingImages.galleryWithPrimary(
+            primary: p.imageUrl,
             id: p.id,
             category: p.category,
             title: p.title,
