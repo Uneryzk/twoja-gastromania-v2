@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/tg_components/tg_account_sheets.dart';
-import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -120,11 +119,12 @@ abstract final class TGNav {
     context.go('/dashboard/leads${q.isEmpty ? '' : '?${q.join('&')}'}');
   }
 
-  static void restaurantsForSale(BuildContext context) => _comingSoon(context, 'Restaurants for Sale');
+  static const String restaurantsPath = '/restaurants';
 
-  static void _comingSoon(BuildContext context, String feature) => showTGToast(
-        context,
-        '$feature is coming soon',
-        icon: Icons.schedule_rounded,
-      );
+  static void restaurantsForSale(BuildContext context) => context.go(restaurantsPath);
+
+  static void restaurantListing(BuildContext context, String listingNoSlug) =>
+      context.go('$restaurantsPath/$listingNoSlug');
+
+  static void restaurantNew(BuildContext context) => context.go('$restaurantsPath/new');
 }

@@ -17,6 +17,7 @@ import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
 /// Page chrome: [TGHeader] is the first child of the body (not `Scaffold.appBar`)
 /// so it stays sticky *and* is the first `Twoja Gastromania` text in the tree
@@ -590,13 +591,18 @@ class _HeaderSearchState extends State<_HeaderSearch> {
   void _submit(String raw) {
     final q = raw.trim();
     if (TGListingNo.isListingNo(q)) {
-      final hit = TGListingNo.findPublic(_all, q);
       _hideOverlay();
-      if (hit == null) {
-        showTGToast(context, context.t('ui_no_listing_number'));
+      final product = TGListingNo.findPublic(_all, q);
+      if (product != null) {
+        context.go(product.detailPath);
         return;
       }
-      context.go(hit.detailPath);
+      final resto = RestaurantService.instance.findPublicByNo(q);
+      if (resto != null) {
+        context.go(resto.detailPath);
+        return;
+      }
+      showTGToast(context, context.t('ui_no_listing_number'));
       return;
     }
     (widget.onSubmitted ?? (v) => TGNav.search(context, v))(q);
@@ -609,8 +615,9 @@ class _HeaderSearchState extends State<_HeaderSearch> {
     _overlay = OverlayEntry(
       builder: (ctx) {
         final theme = FlutterFlowTheme.of(context);
-        final hit = TGListingNo.findPublic(_all, _query);
-        final label = hit == null
+        final hit = TGListingNo.findPublic(_all, _query) != null ||
+            RestaurantService.instance.findPublicByNo(_query) != null;
+        final label = !hit
             ? context.t('ui_no_listing_number')
             : context.t('ui_go_to_listing_no', {'n': _query});
         return Positioned(

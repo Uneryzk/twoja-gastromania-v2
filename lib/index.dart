@@ -22,6 +22,8 @@ export 'package:twoja_gastromania/special_order/manufacturer_dashboard_page.dart
 export 'package:twoja_gastromania/special_order/founders_page.dart' show FoundersPage;
 
 export 'package:twoja_gastromania/products/products_widget.dart' show ProductsPageWidget;
+export 'package:twoja_gastromania/restaurants/restaurants_widget.dart'
+    show RestaurantsPageWidget, RestaurantDetailPlaceholderPage, RestaurantNewPlaceholderPage;
 export 'package:twoja_gastromania/dashboard/listings_dashboard_widget.dart' show ListingsDashboardPage;
 export 'package:twoja_gastromania/dashboard/messages_page.dart' show MessagesPage;
 export 'package:twoja_gastromania/deals/seller_deals_page.dart' show SellerDealsPage;

@@ -22,11 +22,13 @@ class TGTopNav extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     final isPhone = MediaQuery.sizeOf(context).width < 700;
     final path = GoRouterState.of(context).uri.path;
-    final routeNavId = path.startsWith('/special-order')
-        ? 'special_order'
-        : path.startsWith('/add-product')
-            ? 'add_product'
-            : null;
+    final routeNavId = path.startsWith('/restaurants')
+        ? 'restaurants'
+        : path.startsWith('/special-order')
+            ? 'special_order'
+            : path.startsWith('/add-product')
+                ? 'add_product'
+                : null;
     final resolvedNavId = activeNavId ?? routeNavId;
 
     final items = [

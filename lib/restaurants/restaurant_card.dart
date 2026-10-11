@@ -1,0 +1,486 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
+import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
+import 'package:twoja_gastromania/tg_core/tg_toast.dart';
+import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+
+enum RestaurantCardVariant { grid, list, compact }
+
+class RestaurantCard extends StatefulWidget {
+  const RestaurantCard({
+    super.key,
+    required this.listing,
+    this.variant = RestaurantCardVariant.grid,
+    this.onTap,
+  });
+
+  final RestaurantListing listing;
+  final RestaurantCardVariant variant;
+  final VoidCallback? onTap;
+
+  @override
+  State<RestaurantCard> createState() => _RestaurantCardState();
+}
+
+class _RestaurantCardState extends State<RestaurantCard> {
+  bool _hover = false;
+  bool _fav = false;
+
+  RestaurantListing get r => widget.listing;
+
+  void _open() {
+    TGAnalytics.track('resto_card_click', {'listingNo': r.listingNo, 'id': r.id});
+    if (widget.onTap != null) {
+      widget.onTap!();
+      return;
+    }
+    context.go(r.detailPath);
+  }
+
+  Future<void> _copyPhone() async {
+    await Clipboard.setData(ClipboardData(text: r.phone));
+    TGAnalytics.track('resto_call_click', {'listingNo': r.listingNo, 'mode': 'copy'});
+    if (!mounted) return;
+    showTGToast(context, 'Phone copied', icon: Icons.phone_rounded);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduce = tgReduceMotion(context);
+    return switch (widget.variant) {
+      RestaurantCardVariant.grid => _grid(context, reduce),
+      RestaurantCardVariant.list => _list(context, reduce),
+      RestaurantCardVariant.compact => _compact(context),
+    };
+  }
+
+  Widget _grid(BuildContext context, bool reduce) {
+    final theme = FlutterFlowTheme.of(context);
+    final promoted = r.isPromoted;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: reduce ? 0 : 180),
+        transform: Matrix4.translationValues(0, _hover && !reduce ? -4 : 0, 0),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1F1F1F),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            width: promoted ? 2 : 1,
+            color: promoted ? Colors.transparent : const Color(0xFF2F2F2F),
+          ),
+          gradient: promoted
+              ? const LinearGradient(colors: [Color(0xFFE91E8C), Color(0xFF14B8A6)])
+              : null,
+          boxShadow: _hover && !reduce
+              ? [
+                  BoxShadow(
+                    color: (promoted ? const Color(0xFFE91E8C) : const Color(0xFF14B8A6)).withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
+        ),
+        child: promoted
+            ? Padding(
+                padding: const EdgeInsets.all(2),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(14)),
+                  child: _gridInner(theme),
+                ),
+              )
+            : _gridInner(theme),
+      ),
+    );
+  }
+
+  Widget _gridInner(FlutterFlowTheme theme) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: _open,
+        focusColor: TGColors.cta.withValues(alpha: 0.15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 4 / 3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                    child: TGSmartImage(url: r.imageUrl, cacheWidth: 640),
+                  ),
+                  Positioned(
+                    left: 10,
+                    top: 10,
+                    child: _pill(RestaurantListing.businessTypeLabel(r.businessType), const Color(0xFFE91E8C)),
+                  ),
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: IconButton(
+                      tooltip: 'Favourite',
+                      onPressed: () => setState(() => _fav = !_fav),
+                      icon: Icon(_fav ? Icons.favorite : Icons.favorite_border, color: _fav ? const Color(0xFFE91E8C) : Colors.white),
+                    ),
+                  ),
+                  if (r.isPromoted)
+                    Positioned(left: 10, bottom: 10, child: _pill('WYRÓŻNIONE', const Color(0xFFE91E8C))),
+                  Positioned(
+                    right: 10,
+                    bottom: 10,
+                    child: _pill('${r.photoCount}', Colors.black54, icon: Icons.photo_camera_outlined),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontSize: 16, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.place_outlined, size: 14, color: theme.secondaryText),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          r.district == null || r.district!.isEmpty ? r.city : '${r.city} · ${r.district}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.bodySmall.override(color: theme.secondaryText),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _metricRow(theme),
+                  if (r.negotiable) ...[
+                    const SizedBox(height: 8),
+                    _pill('do negocjacji', theme.alternate),
+                  ],
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 6, runSpacing: 6, children: _specChips(theme)),
+                  const SizedBox(height: 10),
+                  _sellerRow(theme),
+                  const SizedBox(height: 8),
+                  _phoneRow(theme, desktopCopy: true),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _list(BuildContext context, bool reduce) {
+    final theme = FlutterFlowTheme.of(context);
+    return Material(
+      color: const Color(0xFF1F1F1F),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _open,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF2F2F2F)),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(width: 280, height: 210, child: TGSmartImage(url: r.imageUrl, cacheWidth: 560)),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleMedium.override(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 6),
+                    Text(r.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.bodySmall.override(color: theme.secondaryText)),
+                    const SizedBox(height: 8),
+                    Text('No. ${r.listingNo}', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 10),
+                    Wrap(spacing: 6, runSpacing: 6, children: _specChips(theme)),
+                    const SizedBox(height: 10),
+                    _sellerRow(theme),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 180,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _metricColumn(theme),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () {
+                        TGAnalytics.track('resto_call_click', {'listingNo': r.listingNo, 'mode': 'call'});
+                        _copyPhone();
+                      },
+                      style: FilledButton.styleFrom(backgroundColor: TGColors.cta, foregroundColor: TGColors.onCta),
+                      child: Semantics(label: 'Call ${r.phone}', child: const Text('Call')),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton(onPressed: _open, child: const Text('Message')),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _compact(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final fee = r.transferFee.isNone
+        ? 'No transfer fee'
+        : 'fee ${NumberFormat.decimalPattern('pl_PL').format(r.transferFee.amountPln ?? 0)}';
+    return Material(
+      color: const Color(0xFF1F1F1F),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _open,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 128,
+                  height: 128,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      TGSmartImage(url: r.imageUrl, cacheWidth: 256),
+                      Positioned(
+                        left: 6,
+                        top: 6,
+                        child: _pill(RestaurantListing.businessTypeLabel(r.businessType), const Color(0xFFE91E8C), compact: true),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${_area(r.totalAreaM2)} · ${NumberFormat.decimalPattern('pl_PL').format(r.rentMonthly)} / mies. · $fee',
+                      maxLines: 2,
+                      style: theme.bodySmall.override(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(r.city, style: theme.bodySmall.override(color: theme.secondaryText)),
+                    Text(
+                      r.seller.verified ? r.seller.name : (r.posterRole == RestaurantPosterRole.owner ? 'Owner' : 'Agent'),
+                      style: theme.bodySmall.override(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Semantics(
+                label: 'Call ${r.phone}',
+                button: true,
+                child: Material(
+                  color: TGColors.cta,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () {
+                      TGAnalytics.track('resto_call_click', {'listingNo': r.listingNo, 'mode': 'tel'});
+                    },
+                    child: const SizedBox(width: 44, height: 44, child: Icon(Icons.phone, color: TGColors.onCta, size: 20)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _metricRow(FlutterFlowTheme theme) {
+    return Row(
+      children: [
+        Expanded(child: _metricBox(theme, 'Area', _area(r.totalAreaM2), null)),
+        const SizedBox(width: 6),
+        Expanded(child: _metricBox(theme, 'Rent', '${_pln(r.rentMonthly)} / mies.', _vatLabel(r.rentBasis))),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _metricBox(
+            theme,
+            'Transfer fee',
+            r.transferFee.isNone ? 'No transfer fee' : _pln(r.transferFee.amountPln ?? 0),
+            r.transferFee.isNone ? null : _vatLabel(r.transferFee.basis),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _metricColumn(FlutterFlowTheme theme) => Column(
+        children: [
+          _metricBox(theme, 'Area', _area(r.totalAreaM2), null, tall: true),
+          const SizedBox(height: 6),
+          _metricBox(theme, 'Rent', '${_pln(r.rentMonthly)} / mies.', _vatLabel(r.rentBasis), tall: true),
+          const SizedBox(height: 6),
+          _metricBox(
+            theme,
+            'Transfer fee',
+            r.transferFee.isNone ? 'No transfer fee' : _pln(r.transferFee.amountPln ?? 0),
+            r.transferFee.isNone ? null : _vatLabel(r.transferFee.basis),
+            tall: true,
+          ),
+        ],
+      );
+
+  Widget _metricBox(FlutterFlowTheme theme, String label, String value, String? vat, {bool tall = false}) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: tall ? 10 : 8),
+      decoration: BoxDecoration(color: theme.primaryBackground, borderRadius: BorderRadius.circular(10)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(label, style: theme.bodySmall.override(fontSize: 10, color: theme.secondaryText))),
+              if (vat != null) Text(vat, style: theme.bodySmall.override(fontSize: 9, fontWeight: FontWeight.w800, color: theme.secondaryText)),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(value, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontSize: 14, fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _specChips(FlutterFlowTheme theme) {
+    final chips = <Widget>[];
+    if (r.seats != null && r.seats! > 0) {
+      chips.add(_tipChip(theme, '${r.seats} seats', 'Seating capacity'));
+    }
+    if (r.leaseType == RestaurantLeaseType.indefinite) {
+      chips.add(_tipChip(theme, 'Indefinite lease', 'Lease has no fixed end date'));
+    } else if (r.leaseEndsAt != null) {
+      chips.add(_tipChip(theme, 'Lease until ${r.leaseEndsAt!.year}', 'Fixed-term lease end year'));
+    }
+    if ((r.terraceM2 ?? 0) > 0) chips.add(_tipChip(theme, 'Terrace', 'Outdoor terrace'));
+    if (r.details.garden.hasGarden) chips.add(_tipChip(theme, 'Garden', 'Garden / outdoor seating'));
+    final inv = r.inventoryIncludedCount;
+    if (inv > 0) chips.add(_tipChip(theme, '$inv items included', 'Equipment inventory included'));
+    if (r.alcoholPermit.inPlace) chips.add(_tipChip(theme, 'Alcohol permit', 'Alcohol licence in place'));
+    chips.add(_tipChip(theme, 'Available from ${_fmtDay(r.availableFrom)}', 'Availability date'));
+    return chips;
+  }
+
+  Widget _sellerRow(FlutterFlowTheme theme) {
+    final verified = r.seller.verified;
+    return Row(
+      children: [
+        if (verified) ...[
+          Icon(Icons.verified_user, size: 16, color: Colors.greenAccent.shade400),
+          const SizedBox(width: 4),
+          Flexible(
+            child: InkWell(
+              onTap: () => context.go('/seller/${r.seller.id}'),
+              child: Text(r.seller.name, style: theme.bodySmall.override(fontWeight: FontWeight.w700, color: TGColors.cta)),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(r.seller.rating.toStringAsFixed(1), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+        ] else
+          Text(
+            r.posterRole == RestaurantPosterRole.owner ? 'Owner' : 'Agent',
+            style: theme.bodySmall.override(fontWeight: FontWeight.w700),
+          ),
+      ],
+    );
+  }
+
+  Widget _phoneRow(FlutterFlowTheme theme, {required bool desktopCopy}) {
+    return InkWell(
+      onTap: desktopCopy ? _copyPhone : null,
+      child: Row(
+        children: [
+          Icon(Icons.phone, size: 14, color: theme.secondaryText),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              '${r.phone} · ${r.city}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.bodySmall.override(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pill(String text, Color bg, {IconData? icon, bool compact = false}) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: compact ? 3 : 5),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(99)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[Icon(icon, size: 12, color: Colors.white), const SizedBox(width: 4)],
+          Text(text, style: TextStyle(color: Colors.white, fontSize: compact ? 10 : 11, fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+
+  Widget _tipChip(FlutterFlowTheme theme, String label, String tip) {
+    return Tooltip(
+      message: tip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFF2F2F2F)),
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Text(label, style: theme.bodySmall.override(fontSize: 11, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+
+  static String _pln(int v) => NumberFormat.decimalPattern('pl_PL').format(v);
+  static String _area(double m2) => '${NumberFormat.decimalPattern('pl_PL').format(m2.round())} m²';
+  static String _vatLabel(RestaurantVatBasis b) => switch (b) {
+        RestaurantVatBasis.netto => 'NETTO',
+        RestaurantVatBasis.brutto => 'BRUTTO',
+        RestaurantVatBasis.vatUnspecified => 'VAT n/a',
+      };
+  static String _fmtDay(DateTime d) => DateFormat('d MMM', 'en').format(d);
+}

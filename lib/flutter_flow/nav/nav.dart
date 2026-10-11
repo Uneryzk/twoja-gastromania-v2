@@ -169,6 +169,23 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           builder: (context, params) => const ProductsPageWidget(),
         ),
         FFRoute(
+          name: RestaurantsPageWidget.routeName,
+          path: RestaurantsPageWidget.routePath,
+          builder: (context, params) => const RestaurantsPageWidget(),
+        ),
+        FFRoute(
+          name: RestaurantNewPlaceholderPage.routeName,
+          path: RestaurantNewPlaceholderPage.routePath,
+          builder: (context, params) => const RestaurantNewPlaceholderPage(),
+        ),
+        FFRoute(
+          name: RestaurantDetailPlaceholderPage.routeName,
+          path: RestaurantDetailPlaceholderPage.routePath,
+          builder: (context, params) => RestaurantDetailPlaceholderPage(
+            segment: params.state.pathParameters['segment'] ?? '',
+          ),
+        ),
+        FFRoute(
           name: ListingsDashboardPage.routeName,
           path: ListingsDashboardPage.routePath,
           builder: (context, params) => ListingsDashboardPage(
