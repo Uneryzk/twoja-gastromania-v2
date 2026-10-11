@@ -39,14 +39,36 @@ void main() {
       expect(gallery.first, TGListingImages.cover(id: 'p003', category: TGCategory.refrigerationEquipment, title: 'Szafa chłodnicza'));
     });
 
-    test('category covers differ by category and are Unsplash', () {
-      final cooking = TGListingImages.categoryCover(TGCategory.cookingEquipment);
-      final bar = TGListingImages.categoryCover(TGCategory.barAndBeverageEquipment);
-      final fridge = TGListingImages.categoryCover(TGCategory.refrigerationEquipment);
-      expect(cooking, isNot(equals(bar)));
-      expect(cooking, isNot(equals(fridge)));
-      expect(cooking, startsWith('https://images.unsplash.com/photo-'));
-      expect(bar, startsWith('https://images.unsplash.com/photo-'));
+    test('category covers are fixed photo IDs (no search / no Picsum)', () {
+      expect(
+        TGListingImages.categoryCover(TGCategory.cookingEquipment),
+        'https://images.unsplash.com/photo-1556910103-1c02745aae0f?auto=format&fit=crop&w=800&q=80',
+      );
+      expect(
+        TGListingImages.categoryCover(TGCategory.refrigerationEquipment),
+        'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80',
+      );
+      expect(
+        TGListingImages.categoryCover(TGCategory.warewashing),
+        'https://images.unsplash.com/photo-1585837575652-267c041d77d4?auto=format&fit=crop&w=800&q=80',
+      );
+      expect(
+        TGListingImages.categoryCover(TGCategory.foodPreparation),
+        'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=800&q=80',
+      );
+      expect(
+        TGListingImages.categoryCover(TGCategory.stainlessSteelFurniture),
+        'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
+      );
+      expect(
+        TGListingImages.categoryCover(TGCategory.barAndBeverageEquipment),
+        'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80',
+      );
+      for (final url in TGListingImages.categoryCoverUrls.values) {
+        expect(url, isNot(contains('picsum')));
+        expect(url, isNot(contains('source.unsplash')));
+        expect(url, isNot(contains('/search')));
+      }
     });
 
     test('title keywords select oven / cafe / warewash / fridge themes', () {

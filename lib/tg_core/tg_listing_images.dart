@@ -176,10 +176,31 @@ class TGListingImages {
     return _urlFromPool(key, id: id, index: index, width: width, height: height);
   }
 
-  /// Stable category-tile / browse image (first hero shot of the pool).
-  static String categoryCover(TGCategory category, {int width = 640, int height = 480}) {
-    final key = _categoryBaseKey(category);
-    return _urlFromPool(key, id: 'cat-$key', index: 0, width: width, height: height);
+  /// Fixed Unsplash photo URLs for home "Featured Offers" category tiles.
+  ///
+  /// **No keyword / search queries** — each [TGCategory] maps to one curated
+  /// industrial-kitchen photo ID. Listing cards still use the themed pools above.
+  static const Map<TGCategory, String> categoryCoverUrls = {
+    TGCategory.cookingEquipment:
+        'https://images.unsplash.com/photo-1556910103-1c02745aae0f?auto=format&fit=crop&w=800&q=80',
+    TGCategory.refrigerationEquipment:
+        'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80',
+    TGCategory.warewashing:
+        'https://images.unsplash.com/photo-1585837575652-267c041d77d4?auto=format&fit=crop&w=800&q=80',
+    TGCategory.foodPreparation:
+        'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=800&q=80',
+    TGCategory.stainlessSteelFurniture:
+        'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
+    TGCategory.barAndBeverageEquipment:
+        'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80',
+  };
+
+  /// Stable category-tile image — fixed URL from [categoryCoverUrls] only.
+  static String categoryCover(TGCategory category, {int width = 800, int height = 600}) {
+    final fixed = categoryCoverUrls[category];
+    if (fixed != null) return fixed;
+    // Should never hit for marketplace categories; keep a safe on-theme fallback.
+    return categoryCoverUrls[TGCategory.cookingEquipment]!;
   }
 
   /// Hero / banner slide image for home (gastronomy only).

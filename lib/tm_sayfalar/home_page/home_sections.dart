@@ -309,21 +309,30 @@ class _ArrowButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _CategoryData {
-  const _CategoryData(this.category, this.titleKey);
+  const _CategoryData(this.category, this.titleKey, this.image);
 
   final TGCategory category;
   final String titleKey;
 
-  String get image => TGListingImages.categoryCover(category);
+  /// Fixed Unsplash photo URL (never keyword-search / Picsum).
+  final String image;
 }
 
-const List<_CategoryData> _categories = [
-  _CategoryData(TGCategory.cookingEquipment, 'ji98dehm'),
-  _CategoryData(TGCategory.refrigerationEquipment, 'swrjjpbp'),
-  _CategoryData(TGCategory.warewashing, 'lcx4dovc'),
-  _CategoryData(TGCategory.foodPreparation, '71nup2wm'),
-  _CategoryData(TGCategory.stainlessSteelFurniture, '56pbhr1s'),
-  _CategoryData(TGCategory.barAndBeverageEquipment, 'viy2skiv'),
+/// Featured category tiles — images from [TGListingImages.categoryCoverUrls] only.
+final List<_CategoryData> _categories = [
+  for (final e in TGListingImages.categoryCoverUrls.entries)
+    _CategoryData(
+      e.key,
+      switch (e.key) {
+        TGCategory.cookingEquipment => 'ji98dehm',
+        TGCategory.refrigerationEquipment => 'swrjjpbp',
+        TGCategory.warewashing => 'lcx4dovc',
+        TGCategory.foodPreparation => '71nup2wm',
+        TGCategory.stainlessSteelFurniture => '56pbhr1s',
+        TGCategory.barAndBeverageEquipment => 'viy2skiv',
+      },
+      e.value,
+    ),
 ];
 
 /// "Featured Offers": one card per category. Tapping a card opens `/products`
