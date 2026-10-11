@@ -10,7 +10,7 @@ import 'package:twoja_gastromania/tg_core/tg_contact.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 
-/// Full-bleed PDP gallery: swipe on mobile, lens + thumbs on desktop.
+/// Full-bleed PDP gallery: swipe on mobile, thumbs on desktop; click opens lightbox.
 class PdpGallery extends StatefulWidget {
   const PdpGallery({
     super.key,
@@ -22,7 +22,6 @@ class PdpGallery extends StatefulWidget {
     required this.onFavorite,
     required this.onLightbox,
     this.showThumbnails = false,
-    this.enableLens = false,
     this.onReport,
   });
 
@@ -34,7 +33,6 @@ class PdpGallery extends StatefulWidget {
   final VoidCallback onFavorite;
   final ValueChanged<int> onLightbox;
   final bool showThumbnails;
-  final bool enableLens;
   final VoidCallback? onReport;
 
   @override
@@ -43,8 +41,6 @@ class PdpGallery extends StatefulWidget {
 
 class _PdpGalleryState extends State<PdpGallery> {
   late final PageController _pages = PageController(initialPage: widget.index);
-  Offset? _lensLocal;
-  bool _lensHover = false;
 
   @override
   void didUpdateWidget(covariant PdpGallery old) {
@@ -102,15 +98,8 @@ class _PdpGalleryState extends State<PdpGallery> {
                   fit: StackFit.expand,
                   children: [
                     MouseRegion(
-                      cursor: widget.enableLens ? SystemMouseCursors.zoomIn : SystemMouseCursors.basic,
-                      onEnter: widget.enableLens ? (_) => setState(() => _lensHover = true) : null,
-                      onExit: widget.enableLens
-                          ? (_) => setState(() {
-                                _lensHover = false;
-                                _lensLocal = null;
-                              })
-                          : null,
-                      onHover: widget.enableLens ? (e) => setState(() => _lensLocal = e.localPosition) : null,
+                      // Click opens lightbox; no hover zoom.
+                      cursor: SystemMouseCursors.zoomIn,
                       child: PageView.builder(
                         controller: _pages,
                         physics: const BouncingScrollPhysics(),
@@ -136,8 +125,6 @@ class _PdpGalleryState extends State<PdpGallery> {
                         },
                       ),
                     ),
-                    if (widget.enableLens && _lensHover && _lensLocal != null)
-                      _LensOverlay(url: images[idx], local: _lensLocal!),
                     Positioned(top: 12, left: 12, child: _StatusPills(product: widget.product)),
                     Positioned(
                       top: 8,
@@ -432,46 +419,6 @@ class _ThumbState extends State<_Thumb> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _LensOverlay extends StatelessWidget {
-  const _LensOverlay({required this.url, required this.local});
-  final String url;
-  final Offset local;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, c) {
-        const size = 160.0;
-        final x = (local.dx - size / 2).clamp(0.0, c.maxWidth - size);
-        final y = (local.dy - size / 2).clamp(0.0, c.maxHeight - size);
-        final ax = ((local.dx / c.maxWidth) * 2 - 1).clamp(-1.0, 1.0);
-        final ay = ((local.dy / c.maxHeight) * 2 - 1).clamp(-1.0, 1.0);
-        return Positioned(
-          left: x,
-          top: y,
-          child: IgnorePointer(
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                border: Border.all(color: TGColors.cta, width: 2),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 12)],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Transform.scale(
-                scale: 2,
-                alignment: Alignment(ax, ay),
-                child: PdpPhoto(url: url, fit: BoxFit.contain),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

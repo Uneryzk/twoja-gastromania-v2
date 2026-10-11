@@ -260,7 +260,6 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
         _openLightbox();
       },
       showThumbnails: _desktop,
-      enableLens: _desktop,
       onReport: canReport ? _reportListing : null,
     );
 
