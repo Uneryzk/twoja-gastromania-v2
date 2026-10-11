@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_core/pl_business_days.dart';
 import 'package:twoja_gastromania/tg_core/restaurant_config.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
@@ -269,32 +270,39 @@ List<RestaurantListing> _buildSeed() {
         count: n,
       );
 
-  List<RestaurantInventoryItem> inv(String prefix, int count, {int maySell = 2, int excluded = 1, List<String> linkedNos = const []}) {
-    final cats = RestaurantInventoryCategory.values;
-    final photoPool = TGListingImages.galleryForTheme(id: 'resto-$prefix-inv', theme: 'cooking', title: 'inventory', count: 4);
+  /// 10–20 themed equipment rows; first [maySell] are “sold separately”.
+  List<RestaurantInventoryItem> inv(
+    String prefix,
+    RestaurantBusinessType type, {
+    int? count,
+    int maySell = 3,
+    int excluded = 1,
+    List<String> linkedNos = const [],
+  }) {
+    final keys = restoEquipmentNameKeys(type);
+    final n = (count ?? keys.length).clamp(10, 20).clamp(1, keys.length);
+    final theme = RestaurantListing.businessTypeSlug(type);
+    final photoPool = TGListingImages.galleryForTheme(
+      id: 'resto-$prefix-inv',
+      theme: theme,
+      title: keys.first,
+      count: n.clamp(4, 12),
+    );
     return [
-      for (var i = 0; i < count; i++)
+      for (var i = 0; i < n; i++)
         RestaurantInventoryItem(
           id: '$prefix-inv-$i',
-          category: cats[i % cats.length],
-          name: switch (cats[i % cats.length]) {
-            RestaurantInventoryCategory.cooking => 'Combi oven ${i + 1}',
-            RestaurantInventoryCategory.refrigeration => 'Fridge ${i + 1}',
-            RestaurantInventoryCategory.warewashing => 'Dishwasher ${i + 1}',
-            RestaurantInventoryCategory.foodPrep => 'Prep table ${i + 1}',
-            RestaurantInventoryCategory.stainlessFurniture => 'Stainless unit ${i + 1}',
-            RestaurantInventoryCategory.barBeverage => 'Bar fridge ${i + 1}',
-            RestaurantInventoryCategory.other => 'Item ${i + 1}',
-          },
-          qty: 1 + (i % 3),
+          category: restoEquipmentCategory(keys[i]),
+          name: keys[i],
+          qty: 1 + (i % 2),
           brand: i.isEven ? 'Bartscher' : 'Hobart',
           model: 'M-${100 + i}',
           condition: i % 5 == 0 ? RestaurantInventoryCondition.newItem : RestaurantInventoryCondition.used,
-          photos: i.isEven ? [photoPool[i % photoPool.length]] : const [],
+          photos: [photoPool[i % photoPool.length]],
           availability: i < maySell
               ? RestaurantInventoryAvailability.maySellSeparately
-              : (i >= count - excluded ? RestaurantInventoryAvailability.excluded : RestaurantInventoryAvailability.included),
-          linkedListingNo: i < maySell && i < linkedNos.length ? linkedNos[i] : (i < maySell ? '10482137' : null),
+              : (i >= n - excluded ? RestaurantInventoryAvailability.excluded : RestaurantInventoryAvailability.included),
+          linkedListingNo: i < maySell && i < linkedNos.length ? linkedNos[i] : null,
         ),
     ];
   }
@@ -479,7 +487,7 @@ List<RestaurantListing> _buildSeed() {
       terrace: 35,
       garden: true,
       alcohol: true,
-      inventory: inv('r001', 34, maySell: 2, linkedNos: const ['10482137', '14120395']),
+      inventory: inv('r001', RestaurantBusinessType.restaurant, maySell: 3, linkedNos: const ['10482137', '14120395', '11820463']),
       costLines: demoCosts,
       engagement: const RestaurantEngagement(views: 210, uniqueContacts: 8, uniqueFavorites: 12),
       revenue: 78000,
@@ -505,7 +513,7 @@ List<RestaurantListing> _buildSeed() {
       publishedDaysAgo: 28,
       seats: 36,
       alcohol: false,
-      inventory: inv('r002', 12),
+      inventory: inv('r002', RestaurantBusinessType.cafe, maySell: 3),
       engagement: const RestaurantEngagement(views: 180, uniqueContacts: 5, uniqueFavorites: 9),
       revenue: 38000,
     ),
@@ -533,7 +541,7 @@ List<RestaurantListing> _buildSeed() {
       promoted: true,
       seats: 50,
       alcohol: true,
-      inventory: inv('r003', 10),
+      inventory: inv('r003', RestaurantBusinessType.bar, maySell: 2),
       engagement: const RestaurantEngagement(views: 22, uniqueContacts: 0, uniqueFavorites: 1),
     ),
     // 4 — expired (had interest), pizzeria Kraków — owned by seller_tg for renew UI
@@ -559,7 +567,7 @@ List<RestaurantListing> _buildSeed() {
       expiresInDays: -3,
       seats: 40,
       delivery: true,
-      inventory: inv('r004', 15),
+      inventory: inv('r004', RestaurantBusinessType.pizzeria, maySell: 3),
       engagement: const RestaurantEngagement(views: 340, uniqueContacts: 14, uniqueFavorites: 20),
     ),
     // 5 — paid active, promoted, fast food Warszawa
@@ -586,7 +594,7 @@ List<RestaurantListing> _buildSeed() {
       seats: 28,
       parking: false,
       delivery: true,
-      inventory: inv('r005', 22, maySell: 4),
+      inventory: inv('r005', RestaurantBusinessType.fastFood, maySell: 3),
       engagement: const RestaurantEngagement(views: 410, uniqueContacts: 18, uniqueFavorites: 25),
       revenue: 92000,
     ),
@@ -635,7 +643,7 @@ List<RestaurantListing> _buildSeed() {
       publishedDaysAgo: 40,
       extraction: true,
       alcohol: false,
-      inventory: inv('r007', 28, maySell: 6),
+      inventory: inv('r007', RestaurantBusinessType.cateringDarkKitchen, maySell: 3),
     ),
     // 8 — under review, club Bielsko-Biała
     L(
@@ -685,7 +693,7 @@ List<RestaurantListing> _buildSeed() {
       garden: true,
       negotiable: true,
       lease: RestaurantLeaseType.indefinite,
-      inventory: inv('r009', 14),
+      inventory: inv('r009', RestaurantBusinessType.restaurant, maySell: 3),
       engagement: const RestaurantEngagement(views: 95, uniqueContacts: 3, uniqueFavorites: 6),
     ),
     // 10 — vat_unspecified rent + fee, bar Warszawa
@@ -764,7 +772,7 @@ List<RestaurantListing> _buildSeed() {
       garden: true,
       play: true,
       delivery: true,
-      inventory: inv('r012', 20, maySell: 3),
+      inventory: inv('r012', RestaurantBusinessType.pizzeria, maySell: 3),
       engagement: const RestaurantEngagement(views: 120, uniqueContacts: 4, uniqueFavorites: 7),
     ),
     // 13 — other / food hall booth Częstochowa
@@ -815,7 +823,7 @@ List<RestaurantListing> _buildSeed() {
       alcohol: false,
       extraction: true,
       // RESTO-4 mock: 3 linked separate listings; first is sold → sync pending.
-      inventory: inv('r014', 26, maySell: 3, linkedNos: const ['10482137', '14120395', '15230486']).map((e) {
+      inventory: inv('r014', RestaurantBusinessType.cateringDarkKitchen, maySell: 3, linkedNos: const ['10482137', '14120395', '11820463']).map((e) {
         if (e.id.endsWith('-0')) {
           return RestaurantInventoryItem(
             id: e.id,

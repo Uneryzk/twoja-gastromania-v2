@@ -7,6 +7,8 @@ import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 
 enum RestaurantCardVariant { grid, list, compact }
@@ -123,7 +125,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                   Positioned(
                     left: 10,
                     top: 10,
-                    child: _pill(RestaurantListing.businessTypeLabel(r.businessType), const Color(0xFFE91E8C)),
+                    child: _pill(restoLocalizedBusinessType(context, r.businessType), const Color(0xFFE91E8C)),
                   ),
                   Positioned(
                     right: 8,
@@ -135,7 +137,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                     ),
                   ),
                   if (r.isPromoted)
-                    Positioned(left: 10, bottom: 10, child: _pill('WYRÓŻNIONE', const Color(0xFFE91E8C))),
+                    Positioned(left: 10, bottom: 10, child: _pill(context.t('ui_promoted_badge'), const Color(0xFFE91E8C))),
                   Positioned(
                     right: 10,
                     bottom: 10,
@@ -149,7 +151,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(restoLocalizedTitle(context, r), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontSize: 16, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -212,7 +214,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleMedium.override(fontWeight: FontWeight.w800)),
+                    Text(restoLocalizedTitle(context, r), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleMedium.override(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 6),
                     Text(r.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.bodySmall.override(color: theme.secondaryText)),
                     const SizedBox(height: 8),
@@ -279,7 +281,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                       Positioned(
                         left: 6,
                         top: 6,
-                        child: _pill(RestaurantListing.businessTypeLabel(r.businessType), const Color(0xFFE91E8C), compact: true),
+                        child: _pill(restoLocalizedBusinessType(context, r.businessType), const Color(0xFFE91E8C), compact: true),
                       ),
                     ],
                   ),
@@ -290,7 +292,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w700)),
+                    Text(restoLocalizedTitle(context, r), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
                     Text(
                       '${_area(r.totalAreaM2)} · ${NumberFormat.decimalPattern('pl_PL').format(r.rentMonthly)} / mies. · $fee',

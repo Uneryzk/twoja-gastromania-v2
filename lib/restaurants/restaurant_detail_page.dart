@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/product_detail/pdp_gallery.dart' show openPdpL
 import 'package:twoja_gastromania/product_detail/report_listing_sheet.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_card.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_detail_sections.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_message_sheet.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_renew_sheet.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_transfer_sheet.dart';
@@ -137,7 +138,18 @@ class _RestoBodyState extends State<_RestoBody> {
   bool get _desktop => MediaQuery.sizeOf(context).width >= TGBreakpoints.desktop;
   bool get _keyboardOpen => MediaQuery.viewInsetsOf(context).bottom > 80;
 
-  List<String> get _photos => r.images.isEmpty ? const [''] : r.images;
+  List<String> get _photos {
+    final base = r.images.isEmpty ? <String>[] : List<String>.of(r.images);
+    final equip = <String>[];
+    for (final item in r.inventory) {
+      for (final p in item.photos) {
+        if (p.isNotEmpty && !base.contains(p) && !equip.contains(p)) equip.add(p);
+      }
+    }
+    final all = [...base, ...equip];
+    return all.isEmpty ? const [''] : all;
+  }
+
   List<String> get _galleryImages {
     if (_galleryTab == 1 && r.floorPlanUrl != null && r.floorPlanUrl!.isNotEmpty) {
       return [r.floorPlanUrl!];
@@ -373,7 +385,7 @@ class _RestoBodyState extends State<_RestoBody> {
                                 items: [
                                   TGBreadcrumbItem(label: context.t('ui_home'), onTap: () => TGNav.home(context)),
                                   TGBreadcrumbItem(label: 'Restaurants', onTap: () => context.go('/restaurants')),
-                                  TGBreadcrumbItem(label: RestaurantListing.businessTypeLabel(r.businessType)),
+                                  TGBreadcrumbItem(label: restoLocalizedBusinessType(context, r.businessType)),
                                 ],
                               ),
                               if (_statusBanner() != null) ...[
@@ -593,7 +605,7 @@ class _RestoBodyState extends State<_RestoBody> {
           key: _equipKey,
           child: mobile
               ? _accordion(
-                  title: 'Equipment & inventory',
+                  title: context.t('ui_equipment_inventory'),
                   open: _equipOpen,
                   onToggle: () => setState(() => _equipOpen = !_equipOpen),
                   child: RestoEquipmentSection(listing: r, catalogue: _catalogue, onPhoto: (urls, i) => openPdpLightbox(context: context, images: urls, index: i)),
@@ -603,7 +615,7 @@ class _RestoBodyState extends State<_RestoBody> {
         const SizedBox(height: 20),
         mobile
             ? _accordion(
-                title: 'The premises',
+                title: context.t('ui_the_premises'),
                 open: _premisesOpen,
                 onToggle: () => setState(() => _premisesOpen = !_premisesOpen),
                 child: RestoPremisesTable(listing: r),
@@ -612,7 +624,7 @@ class _RestoBodyState extends State<_RestoBody> {
         const SizedBox(height: 20),
         mobile
             ? _accordion(
-                title: 'Lease & transfer',
+                title: context.t('ui_lease_transfer'),
                 open: _leaseOpen,
                 onToggle: () => setState(() => _leaseOpen = !_leaseOpen),
                 child: RestoLeaseTable(listing: r, money: _money, basisLabel: _basisLabel),
@@ -631,7 +643,7 @@ class _RestoBodyState extends State<_RestoBody> {
         const SizedBox(height: 20),
         mobile
             ? _accordion(
-                title: 'Safety tips',
+                title: context.t('ui_safety_tips'),
                 open: _safetyOpen,
                 onToggle: () => setState(() => _safetyOpen = !_safetyOpen),
                 child: RestoSafetyTips(onReport: canReport ? _report : null),
@@ -639,7 +651,7 @@ class _RestoBodyState extends State<_RestoBody> {
             : RestoSafetyTips(onReport: canReport ? _report : null),
         if (similar.isNotEmpty) ...[
           const SizedBox(height: 28),
-          Text('Similar listings', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_similar_listings'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           if (mobile)
             SizedBox(
@@ -660,7 +672,7 @@ class _RestoBodyState extends State<_RestoBody> {
         ],
         if (more.isNotEmpty) ...[
           const SizedBox(height: 28),
-          Text('More from this seller', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_more_from_seller'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           Wrap(
             spacing: 16,
@@ -700,14 +712,14 @@ class _RestoBodyState extends State<_RestoBody> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _pill(RestaurantListing.businessTypeLabel(r.businessType), TGColors.accent),
-            if (r.isPromoted) _pill('WYRÓŻNIONE', TGColors.accent),
-            _chip('Available from ${DateFormat('d MMM yyyy').format(r.availableFrom)}'),
+            _pill(restoLocalizedBusinessType(context, r.businessType), TGColors.accent),
+            if (r.isPromoted) _pill(context.t('ui_promoted_badge'), TGColors.accent),
+            _chip(context.t('ui_available_from', {'d': DateFormat('d MMM yyyy').format(r.availableFrom)})),
           ],
         ),
         const SizedBox(height: 10),
         Text(
-          r.title,
+          restoLocalizedTitle(context, r),
           style: theme.headlineMedium.override(
             fontSize: mobile ? 22 : 32,
             lineHeight: mobile ? 1.27 : 1.25,
@@ -719,14 +731,14 @@ class _RestoBodyState extends State<_RestoBody> {
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 6,
           children: [
-            Text('Listing No. ${r.listingNo}', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+            Text(context.t('ui_listing_no_label', {'n': r.listingNo}), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
             IconButton(
-              tooltip: 'Copy listing number',
+              tooltip: context.t('ui_listing_no_label', {'n': r.listingNo}),
               onPressed: _copyListingNo,
               icon: Icon(_copiedNo ? Icons.check_rounded : Icons.copy_rounded, size: 18, color: TGColors.cta),
               visualDensity: VisualDensity.compact,
             ),
-            Text('· Listed $listedAgo', style: theme.bodySmall.override(color: theme.secondaryText)),
+            Text('· ${context.t('ui_listed_ago', {'ago': listedAgo})}', style: theme.bodySmall.override(color: theme.secondaryText)),
           ],
         ),
       ],
@@ -742,13 +754,16 @@ class _RestoBodyState extends State<_RestoBody> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            fee.isNone ? 'No transfer fee' : _money(fee.amountPln),
+            fee.isNone ? context.t('ui_no_transfer_fee') : _money(fee.amountPln),
             style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900),
           ),
           if (!fee.isNone)
             Text(_basisLabel(fee.basis), style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
-          Text('Rent ${_money(r.rentMonthly)} / mo · ${_basisLabel(r.rentBasis)}', style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+          Text(
+            context.t('ui_monthly_rent', {'amount': _money(r.rentMonthly), 'basis': _basisLabel(r.rentBasis)}),
+            style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
@@ -794,16 +809,16 @@ class _RestoBodyState extends State<_RestoBody> {
       children: [
         Row(
           children: [
-            _tab('Photos', 0),
+            _tab(context.t('ui_photos'), 0),
             const SizedBox(width: 12),
-            if (r.floorPlanUrl != null) _tab('Floor plan', 1),
+            if (r.floorPlanUrl != null) _tab(context.t('ui_floor_plan'), 1),
             const Spacer(),
             if (canReport && mobile)
               PopupMenuButton<String>(
                 onSelected: (v) {
                   if (v == 'report') _report();
                 },
-                itemBuilder: (_) => const [PopupMenuItem(value: 'report', child: Text('Report listing'))],
+                itemBuilder: (_) => [PopupMenuItem(value: 'report', child: Text(context.t('ui_report')))],
                 child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.more_horiz)),
               ),
             IconButton(onPressed: _toggleFavorite, icon: Icon(_favorite ? Icons.favorite : Icons.favorite_border, color: _favorite ? TGColors.accent : null)),
@@ -830,10 +845,10 @@ class _RestoBodyState extends State<_RestoBody> {
             ),
           ),
         ),
-        if (!mobile && imgs.length > 1) ...[
+        if (imgs.length > 1) ...[
           const SizedBox(height: 8),
           SizedBox(
-            height: 72,
+            height: mobile ? 64 : 72,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: imgs.length,
@@ -841,7 +856,7 @@ class _RestoBodyState extends State<_RestoBody> {
               itemBuilder: (_, i) => GestureDetector(
                 onTap: () => setState(() => _index = i),
                 child: Container(
-                  width: 96,
+                  width: mobile ? 84 : 96,
                   decoration: BoxDecoration(
                     border: Border.all(color: i == _index ? TGColors.cta : Colors.transparent, width: 2),
                     borderRadius: BorderRadius.circular(8),
@@ -894,9 +909,9 @@ class _RestoBodyState extends State<_RestoBody> {
 
   String _relative(DateTime at) {
     final d = DateTime.now().difference(at).inDays;
-    if (d <= 0) return 'today';
-    if (d == 1) return '1 day ago';
-    return '$d days ago';
+    if (d <= 0) return context.t('ui_today');
+    if (d == 1) return context.t('ui_day_ago_1');
+    return context.t('ui_days_ago_n', {'n': '$d'});
   }
 }
 
@@ -978,7 +993,7 @@ class _ContactPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  fee.isNone ? 'No transfer fee' : money(fee.amountPln),
+                  fee.isNone ? context.t('ui_no_transfer_fee') : money(fee.amountPln),
                   style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
                 ),
                 if (!fee.isNone) ...[
@@ -991,27 +1006,33 @@ class _ContactPanel extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(color: TGColors.cta.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(999)),
-                          child: const Text('Negotiable', style: TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800, fontSize: 11)),
+                          child: Text(context.t('ui_negotiable'), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800, fontSize: 11)),
                         ),
                     ],
                   ),
                 ],
                 const SizedBox(height: 12),
-                Text('Monthly rent ${money(r.rentMonthly)} · ${basisLabel(r.rentBasis)}', style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                Text(
+                  context.t('ui_monthly_rent', {'amount': money(r.rentMonthly), 'basis': basisLabel(r.rentBasis)}),
+                  style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                ),
                 if (r.depositPln != null)
-                  Text('Deposit ${money(r.depositPln)}', style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                  Text(context.t('ui_deposit_amount', {'amount': money(r.depositPln)}), style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
                 if (lease != null)
                   Text(
-                    'Lease until $lease${monthsLeft != null ? ' · $monthsLeft months left' : ''}',
+                    [
+                      context.t('ui_lease_until', {'d': lease}),
+                      if (monthsLeft != null) context.t('ui_months_left', {'n': '$monthsLeft'}),
+                    ].join(' · '),
                     style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
                   ),
                 const SizedBox(height: 16),
                 Semantics(
                   button: true,
-                  label: 'Call ${r.phone}',
+                  label: '${context.t('ui_call_now')} ${r.phone}',
                   child: TGButton(
                     onPressed: onCall,
-                    label: 'Call now',
+                    label: context.t('ui_call_now'),
                     height: 52,
                     borderRadius: BorderRadius.circular(TGRadius.pill),
                   ),
@@ -1035,7 +1056,7 @@ class _ContactPanel extends StatelessWidget {
                     minimumSize: const Size(0, 48),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TGRadius.pill)),
                   ),
-                  child: const Text('Send message', style: TextStyle(fontWeight: FontWeight.w800)),
+                  child: Text(context.t('ui_send_message'), style: const TextStyle(fontWeight: FontWeight.w800)),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -1050,13 +1071,13 @@ class _ContactPanel extends StatelessWidget {
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: onSafety,
-                  child: const Text('Safety tips ›', style: TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800)),
+                  child: Text('${context.t('ui_safety_tips')} ›', style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800)),
                 ),
                 if (onReport != null)
                   TextButton.icon(
                     onPressed: onReport,
                     icon: const Icon(Icons.flag_outlined, color: Colors.white70, size: 18),
-                    label: const Text('Report', style: TextStyle(color: Colors.white70)),
+                    label: Text(context.t('ui_report'), style: const TextStyle(color: Colors.white70)),
                   ),
               ],
             ),

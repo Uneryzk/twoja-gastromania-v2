@@ -12,9 +12,11 @@ import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_models/tg_ad_slot.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
 /// Section heading used on the home page.
 class HomeSectionTitle extends StatelessWidget {
@@ -225,8 +227,19 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                       },
                       itemBuilder: (context, i) {
                         final s = slides[i];
-                        final title = s.sponsored ? (s.title ?? '') : l10n.getText(s.titleKey!);
-                        final label = s.sponsored ? 'Sponsored. $title' : title;
+                        String title;
+                        if (s.sponsored) {
+                          final segment = (s.targetUrl ?? '').split('/').where((e) => e.isNotEmpty).lastOrNull ?? '';
+                          final listing = RestaurantService.instance.fromPathSegment(segment);
+                          title = listing != null
+                              ? restoLocalizedShortTitle(context, listing)
+                              : (context.t('ad_title_${s.ad?.id ?? ''}').isNotEmpty
+                                  ? context.t('ad_title_${s.ad?.id ?? ''}')
+                                  : (s.title ?? ''));
+                        } else {
+                          title = l10n.getText(s.titleKey!);
+                        }
+                        final label = s.sponsored ? '${l10n.getText('ui_sponsored')}. $title' : title;
                         return Focus(
                           child: Builder(
                             builder: (ctx) {
@@ -338,7 +351,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                                       mainAxisSize: MainAxisSize.min,
                                                       children: [
                                                         Text(
-                                                          s.sponsored ? 'View' : 'Read more',
+                                                          s.sponsored ? context.t('ui_view') : 'Read more',
                                                           style: theme.bodySmall.override(color: TGColors.onCta, fontWeight: FontWeight.w900),
                                                         ),
                                                         const SizedBox(width: 6),

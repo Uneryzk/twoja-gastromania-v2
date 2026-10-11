@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -8,15 +10,29 @@ import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-String restoInvCatLabel(RestaurantInventoryCategory c) => switch (c) {
-      RestaurantInventoryCategory.cooking => 'Cooking',
-      RestaurantInventoryCategory.refrigeration => 'Refrigeration',
-      RestaurantInventoryCategory.warewashing => 'Warewashing',
-      RestaurantInventoryCategory.foodPrep => 'Food prep',
-      RestaurantInventoryCategory.stainlessFurniture => 'Furniture',
-      RestaurantInventoryCategory.barBeverage => 'Bar',
-      RestaurantInventoryCategory.other => 'Other',
-    };
+String restoInvCatLabel(BuildContext context, RestaurantInventoryCategory c) {
+  final key = switch (c) {
+    RestaurantInventoryCategory.cooking => 'ui_cat_cooking',
+    RestaurantInventoryCategory.refrigeration => 'ui_cat_refrigeration',
+    RestaurantInventoryCategory.warewashing => 'ui_cat_warewashing',
+    RestaurantInventoryCategory.foodPrep => 'ui_cat_food_prep',
+    RestaurantInventoryCategory.stainlessFurniture => 'ui_cat_stainless',
+    RestaurantInventoryCategory.barBeverage => 'ui_cat_bar',
+    RestaurantInventoryCategory.other => 'ui_others',
+  };
+  final t = context.t(key);
+  return t.isEmpty
+      ? switch (c) {
+          RestaurantInventoryCategory.cooking => 'Cooking',
+          RestaurantInventoryCategory.refrigeration => 'Refrigeration',
+          RestaurantInventoryCategory.warewashing => 'Warewashing',
+          RestaurantInventoryCategory.foodPrep => 'Food prep',
+          RestaurantInventoryCategory.stainlessFurniture => 'Furniture',
+          RestaurantInventoryCategory.barBeverage => 'Bar',
+          RestaurantInventoryCategory.other => 'Other',
+        }
+      : t;
+}
 
 String restoConditionLabel(RestaurantInventoryCondition c) => switch (c) {
       RestaurantInventoryCondition.newItem => 'NOWY',
@@ -45,8 +61,8 @@ class RestoInsideChips extends StatelessWidget {
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(child: Text('Inside the business', style: theme.titleMedium.override(fontWeight: FontWeight.w900))),
-            Text('$total items', style: theme.bodySmall.override(fontWeight: FontWeight.w700, color: theme.secondaryText)),
+            Expanded(child: Text(context.t('ui_inside_business'), style: theme.titleMedium.override(fontWeight: FontWeight.w900))),
+            Text(context.t('ui_items_n', {'n': '$total'}), style: theme.bodySmall.override(fontWeight: FontWeight.w700, color: theme.secondaryText)),
           ],
         ),
         const SizedBox(height: 10),
@@ -59,7 +75,7 @@ class RestoInsideChips extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ActionChip(
-                    label: Text('${restoInvCatLabel(e.key)} ${e.value}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                    label: Text('${restoInvCatLabel(context, e.key)} ${e.value}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
                     onPressed: onJump,
                   ),
                 ),
@@ -91,7 +107,7 @@ class RestoKeyFigures extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Key figures', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_key_figures'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, c) {
@@ -158,6 +174,14 @@ class RestoEquipmentSection extends StatelessWidget {
   final List<TGProduct> catalogue;
   final void Function(List<String> urls, int index) onPhoto;
 
+  TGProduct? _linked(RestaurantInventoryItem item) {
+    if (item.linkedListingNo == null) return null;
+    for (final p in catalogue) {
+      if (p.listingNo == item.linkedListingNo && p.isPubliclyVisible) return p;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
@@ -165,112 +189,184 @@ class RestoEquipmentSection extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Equipment & inventory', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_equipment_inventory'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
-          const Text('Equipment is not included in the transfer.'),
+          Text(context.t('ui_equipment_none')),
         ],
       );
     }
-    final active = listing.inventory.where((i) => i.status == RestaurantInventoryStatus.active).toList();
-    final included = active.where((i) => i.availability != RestaurantInventoryAvailability.excluded).toList();
+    final active = listing.inventory.where((i) => i.status == RestaurantInventoryStatus.active || i.status == RestaurantInventoryStatus.soldSeparatelyPending).toList();
+    final separate = active.where((i) => i.availability == RestaurantInventoryAvailability.maySellSeparately).take(3).toList();
+    final rest = active
+        .where((i) => i.availability != RestaurantInventoryAvailability.maySellSeparately || !separate.contains(i))
+        .where((i) => i.availability != RestaurantInventoryAvailability.excluded)
+        .toList();
     final excluded = active.where((i) => i.availability == RestaurantInventoryAvailability.excluded).toList();
-
-    Widget group(String title, List<RestaurantInventoryItem> items) {
-      if (items.isEmpty) return const SizedBox.shrink();
-      final byCat = <RestaurantInventoryCategory, List<RestaurantInventoryItem>>{};
-      for (final i in items) {
-        byCat.putIfAbsent(i.category, () => []).add(i);
-      }
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          for (final e in byCat.entries) ...[
-            Text(restoInvCatLabel(e.key), style: theme.bodyMedium.override(fontWeight: FontWeight.w800, color: TGColors.cta)),
-            const SizedBox(height: 6),
-            for (final item in e.value) _item(context, item),
-            const SizedBox(height: 10),
-          ],
-        ],
-      );
-    }
+    final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Equipment & inventory', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
-        const SizedBox(height: 10),
-        group('Included', included),
+        Text(context.t('ui_equipment_inventory'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        if (separate.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text(context.t('ui_sold_separately'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text(context.t('ui_also_listed_separately'), style: theme.bodySmall.override(color: theme.secondaryText)),
+          const SizedBox(height: 12),
+          if (phone)
+            SizedBox(
+              height: 420,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: separate.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, i) => SizedBox(width: 260, child: _separateCard(context, separate[i])),
+              ),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, c) {
+                final w = ((c.maxWidth - 32) / 3).clamp(220.0, 320.0);
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    for (final item in separate) SizedBox(width: w, child: _separateCard(context, item)),
+                  ],
+                );
+              },
+            ),
+        ],
+        if (rest.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Text(context.t('ui_included_in_transfer'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, c) {
+              final cols = phone ? 2 : (c.maxWidth >= 900 ? 4 : 3);
+              final gap = 12.0;
+              final w = (c.maxWidth - gap * (cols - 1)) / cols;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: [
+                  for (final item in rest) SizedBox(width: w, child: _gridTile(context, item)),
+                ],
+              );
+            },
+          ),
+        ],
         if (excluded.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          group('Not included in the transfer', excluded),
+          const SizedBox(height: 20),
+          Text(context.t('ui_not_included_transfer'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final item in excluded) SizedBox(width: phone ? 160 : 180, child: _gridTile(context, item, muted: true)),
+            ],
+          ),
         ],
       ],
     );
   }
 
-  Widget _item(BuildContext context, RestaurantInventoryItem item) {
-    final theme = FlutterFlowTheme.of(context);
-    TGProduct? linked;
-    if (item.availability == RestaurantInventoryAvailability.maySellSeparately && item.linkedListingNo != null) {
-      for (final p in catalogue) {
-        if (p.listingNo == item.linkedListingNo && p.isPubliclyVisible) {
-          linked = p;
-          break;
-        }
-      }
-    }
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _separateCard(BuildContext context, RestaurantInventoryItem item) {
+    final linked = _linked(item);
+    if (linked != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (item.photos.isNotEmpty)
-                GestureDetector(
-                  onTap: () => onPhoto(item.photos, 0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: SizedBox(width: 56, height: 56, child: TGSmartImage(url: item.photos.first, fit: BoxFit.cover)),
-                  ),
-                )
-              else
-                Container(width: 56, height: 56, color: theme.primaryBackground, child: const Icon(Icons.kitchen_outlined, size: 20)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${item.name} · ×${item.qty}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                    Text(
-                      [if (item.brand != null) item.brand, if (item.model != null) item.model].whereType<String>().join(' · '),
-                      style: theme.bodySmall.override(color: theme.secondaryText),
-                    ),
-                    Text(restoConditionLabel(item.condition), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF5C5A32),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              context.t('ui_also_listed_separately'),
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
           ),
-          if (item.availability == RestaurantInventoryAvailability.maySellSeparately) ...[
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: TGColors.rating.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-              child: const Text(
-                'Also listed separately · may be sold before the transfer',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          TGProductCard(product: linked, showSeller: true),
+        ],
+      );
+    }
+    return _InventoryMiniCard(item: item, onPhoto: onPhoto, badge: context.t('ui_sold_separately'));
+  }
+
+  Widget _gridTile(BuildContext context, RestaurantInventoryItem item, {bool muted = false}) {
+    return Opacity(
+      opacity: muted ? 0.65 : 1,
+      child: _InventoryMiniCard(item: item, onPhoto: onPhoto),
+    );
+  }
+}
+
+class _InventoryMiniCard extends StatelessWidget {
+  const _InventoryMiniCard({required this.item, required this.onPhoto, this.badge});
+  final RestaurantInventoryItem item;
+  final void Function(List<String> urls, int index) onPhoto;
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final name = restoLocalizedInventoryName(context, item);
+    return Material(
+      color: const Color(0xFF1F1F1F),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: item.photos.isEmpty ? null : () => onPhoto(item.photos, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 4 / 3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: item.photos.isEmpty
+                        ? ColoredBox(color: theme.primaryBackground, child: const Icon(Icons.kitchen_outlined))
+                        : TGSmartImage(url: item.photos.first, fit: BoxFit.cover),
+                  ),
+                  if (badge != null)
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(color: TGColors.accent, borderRadius: BorderRadius.circular(999)),
+                        child: Text(badge!, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                ],
               ),
             ),
-            if (linked != null) ...[
-              const SizedBox(height: 8),
-              SizedBox(width: 260, child: TGProductCard(product: linked)),
-            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Text(
+                    [if (item.brand != null) item.brand, if (item.model != null) item.model, '×${item.qty}'].whereType<String>().join(' · '),
+                    style: theme.bodySmall.override(color: theme.secondaryText, fontSize: 11),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(restoConditionLabel(item.condition), style: theme.bodySmall.override(fontWeight: FontWeight.w800, fontSize: 11)),
+                ],
+              ),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }

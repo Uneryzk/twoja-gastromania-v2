@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_card.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_logic.dart';
 import 'package:twoja_gastromania/tm_sayfalar/home_page/home_sections.dart';
@@ -45,14 +46,14 @@ class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionTitle(
-          title: 'Restaurants for Sale',
-          subtitle: 'Take over a ready business.',
+          title: context.t('ui_restaurants'),
+          subtitle: context.t('resto_strip_subtitle'),
           action: TextButton(
             onPressed: () => context.go('/restaurants'),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('See all', style: theme.bodyMedium.override(color: theme.primary, fontWeight: FontWeight.w800)),
+                Text(context.t('ui_view_all'), style: theme.bodyMedium.override(color: theme.primary, fontWeight: FontWeight.w800)),
                 const SizedBox(width: 4),
                 Icon(Icons.arrow_forward_rounded, size: 18, color: theme.primary),
               ],
