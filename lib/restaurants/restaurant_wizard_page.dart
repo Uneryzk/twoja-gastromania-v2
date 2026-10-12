@@ -10,6 +10,8 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_card.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_detail_sections.dart' show restoInvCatLabel;
+import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_wizard_draft.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
@@ -44,7 +46,13 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
   int _undoIndex = 0;
   final _sms = TextEditingController();
 
-  static const _steps = ['Business', 'Premises', 'Lease & price', 'Equipment & photos', 'Publish'];
+  List<String> _steps(BuildContext context) => [
+        context.t('ui_wiz_step_business'),
+        context.t('ui_wiz_step_premises'),
+        context.t('ui_wiz_step_lease'),
+        context.t('ui_wiz_step_equipment'),
+        context.t('ui_wiz_step_publish'),
+      ];
 
   @override
   void initState() {
@@ -108,7 +116,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     draft.draftId = listing.id;
     RestaurantService.instance.upsertDraft(listing);
     draft.markSaved();
-    if (!silent && mounted) showTGToast(context, 'Draft saved');
+    if (!silent && mounted) showTGToast(context, context.t('ui_draft_saved'));
   }
 
   Future<bool> _confirmLeave() async {
@@ -116,18 +124,18 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Leave wizard?'),
-        content: const Text('Save your draft before leaving?'),
+        title: Text(ctx.t('ui_wiz_leave_title')),
+        content: Text(ctx.t('ui_wiz_leave_body')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Stay')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t('ui_wiz_stay'))),
           TextButton(
             onPressed: () {
               _saveDraft();
               Navigator.pop(ctx, true);
             },
-            child: const Text('Save & leave'),
+            child: Text(ctx.t('ui_wiz_save_leave')),
           ),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Discard')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(ctx.t('ui_wiz_discard'))),
         ],
       ),
     );
@@ -157,12 +165,12 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     }
     final auth = context.read<FakeAuthState>();
     if (!auth.isLoggedIn || !auth.phoneVerified && !draft.phoneVerified) {
-      showTGToast(context, 'Verified phone is required.', icon: Icons.phone_locked);
+      showTGToast(context, context.t('ui_wiz_phone_required'), icon: Icons.phone_locked);
       return;
     }
     final life = RestaurantLifecycleService.instance..ensureSeeded();
     if (!life.underDailyCap(auth.userId)) {
-      showTGToast(context, 'Daily restaurant listing cap reached.');
+      showTGToast(context, context.t('ui_wiz_daily_cap'));
       return;
     }
 
@@ -180,7 +188,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     final gate = life.checkPremisesGate(ownerId: auth.userId, premisesKey: listing.premisesKey, excludeId: listing.id);
     if (gate.isBlocked) {
       TGAnalytics.track('resto_premises_conflict', {'result': 'same_account'});
-      showTGToast(context, 'You already have a listing for these premises. Edit it instead.');
+      showTGToast(context, context.t('ui_wiz_premises_conflict'));
       return;
     }
 
@@ -276,13 +284,14 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
   }
 
   Widget _stepper(FlutterFlowTheme theme) {
+    final steps = _steps(context);
     return Semantics(
-      label: 'Step ${draft.step + 1} of ${_steps.length}: ${_steps[draft.step]}',
+      label: context.t('ui_wiz_step_of', {'n': '${draft.step + 1}', 'm': '${steps.length}', 'name': steps[draft.step]}),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         child: Row(
           children: [
-            for (var i = 0; i < _steps.length; i++) ...[
+            for (var i = 0; i < steps.length; i++) ...[
               if (i > 0)
                 Expanded(
                   child: AnimatedContainer(
@@ -304,14 +313,15 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
   }
 
   Widget _mobileBody(FlutterFlowTheme theme, FakeAuthState auth) {
+    final steps = _steps(context);
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
-              Expanded(child: Text(_steps[draft.step], style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
-              ActionChip(label: const Text('Preview'), onPressed: () => setState(() => _previewOpen = !_previewOpen)),
+              Expanded(child: Text(steps[draft.step], style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
+              ActionChip(label: Text(context.t('ui_preview')), onPressed: () => setState(() => _previewOpen = !_previewOpen)),
             ],
           ),
         ),
@@ -331,18 +341,18 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
           child: Row(
             children: [
-              TextButton(onPressed: draft.step == 0 ? null : () => _goStep(draft.step - 1), child: const Text('Back')),
-              TextButton(onPressed: () => _saveDraft(), child: const Text('Save draft')),
+              TextButton(onPressed: draft.step == 0 ? null : () => _goStep(draft.step - 1), child: Text(context.t('ui_back'))),
+              TextButton(onPressed: () => _saveDraft(), child: Text(context.t('ui_save_draft'))),
               const Spacer(),
               TGButton(
                 onPressed: _publishing ? null : _next,
                 label: _publishing
-                    ? 'Publishing…'
+                    ? context.t('ui_wiz_publishing')
                     : draft.step < 4
-                        ? 'Next'
+                        ? context.t('ui_next')
                         : (draft.canUseFree && draft.promoteDays == 0
-                            ? 'Publish for free'
-                            : 'Continue to payment · ${draft.totalPln} PLN'),
+                            ? context.t('ui_wiz_publish_free')
+                            : context.t('ui_wiz_continue_payment', {'amount': '${draft.totalPln}'})),
                 height: 48,
                 borderRadius: BorderRadius.circular(TGRadius.pill),
               ),
@@ -358,7 +368,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     try {
       if (draft.title.length >= 5 && draft.city.isNotEmpty) {
         preview = draft.toListing(
-          seller: TGSeller(id: draft.ownerId, name: draft.contactName.isEmpty ? 'You' : draft.contactName, type: TGSellerType.private, verified: false, rating: 4.5),
+          seller: TGSeller(id: draft.ownerId, name: draft.contactName.isEmpty ? context.t('ui_wiz_you') : draft.contactName, type: TGSellerType.private, verified: false, rating: 4.5),
           status: RestaurantListingStatus.draft,
         );
       }
@@ -373,9 +383,9 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Live preview', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_live_preview'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
-          Text('${(draft.completion * 100).round()}% complete', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+          Text(context.t('ui_wiz_pct_complete', {'n': '${(draft.completion * 100).round()}'}), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
@@ -400,13 +410,13 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
               height: 180,
               alignment: Alignment.center,
               decoration: BoxDecoration(color: theme.primaryBackground, borderRadius: BorderRadius.circular(12)),
-              child: const Text('Fill required fields to preview'),
+              child: Text(context.t('ui_wiz_fill_preview')),
             ),
           const SizedBox(height: 12),
-          Text('Tips', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
-          const Text('· Full address is shown publicly.', style: TextStyle(fontSize: 12)),
-          const Text('· Phone is always visible on cards.', style: TextStyle(fontSize: 12)),
-          const Text('· Photograph front, dining, kitchen & equipment.', style: TextStyle(fontSize: 12)),
+          Text(context.t('ui_wiz_tips'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+          Text('· ${context.t('ui_wiz_tip_1')}', style: const TextStyle(fontSize: 12)),
+          Text('· ${context.t('ui_wiz_tip_2')}', style: const TextStyle(fontSize: 12)),
+          Text('· ${context.t('ui_wiz_tip_3')}', style: const TextStyle(fontSize: 12)),
         ],
       ),
     );
@@ -441,9 +451,9 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Business', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_wiz_step_business'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 12),
-        Text('Your role', style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_wiz_your_role'), style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
         RadioListTile<RestaurantPosterRole>(
           value: RestaurantPosterRole.owner,
           groupValue: draft.role,
@@ -451,7 +461,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             draft.role = v!;
             draft.touch();
           },
-          title: const Text('Owner'),
+          title: Text(context.t('resto_poster_owner')),
         ),
         RadioListTile<RestaurantPosterRole>(
           value: RestaurantPosterRole.agent,
@@ -460,7 +470,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             draft.role = v!;
             draft.touch();
           },
-          title: const Text('Agent (pośrednik)'),
+          title: Text(context.t('ui_wiz_agent')),
         ),
         CheckboxListTile(
           value: draft.authorized,
@@ -468,7 +478,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             draft.authorized = v ?? false;
             draft.touch();
           },
-          title: const Text("I'm authorized to advertise this business and premises."),
+          title: Text(context.t('ui_wiz_authorized')),
           controlAffinity: ListTileControlAffinity.leading,
         ),
         _err('auth'),
@@ -477,12 +487,16 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             onPressed: () {
               draft.authDocName = 'authorization.pdf';
               draft.touch();
-              showTGToast(context, 'Authorization document attached (mock)');
+              showTGToast(context, context.t('ui_wiz_auth_mock'));
             },
-            child: Text(draft.authDocName == null ? 'Attach authorization (optional)' : 'Attached: ${draft.authDocName}'),
+            child: Text(
+              draft.authDocName == null
+                  ? context.t('ui_wiz_attach_auth')
+                  : context.t('ui_wiz_attached', {'name': draft.authDocName!}),
+            ),
           ),
         const SizedBox(height: 12),
-        Text('Business type', style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_wiz_business_type'), style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -490,7 +504,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             for (final t in RestaurantBusinessType.values)
               ChoiceChip(
                 selected: draft.businessType == t,
-                label: Text(RestaurantListing.businessTypeLabel(t)),
+                label: Text(restoLocalizedBusinessType(context, t)),
                 selectedColor: TGColors.accent.withValues(alpha: 0.25),
                 onSelected: (_) {
                   draft.businessType = t;
@@ -502,7 +516,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
         _err('type'),
         const SizedBox(height: 12),
         TextField(
-          decoration: const InputDecoration(labelText: 'Title (15–80)', border: OutlineInputBorder()),
+          decoration: InputDecoration(labelText: context.t('ui_wiz_title_label'), border: const OutlineInputBorder()),
           controller: TextEditingController(text: draft.title)
             ..selection = TextSelection.collapsed(offset: draft.title.length),
           onChanged: (v) {
@@ -513,7 +527,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
         ),
         _err('title'),
         TextField(
-          decoration: const InputDecoration(labelText: 'Description (50–4000)', border: OutlineInputBorder()),
+          decoration: InputDecoration(labelText: context.t('ui_wiz_desc_label'), border: const OutlineInputBorder()),
           maxLines: 6,
           maxLength: 4000,
           controller: TextEditingController(text: draft.description)
@@ -529,7 +543,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
           const SizedBox(height: 8),
           for (final s in draft.suggestedEquipment)
             ActionChip(
-              label: Text('$s found. Add to equipment list?'),
+              label: Text(context.t('ui_wiz_equip_suggest', {'name': s})),
               onPressed: () => draft.addSuggested(s),
             ),
         ],
@@ -541,17 +555,17 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Premises & location', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_wiz_premises_location'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        Text('The full address is shown publicly on your listing.', style: theme.bodySmall.override(color: theme.secondaryText)),
+        Text(context.t('ui_wiz_address_public'), style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 12),
-        _text('City', draft.city, (v) => draft.city = v, err: 'city'),
-        _text('District (optional)', draft.district, (v) => draft.district = v),
-        _text('Street', draft.street, (v) => draft.street = v, err: 'street'),
-        _text('Building No.', draft.buildingNo, (v) => draft.buildingNo = v, err: 'building'),
+        _text(context.t('ui_city'), draft.city, (v) => draft.city = v, err: 'city'),
+        _text(context.t('ui_wiz_district_opt'), draft.district, (v) => draft.district = v),
+        _text(context.t('ui_wiz_street'), draft.street, (v) => draft.street = v, err: 'street'),
+        _text(context.t('ui_wiz_building_no'), draft.buildingNo, (v) => draft.buildingNo = v, err: 'building'),
         Row(
           children: [
-            Expanded(child: _text('Unit / lokal No.', draft.unitNo, (v) => draft.unitNo = v, err: 'unit', enabled: !draft.noUnit)),
+            Expanded(child: _text(context.t('ui_wiz_unit_no'), draft.unitNo, (v) => draft.unitNo = v, err: 'unit', enabled: !draft.noUnit)),
             Checkbox(
               value: draft.noUnit,
               onChanged: (v) {
@@ -559,11 +573,11 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                 draft.touch();
               },
             ),
-            const Text('No unit number'),
+            Text(context.t('ui_wiz_no_unit')),
           ],
         ),
         TextField(
-          decoration: const InputDecoration(labelText: 'Total area m²', border: OutlineInputBorder()),
+          decoration: InputDecoration(labelText: context.t('ui_wiz_total_area_m2'), border: const OutlineInputBorder()),
           keyboardType: TextInputType.number,
           onChanged: (v) {
             draft.totalAreaM2 = double.tryParse(v.replaceAll(',', '.'));
@@ -576,20 +590,41 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
           height: 140,
           alignment: Alignment.center,
           decoration: BoxDecoration(color: const Color(0xFFE8EEF2), borderRadius: BorderRadius.circular(12)),
-          child: Text(draft.city.isEmpty ? 'Map pin preview' : 'Map · ${draft.city}', style: const TextStyle(fontWeight: FontWeight.w700)),
+          child: Text(
+            draft.city.isEmpty ? context.t('ui_wiz_map_preview') : context.t('ui_map_city', {'city': draft.city}),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );
   }
 
+  String _vatBasisLabel(RestaurantVatBasis b) => switch (b) {
+        RestaurantVatBasis.netto => 'Netto',
+        RestaurantVatBasis.brutto => 'Brutto',
+        RestaurantVatBasis.vatUnspecified => context.t('ui_wiz_vat_unspecified'),
+      };
+
+  String _consentLabel(RestaurantLandlordConsent c) => switch (c) {
+        RestaurantLandlordConsent.yes => context.t('ui_wiz_consent_yes'),
+        RestaurantLandlordConsent.no => context.t('ui_wiz_consent_no'),
+        RestaurantLandlordConsent.toBeArranged => context.t('ui_wiz_consent_tba'),
+      };
+
+  String _invConditionLabel(RestaurantInventoryCondition c) => switch (c) {
+        RestaurantInventoryCondition.newItem => context.t('ui_wiz_cond_new'),
+        RestaurantInventoryCondition.used => context.t('ui_wiz_cond_used'),
+        RestaurantInventoryCondition.unknown => context.t('ui_wiz_cond_unknown'),
+      };
+
   Widget _stepLease(FlutterFlowTheme theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Lease & price', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_wiz_step_lease'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 12),
         TextField(
-          decoration: const InputDecoration(labelText: 'Monthly rent (PLN)', border: OutlineInputBorder()),
+          decoration: InputDecoration(labelText: context.t('ui_wiz_monthly_rent_pln'), border: const OutlineInputBorder()),
           keyboardType: TextInputType.number,
           onChanged: (v) {
             draft.rentMonthly = int.tryParse(v.replaceAll(RegExp(r'\D'), ''));
@@ -598,17 +633,13 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
         ),
         _err('rent'),
         const SizedBox(height: 8),
-        Text('Rent VAT basis', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_wiz_rent_vat_basis'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
         Wrap(
           spacing: 8,
           children: [
             for (final b in RestaurantVatBasis.values)
               ChoiceChip(
-                label: Text(switch (b) {
-                  RestaurantVatBasis.netto => 'Netto',
-                  RestaurantVatBasis.brutto => 'Brutto',
-                  RestaurantVatBasis.vatUnspecified => 'VAT not specified',
-                }),
+                label: Text(_vatBasisLabel(b)),
                 selected: draft.rentBasis == b,
                 onSelected: (_) {
                   draft.rentBasis = b;
@@ -622,17 +653,17 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               draft.rentBasis == RestaurantVatBasis.netto
-                  ? '≈ ${(draft.rentMonthly! * 1.23).round()} PLN brutto'
-                  : '≈ ${(draft.rentMonthly! / 1.23).round()} PLN netto',
+                  ? context.t('ui_wiz_approx_brutto', {'amount': '${(draft.rentMonthly! * 1.23).round()}'})
+                  : context.t('ui_wiz_approx_netto', {'amount': '${(draft.rentMonthly! / 1.23).round()}'}),
               style: theme.bodySmall,
             ),
           ),
         const SizedBox(height: 12),
-        Text('Lease type', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_lease_type'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
         Row(
           children: [
             ChoiceChip(
-              label: const Text('Fixed'),
+              label: Text(context.t('ui_fixed_term')),
               selected: draft.leaseType == RestaurantLeaseType.fixed,
               onSelected: (_) {
                 draft.leaseType = RestaurantLeaseType.fixed;
@@ -641,7 +672,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             ),
             const SizedBox(width: 8),
             ChoiceChip(
-              label: const Text('Indefinite'),
+              label: Text(context.t('ui_indefinite')),
               selected: draft.leaseType == RestaurantLeaseType.indefinite,
               onSelected: (_) {
                 draft.leaseType = RestaurantLeaseType.indefinite;
@@ -664,17 +695,21 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                 draft.touch();
               }
             },
-            child: Text(draft.leaseEndsAt == null ? 'Pick lease end date' : 'Ends ${DateFormat('d MMM yyyy').format(draft.leaseEndsAt!)}'),
+            child: Text(
+              draft.leaseEndsAt == null
+                  ? context.t('ui_wiz_pick_lease_end')
+                  : context.t('ui_wiz_ends_on', {'d': DateFormat('d MMM yyyy').format(draft.leaseEndsAt!)}),
+            ),
           ),
         _err('leaseEnds'),
         const SizedBox(height: 8),
-        Text('Landlord consent for transfer', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_landlord_consent'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
         Wrap(
           spacing: 8,
           children: [
             for (final c in RestaurantLandlordConsent.values)
               ChoiceChip(
-                label: Text(c.name),
+                label: Text(_consentLabel(c)),
                 selected: draft.landlordConsent == c,
                 onSelected: (_) {
                   draft.landlordConsent = c;
@@ -684,11 +719,11 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
           ],
         ),
         const SizedBox(height: 12),
-        Text('Transfer fee', style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_transfer_fee'), style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
         Row(
           children: [
             ChoiceChip(
-              label: const Text('Amount'),
+              label: Text(context.t('ui_wiz_fee_amount')),
               selected: draft.feeKind == RestaurantTransferFeeKind.amount,
               onSelected: (_) {
                 draft.feeKind = RestaurantTransferFeeKind.amount;
@@ -697,7 +732,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             ),
             const SizedBox(width: 8),
             ChoiceChip(
-              label: const Text('No transfer fee'),
+              label: Text(context.t('ui_no_transfer_fee')),
               selected: draft.feeKind == RestaurantTransferFeeKind.none,
               onSelected: (_) {
                 draft.feeKind = RestaurantTransferFeeKind.none;
@@ -709,7 +744,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
         _err('fee'),
         if (draft.feeKind == RestaurantTransferFeeKind.amount) ...[
           TextField(
-            decoration: const InputDecoration(labelText: 'Transfer fee (PLN)', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: context.t('ui_wiz_transfer_fee_pln'), border: const OutlineInputBorder()),
             keyboardType: TextInputType.number,
             onChanged: (v) {
               draft.feeAmount = int.tryParse(v.replaceAll(RegExp(r'\D'), ''));
@@ -722,7 +757,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             children: [
               for (final b in RestaurantVatBasis.values)
                 ChoiceChip(
-                  label: Text(b.name),
+                  label: Text(_vatBasisLabel(b)),
                   selected: draft.feeBasis == b,
                   onSelected: (_) {
                     draft.feeBasis = b;
@@ -738,7 +773,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             draft.negotiable = v ?? false;
             draft.touch();
           },
-          title: const Text('Negotiable'),
+          title: Text(context.t('ui_negotiable')),
           controlAffinity: ListTileControlAffinity.leading,
         ),
       ],
@@ -750,19 +785,19 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Equipment & photos', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_wiz_step_equipment'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        Text('Equipment inventory (optional — skippable)', style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
-        Text('Equipment included', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+        Text(context.t('ui_wiz_equip_optional'), style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_wiz_equip_included'), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
         Wrap(
           spacing: 8,
           children: [
             for (final e in RestaurantEquipmentIncluded.values)
               ChoiceChip(
                 label: Text(switch (e) {
-                  RestaurantEquipmentIncluded.all => 'All',
-                  RestaurantEquipmentIncluded.partial => 'Partial',
-                  RestaurantEquipmentIncluded.none => 'None',
+                  RestaurantEquipmentIncluded.all => context.t('ui_wiz_equip_all'),
+                  RestaurantEquipmentIncluded.partial => context.t('ui_wiz_equip_partial'),
+                  RestaurantEquipmentIncluded.none => context.t('ui_none'),
                 }),
                 selected: draft.equipmentIncluded == e,
                 onSelected: (_) {
@@ -817,7 +852,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                           ),
                         ],
                       ),
-                      Text('${item.category.name} · ×${item.qty}', style: theme.bodySmall),
+                      Text('${restoInvCatLabel(context, item.category)} · ×${item.qty}', style: theme.bodySmall),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -826,7 +861,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                           SizedBox(
                             width: phone ? double.infinity : 120,
                             child: TextField(
-                              decoration: const InputDecoration(labelText: 'Qty', border: OutlineInputBorder(), isDense: true),
+                              decoration: InputDecoration(labelText: context.t('ui_wiz_qty'), border: const OutlineInputBorder(), isDense: true),
                               keyboardType: TextInputType.number,
                               controller: TextEditingController(text: '${item.qty}')
                                 ..selection = TextSelection.collapsed(offset: '${item.qty}'.length),
@@ -836,7 +871,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                           SizedBox(
                             width: phone ? double.infinity : 160,
                             child: TextField(
-                              decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder(), isDense: true),
+                              decoration: InputDecoration(labelText: context.t('ui_brand'), border: const OutlineInputBorder(), isDense: true),
                               controller: TextEditingController(text: item.brand ?? ''),
                               onChanged: (v) => draft.updateInventoryItem(item.id, brand: v),
                             ),
@@ -844,7 +879,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                           SizedBox(
                             width: phone ? double.infinity : 160,
                             child: TextField(
-                              decoration: const InputDecoration(labelText: 'Model (opt.)', border: OutlineInputBorder(), isDense: true),
+                              decoration: InputDecoration(labelText: context.t('ui_wiz_model_opt'), border: const OutlineInputBorder(), isDense: true),
                               controller: TextEditingController(text: item.model ?? ''),
                               onChanged: (v) => draft.updateInventoryItem(item.id, model: v),
                             ),
@@ -852,29 +887,29 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text('Condition', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+                      Text(context.t('ui_condition'), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
                       Wrap(
                         spacing: 6,
                         children: [
                           for (final c in RestaurantInventoryCondition.values)
                             ChoiceChip(
-                              label: Text(c.name),
+                              label: Text(_invConditionLabel(c)),
                               selected: item.condition == c,
                               onSelected: (_) => draft.updateInventoryItem(item.id, condition: c),
                             ),
                         ],
                       ),
                       const SizedBox(height: 6),
-                      Text('Availability', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+                      Text(context.t('ui_wiz_availability'), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
                       Wrap(
                         spacing: 6,
                         children: [
                           for (final a in RestaurantInventoryAvailability.values)
                             ChoiceChip(
                               label: Text(switch (a) {
-                                RestaurantInventoryAvailability.included => 'Included',
-                                RestaurantInventoryAvailability.maySellSeparately => 'Included but may be sold separately',
-                                RestaurantInventoryAvailability.excluded => 'Not included',
+                                RestaurantInventoryAvailability.included => context.t('ui_wiz_inv_included'),
+                                RestaurantInventoryAvailability.maySellSeparately => context.t('ui_wiz_inv_may_sell'),
+                                RestaurantInventoryAvailability.excluded => context.t('ui_wiz_inv_excluded'),
                               }),
                               selected: item.availability == a,
                               onSelected: (_) => draft.updateInventoryItem(item.id, availability: a),
@@ -891,7 +926,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                               showTGToast(context, phone ? 'Photo attached (camera mock)' : 'Photo attached (gallery mock)');
                             },
                             icon: Icon(phone ? Icons.photo_camera_outlined : Icons.photo_library_outlined, size: 16),
-                            label: Text(phone ? 'Take photo' : 'Choose from gallery'),
+                            label: Text(phone ? context.t('ui_wiz_take_photo') : context.t('ui_wiz_choose_gallery')),
                           ),
                           TextButton(
                             onPressed: () {
@@ -911,7 +946,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                               );
                               context.go(q.toString());
                             },
-                            child: const Text('Sell this item separately'),
+                            child: Text(context.t('ui_wiz_sell_separately')),
                           ),
                         ],
                       ),
@@ -922,9 +957,9 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             ),
         ],
         const SizedBox(height: 16),
-        Text('Photos (min 3, max 20 · 5 recommended)', style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
-        Text('Photograph the front, dining area, kitchen and your main equipment.', style: theme.bodySmall),
-        Text('EXIF stripped · HEIC supported (mock).', style: theme.bodySmall.override(color: theme.secondaryText)),
+        Text(context.t('ui_wiz_photos_limits'), style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_wiz_photos_hint'), style: theme.bodySmall),
+        Text(context.t('ui_wiz_exif_mock'), style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -933,19 +968,19 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             TGButton(
               onPressed: () {
                 if (draft.photos.length >= 20) {
-                  showTGToast(context, 'Maximum 20 photos');
+                  showTGToast(context, context.t('ui_wiz_max_photos'));
                   return;
                 }
                 draft.addMockPhotos(phone ? 1 : 3);
               },
-              label: phone ? 'Take photo' : 'Add photos',
+              label: phone ? context.t('ui_wiz_take_photo') : context.t('ui_wiz_add_photos'),
               height: 40,
               borderRadius: BorderRadius.circular(TGRadius.pill),
             ),
             if (phone)
               OutlinedButton(
                 onPressed: () => draft.addMockPhotos(1),
-                child: const Text('Choose from gallery'),
+                child: Text(context.t('ui_wiz_choose_gallery')),
               ),
             OutlinedButton(
               onPressed: () {
@@ -953,7 +988,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                 draft.touch();
                 showTGToast(context, 'Floor plan attached (PDF/JPG mock)');
               },
-              child: Text(draft.floorPlanUrl == null ? 'Upload floor plan' : 'Floor plan ✓'),
+              child: Text(draft.floorPlanUrl == null ? context.t('ui_wiz_upload_floor') : context.t('ui_wiz_floor_ok')),
             ),
             if (_undoPhoto != null)
               TextButton(
@@ -965,7 +1000,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                   _undoPhoto = null;
                   draft.touch();
                 },
-                child: const Text('Undo delete'),
+                child: Text(context.t('ui_wiz_undo_delete')),
               ),
           ],
         ),
@@ -1002,7 +1037,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(color: TGColors.cta, borderRadius: BorderRadius.circular(99)),
-                            child: const Text('Cover', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                            child: Text(context.t('ui_wiz_cover'), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
                           ),
                         ),
                       Positioned(
@@ -1033,7 +1068,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             ),
           ),
         ],
-        Text('${draft.photos.length} photos', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+        Text(context.t('ui_wiz_photos_n', {'n': '${draft.photos.length}'}), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
         _err('photos'),
       ],
     );
@@ -1045,11 +1080,11 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Contact & publish', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_wiz_contact_publish'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        Text('This number is shown publicly on your listing and cards.', style: theme.bodySmall.override(color: theme.secondaryText)),
+        Text(context.t('ui_phone_public'), style: theme.bodySmall.override(color: theme.secondaryText)),
         TextField(
-          decoration: const InputDecoration(labelText: 'Phone (+48)', border: OutlineInputBorder(), hintText: '+48 XXX XXX XXX'),
+          decoration: InputDecoration(labelText: context.t('ui_wiz_phone_48'), border: const OutlineInputBorder(), hintText: '+48 XXX XXX XXX'),
           keyboardType: TextInputType.phone,
           inputFormatters: [_PlPhoneMaskFormatter()],
           controller: TextEditingController(text: draft.phone)
@@ -1064,7 +1099,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             Expanded(
               child: TextField(
                 controller: _sms,
-                decoration: const InputDecoration(labelText: 'SMS code (123456)', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: context.t('ui_wiz_sms_code'), border: const OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 autofillHints: const [AutofillHints.oneTimeCode],
               ),
@@ -1076,20 +1111,20 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                   draft.phoneVerified = true;
                   auth.phoneVerified = true;
                   draft.touch();
-                  showTGToast(context, 'Phone verified');
+                  showTGToast(context, context.t('ui_wiz_phone_ok'));
                 } else {
-                  showTGToast(context, 'Invalid code', icon: Icons.error_outline);
+                  showTGToast(context, context.t('ui_wiz_invalid_code'), icon: Icons.error_outline);
                 }
               },
-              label: 'Verify',
+              label: context.t('ui_wiz_verify'),
               height: 44,
               borderRadius: BorderRadius.circular(TGRadius.pill),
             ),
           ],
         ),
         _err('phone'),
-        _text('Name', draft.contactName, (v) => draft.contactName = v, err: 'name'),
-        _text('Email', draft.email, (v) => draft.email = v, err: 'email', keyboard: TextInputType.emailAddress),
+        _text(context.t('ui_wiz_name'), draft.contactName, (v) => draft.contactName = v, err: 'name'),
+        _text(context.t('ui_wiz_email'), draft.email, (v) => draft.email = v, err: 'email', keyboard: TextInputType.emailAddress),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
@@ -1098,22 +1133,26 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                free ? 'Restaurant listing · ${cfg.freeDays} days · Free' : 'Restaurant listing · ${cfg.paidDays} days · ${cfg.paidPricePln},00 PLN',
+                free
+                    ? context.t('ui_wiz_listing_free', {'days': '${cfg.freeDays}'})
+                    : context.t('ui_wiz_listing_paid', {'days': '${cfg.paidDays}', 'price': '${cfg.paidPricePln}'}),
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
               if (free)
                 Text(
-                  'If you get no contacts and no favorites in ${cfg.freeDays} days, we add ${cfg.freeExtensionDays} more free days. Afterwards ${cfg.paidPricePln} PLN / ${cfg.paidDays} days.',
+                  context.t('ui_wiz_free_extension', {
+                    'free': '${cfg.freeDays}',
+                    'extra': '${cfg.freeExtensionDays}',
+                    'price': '${cfg.paidPricePln}',
+                    'paid': '${cfg.paidDays}',
+                  }),
                   style: theme.bodySmall,
                 )
               else
                 Text(draft.freeStartBlockReasonSafe(), style: theme.bodySmall),
               const SizedBox(height: 12),
-              Text('Promote (WYRÓŻNIONE)', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
-              Text(
-                'Shown at the top of Restaurants for Sale, in the homepage “Restaurants for Sale” strip, in search results, and labelled WYRÓŻNIONE.',
-                style: theme.bodySmall,
-              ),
+              Text(context.t('ui_wiz_promote'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+              Text(context.t('ui_wiz_promote_help'), style: theme.bodySmall),
               RadioListTile<int>(
                 value: 0,
                 groupValue: draft.promoteDays,
@@ -1121,7 +1160,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                   draft.promoteDays = v!;
                   draft.touch();
                 },
-                title: const Text('None'),
+                title: Text(context.t('ui_none')),
               ),
               RadioListTile<int>(
                 value: 14,
@@ -1131,7 +1170,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                   draft.touch();
                   TGAnalytics.track('resto_promote_selected', {'days': 14});
                 },
-                title: Text('+${cfg.promote.pln14} PLN · 14 days'),
+                title: Text(context.t('ui_wiz_promote_days', {'price': '${cfg.promote.pln14}', 'days': '14'})),
               ),
               RadioListTile<int>(
                 value: 30,
@@ -1141,9 +1180,9 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                   draft.touch();
                   TGAnalytics.track('resto_promote_selected', {'days': 30});
                 },
-                title: Text('+${cfg.promote.pln30} PLN · 30 days'),
+                title: Text(context.t('ui_wiz_promote_days', {'price': '${cfg.promote.pln30}', 'days': '30'})),
               ),
-              Text('Total (brutto, VAT 23% included): ${draft.totalPln},00 PLN', style: const TextStyle(fontWeight: FontWeight.w900)),
+              Text(context.t('ui_wiz_total_brutto', {'amount': '${draft.totalPln}'}), style: const TextStyle(fontWeight: FontWeight.w900)),
             ],
           ),
         ),

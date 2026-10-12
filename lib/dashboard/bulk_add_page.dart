@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_form.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
@@ -210,7 +211,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Bulk add equipment', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+                Text(context.t('ui_bulk_add_equipment'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
                 Text('Location, phone and seller are automatic from your account.', style: theme.bodySmall),
                 Text('Completeness ${(avg * 100).round()}%', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
                 Text('Free slots left: ${auth.freeListingsLeft}/3', style: theme.bodySmall),

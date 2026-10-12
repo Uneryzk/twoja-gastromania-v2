@@ -545,12 +545,12 @@ Future<void> showAddListingChooser(BuildContext context) {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('What are you listing?', style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
+            Text(ctx.t('ui_what_are_you_listing'), style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.kitchen_outlined),
-              title: const Text('Equipment', style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: const Text('Machines, furniture, spare parts'),
+              title: Text(ctx.t('ui_listing_kind_equipment'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(ctx.t('ui_listing_kind_equipment_sub')),
               onTap: () {
                 Navigator.pop(ctx);
                 TGNav.addProduct(context);
@@ -558,7 +558,7 @@ Future<void> showAddListingChooser(BuildContext context) {
             ),
             ListTile(
               leading: const Icon(Icons.collections_outlined),
-              title: const Text('Bulk add equipment', style: TextStyle(fontWeight: FontWeight.w800)),
+              title: Text(ctx.t('ui_bulk_add_equipment'), style: const TextStyle(fontWeight: FontWeight.w800)),
               onTap: () {
                 Navigator.pop(ctx);
                 context.go('/dashboard/bulk-add');
@@ -566,8 +566,8 @@ Future<void> showAddListingChooser(BuildContext context) {
             ),
             ListTile(
               leading: const Icon(Icons.storefront_outlined),
-              title: const Text('Restaurant for sale', style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: const Text('Business & premises transfer'),
+              title: Text(ctx.t('ui_listing_kind_restaurant'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(ctx.t('ui_listing_kind_restaurant_sub')),
               onTap: () {
                 Navigator.pop(ctx);
                 context.go('/restaurants/new');

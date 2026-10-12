@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/products/tg_geo.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_logic.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_query.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
@@ -83,7 +85,7 @@ class RestaurantFiltersPanel extends StatelessWidget {
                 children: RestaurantBusinessType.values.map((t) {
                   final on = query.businessTypes.contains(t);
                   return FilterChip(
-                    label: Text(RestaurantListing.businessTypeLabel(t)),
+                    label: Text(restoLocalizedBusinessType(context, t)),
                     selected: on,
                     onSelected: (sel) {
                       final next = {...query.businessTypes};
@@ -362,7 +364,7 @@ class RestaurantAppliedChips extends StatelessWidget {
     }
     for (final t in query.businessTypes) {
       chips.add((
-        RestaurantListing.businessTypeLabel(t),
+        restoLocalizedBusinessType(context, t),
         () {
           final next = {...query.businessTypes}..remove(t);
           onChanged(query.copyWith(businessTypes: next, page: 1));

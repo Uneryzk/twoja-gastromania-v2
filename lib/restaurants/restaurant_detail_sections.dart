@@ -96,13 +96,13 @@ class RestoKeyFigures extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final lease = listing.leaseEndsAt == null
-        ? (listing.leaseType == RestaurantLeaseType.indefinite ? 'Indefinite' : '—')
+        ? (listing.leaseType == RestaurantLeaseType.indefinite ? context.t('ui_indefinite') : '—')
         : DateFormat('d MMM yyyy').format(listing.leaseEndsAt!);
     final items = [
-      ('Area', '${listing.totalAreaM2.toStringAsFixed(0)} m²'),
-      ('Rent', money(listing.rentMonthly)),
-      ('Transfer fee', listing.transferFee.isNone ? 'None' : money(listing.transferFee.amountPln)),
-      ('Lease until', lease),
+      (context.t('ui_area_label'), '${listing.totalAreaM2.toStringAsFixed(0)} m²'),
+      (context.t('ui_rent_label'), money(listing.rentMonthly)),
+      (context.t('ui_transfer_fee'), listing.transferFee.isNone ? context.t('ui_none') : money(listing.transferFee.amountPln)),
+      (context.t('ui_lease_until_label'), lease),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,10 +159,16 @@ class RestoDescription extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Description', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_description'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         Text(listing.description, maxLines: open ? 999 : maxLines, overflow: TextOverflow.ellipsis),
-        TextButton(onPressed: onToggle, child: Text(open ? 'Show less' : 'Show more', style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800))),
+        TextButton(
+          onPressed: onToggle,
+          child: Text(
+            open ? context.t('ui_show_less') : context.t('ui_show_more'),
+            style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800),
+          ),
+        ),
       ],
     );
   }
@@ -195,7 +201,7 @@ class RestoEquipmentSection extends StatelessWidget {
         ],
       );
     }
-    final active = listing.inventory.where((i) => i.status == RestaurantInventoryStatus.active || i.status == RestaurantInventoryStatus.soldSeparatelyPending).toList();
+    final active = listing.publicInventory;
     final separate = active.where((i) => i.availability == RestaurantInventoryAvailability.maySellSeparately).take(3).toList();
     final rest = active
         .where((i) => i.availability != RestaurantInventoryAvailability.maySellSeparately || !separate.contains(i))
@@ -379,20 +385,22 @@ class RestoPremisesTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
+    final yes = context.t('ui_yes');
+    final no = context.t('ui_no');
     final rows = <(String, String)>[
-      ('Total area', '${listing.totalAreaM2.toStringAsFixed(0)} m²'),
-      if (listing.seats != null) ('Seats', '${listing.seats}'),
-      if (listing.terraceM2 != null) ('Terrace', '${listing.terraceM2!.toStringAsFixed(0)} m²'),
-      if (listing.floorLevel != null) ('Floor', '${listing.floorLevel}'),
-      ('Parking', listing.parking ? 'Yes' : 'No'),
-      if (listing.powerKw != null) ('Electricity', '${listing.powerKw!.toStringAsFixed(0)} kW'),
-      ('Gas', listing.gasConnection ? 'Yes' : 'No'),
-      ('Ventilation / extraction', listing.extractionSystem ? 'Yes' : 'No'),
+      (context.t('ui_total_area'), '${listing.totalAreaM2.toStringAsFixed(0)} m²'),
+      if (listing.seats != null) (context.t('ui_seats'), '${listing.seats}'),
+      if (listing.terraceM2 != null) (context.t('ui_terrace'), '${listing.terraceM2!.toStringAsFixed(0)} m²'),
+      if (listing.floorLevel != null) (context.t('ui_floor'), '${listing.floorLevel}'),
+      (context.t('ui_parking'), listing.parking ? yes : no),
+      if (listing.powerKw != null) (context.t('ui_electricity'), '${listing.powerKw!.toStringAsFixed(0)} kW'),
+      (context.t('ui_gas_connection'), listing.gasConnection ? yes : no),
+      (context.t('ui_ventilation'), listing.extractionSystem ? yes : no),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('The premises', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_the_premises'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         _kvTable(context, rows),
       ],
@@ -410,38 +418,40 @@ class RestoLeaseTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final r = listing;
+    final yes = context.t('ui_yes');
+    final no = context.t('ui_no');
     final fee = r.transferFee.isNone
-        ? 'No transfer fee'
-        : '${money(r.transferFee.amountPln)} · ${basisLabel(r.transferFee.basis)}${r.negotiable ? ' · negotiable' : ''}';
+        ? context.t('ui_no_transfer_fee')
+        : '${money(r.transferFee.amountPln)} · ${basisLabel(r.transferFee.basis)}${r.negotiable ? ' · ${context.t('ui_negotiable')}' : ''}';
     final rows = <(String, String)>[
-      ('Monthly rent', '${money(r.rentMonthly)} · ${basisLabel(r.rentBasis)}'),
-      if (r.depositPln != null) ('Deposit', money(r.depositPln)),
-      ('Lease type', r.leaseType == RestaurantLeaseType.fixed ? 'Fixed term' : 'Indefinite'),
-      if (r.leaseEndsAt != null) ('Lease ends', DateFormat('d MMM yyyy').format(r.leaseEndsAt!)),
+      (context.t('ui_monthly_rent_label'), '${money(r.rentMonthly)} · ${basisLabel(r.rentBasis)}'),
+      if (r.depositPln != null) (context.t('ui_deposit'), money(r.depositPln)),
+      (context.t('ui_lease_type'), r.leaseType == RestaurantLeaseType.fixed ? context.t('ui_fixed_term') : context.t('ui_indefinite')),
+      if (r.leaseEndsAt != null) (context.t('ui_lease_ends'), DateFormat('d MMM yyyy').format(r.leaseEndsAt!)),
       (
-        'Landlord consent for transfer',
+        context.t('ui_landlord_consent'),
         switch (r.landlordConsent) {
-          RestaurantLandlordConsent.yes => 'Yes',
-          RestaurantLandlordConsent.no => 'No',
-          RestaurantLandlordConsent.toBeArranged => 'To be arranged',
+          RestaurantLandlordConsent.yes => yes,
+          RestaurantLandlordConsent.no => no,
+          RestaurantLandlordConsent.toBeArranged => context.t('ui_to_be_arranged'),
         }
       ),
-      ('Transfer fee', fee),
+      (context.t('ui_transfer_fee'), fee),
       (
-        'Staff takeover',
+        context.t('ui_staff_takeover'),
         switch (r.staffTakeover) {
-          RestaurantStaffTakeover.yes => 'Yes',
-          RestaurantStaffTakeover.no => 'No',
-          RestaurantStaffTakeover.negotiable => 'Negotiable',
+          RestaurantStaffTakeover.yes => yes,
+          RestaurantStaffTakeover.no => no,
+          RestaurantStaffTakeover.negotiable => context.t('ui_negotiable'),
         }
       ),
-      ('Reason for sale', r.reasonForSale),
-      ('Available from', DateFormat('d MMM yyyy').format(r.availableFrom)),
+      (context.t('ui_reason_for_sale'), r.reasonForSale),
+      (context.t('ui_available_from_label'), DateFormat('d MMM yyyy').format(r.availableFrom)),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Lease & transfer', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_lease_transfer'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         _kvTable(context, rows),
       ],
@@ -468,26 +478,26 @@ class RestoMonthlyCosts extends StatelessWidget {
       netTotal += l.basis == RestaurantCostBasis.brutto ? l.amountPln / 1.23 : l.amountPln.toDouble();
     }
     String period(RestaurantCostPeriod p) => switch (p) {
-          RestaurantCostPeriod.lastBill => 'last bill',
-          RestaurantCostPeriod.avg12m => '12-month average',
-          RestaurantCostPeriod.estimate => 'estimate',
+          RestaurantCostPeriod.lastBill => context.t('ui_cost_last_bill'),
+          RestaurantCostPeriod.avg12m => context.t('ui_cost_avg_12m'),
+          RestaurantCostPeriod.estimate => context.t('ui_cost_estimate'),
         };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Monthly costs (declared)', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_monthly_costs'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 4),
-        Text('Declared by the seller · not verified', style: theme.bodySmall.override(color: theme.secondaryText)),
+        Text(context.t('ui_declared_unverified'), style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 8),
         Table(
           columnWidths: const {0: FlexColumnWidth(2), 1: FlexColumnWidth(1.2), 2: FlexColumnWidth(1), 3: FlexColumnWidth(1.4), 4: FlexColumnWidth(1)},
           children: [
             TableRow(children: [
-              _th(context, 'Item'),
-              _th(context, 'Amount'),
-              _th(context, 'Basis'),
-              _th(context, 'Period'),
-              _th(context, 'In rent'),
+              _th(context, context.t('ui_cost_item')),
+              _th(context, context.t('ui_cost_amount')),
+              _th(context, context.t('ui_cost_basis')),
+              _th(context, context.t('ui_cost_period')),
+              _th(context, context.t('ui_cost_in_rent')),
             ]),
             for (final l in lines)
               TableRow(children: [
@@ -501,11 +511,11 @@ class RestoMonthlyCosts extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Total of items with VAT basis: ${money(netTotal.round())} net',
+          context.t('ui_cost_net_total', {'amount': money(netTotal.round())}),
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
         if (unknown > 0)
-          Text('$unknown items without VAT basis are not included', style: theme.bodySmall.override(color: theme.secondaryText)),
+          Text(context.t('ui_cost_unknown_vat', {'n': '$unknown'}), style: theme.bodySmall.override(color: theme.secondaryText)),
       ],
     );
   }
@@ -521,27 +531,27 @@ class RestoAdditionalInfo extends StatelessWidget {
     final d = listing.details;
     final rows = <(String, String)>[];
     if (d.garden.kind != RestaurantGardenKind.none) {
-      final fee = d.garden.lastFeePln != null ? ' · last fee ${d.garden.lastFeePln} PLN' : '';
-      rows.add(('Garden/terrace', '${d.garden.kind.name}${d.garden.areaM2 != null ? ' · ${d.garden.areaM2} m²' : ''}$fee'));
+      final fee = d.garden.lastFeePln != null ? ' · ${context.t('ui_last_fee', {'n': '${d.garden.lastFeePln}'})}' : '';
+      rows.add((context.t('ui_garden_terrace'), '${d.garden.kind.name}${d.garden.areaM2 != null ? ' · ${d.garden.areaM2} m²' : ''}$fee'));
     }
     if (d.playArea.kind != RestaurantPlayAreaKind.none) {
-      rows.add(('Play area', '${d.playArea.kind.name}${d.playArea.areaM2 != null ? ' · ${d.playArea.areaM2} m²' : ''}'));
+      rows.add((context.t('ui_play_area'), '${d.playArea.kind.name}${d.playArea.areaM2 != null ? ' · ${d.playArea.areaM2} m²' : ''}'));
     }
-    if (d.conceptMenu != null && d.conceptMenu!.isNotEmpty) rows.add(('Concept & menu', d.conceptMenu!));
-    if (d.customersLocation != null && d.customersLocation!.isNotEmpty) rows.add(('Customers & location', d.customersLocation!));
-    if (d.hoursSeasonality != null && d.hoursSeasonality!.isNotEmpty) rows.add(('Opening hours & seasonality', d.hoursSeasonality!));
-    if (d.deliveryOnline) rows.add(('Delivery & online presence', 'Yes'));
-    if (d.staffContracts != null && d.staffContracts!.isNotEmpty) rows.add(('Staff & contracts', d.staffContracts!));
-    if (d.systems != null && d.systems!.isNotEmpty) rows.add(('Systems', d.systems!));
-    if (d.brandAssets.isNotEmpty) rows.add(('Brand & assets included', d.brandAssets.join(', ')));
-    if (d.otherInfo != null && d.otherInfo!.isNotEmpty) rows.add(('Other', d.otherInfo!));
+    if (d.conceptMenu != null && d.conceptMenu!.isNotEmpty) rows.add((context.t('ui_concept_menu'), d.conceptMenu!));
+    if (d.customersLocation != null && d.customersLocation!.isNotEmpty) rows.add((context.t('ui_customers_location'), d.customersLocation!));
+    if (d.hoursSeasonality != null && d.hoursSeasonality!.isNotEmpty) rows.add((context.t('ui_hours_seasonality'), d.hoursSeasonality!));
+    if (d.deliveryOnline) rows.add((context.t('ui_delivery_online'), context.t('ui_yes')));
+    if (d.staffContracts != null && d.staffContracts!.isNotEmpty) rows.add((context.t('ui_staff_contracts'), d.staffContracts!));
+    if (d.systems != null && d.systems!.isNotEmpty) rows.add((context.t('ui_systems'), d.systems!));
+    if (d.brandAssets.isNotEmpty) rows.add((context.t('ui_brand_assets'), d.brandAssets.join(', ')));
+    if (d.otherInfo != null && d.otherInfo!.isNotEmpty) rows.add((context.t('ui_other'), d.otherInfo!));
     if (rows.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Additional information', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_additional_info'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 4),
-        Text('Declared by the seller · not verified', style: theme.bodySmall.override(color: theme.secondaryText)),
+        Text(context.t('ui_declared_unverified'), style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 8),
         _kvTable(context, rows),
       ],
@@ -559,41 +569,44 @@ class RestoLicencesBlock extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     final a = listing.alcoholPermit;
     final classLabel = a.classes.map((c) => switch (c) {
-          RestaurantAlcoholClass.upTo45AndBeer => 'up to 4.5% & beer',
-          RestaurantAlcoholClass.from45To18 => '4.5–18%',
-          RestaurantAlcoholClass.over18 => 'over 18%',
+          RestaurantAlcoholClass.upTo45AndBeer => context.t('ui_alcohol_class_low'),
+          RestaurantAlcoholClass.from45To18 => context.t('ui_alcohol_class_mid'),
+          RestaurantAlcoholClass.over18 => context.t('ui_alcohol_class_high'),
         }).join(', ');
-    final scopeLabel = a.scope.map((s) => s == RestaurantAlcoholScope.onPremises ? 'on-premises' : 'off-premises').join(', ');
+    final scopeLabel = a.scope
+        .map((s) => s == RestaurantAlcoholScope.onPremises ? context.t('ui_alcohol_on_premises') : context.t('ui_alcohol_off_premises'))
+        .join(', ');
+    final revenue = listing.declaredMonthlyRevenue != null
+        ? context.t('ui_monthly_revenue_line', {'amount': money(listing.declaredMonthlyRevenue)})
+        : '';
+    final asOf = listing.declaredAsOf != null ? ' · ${context.t('ui_as_of', {'d': DateFormat('MMM yyyy').format(listing.declaredAsOf!)})}' : '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Licences & permits', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_licences_permits'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 4),
-        Text('Declared by the seller · not verified', style: theme.bodySmall.override(color: theme.secondaryText)),
+        Text(context.t('ui_declared_unverified'), style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 8),
         _kvTable(context, [
-          ('Alcohol permit', a.status.name),
-          if (classLabel.isNotEmpty) ('Alcohol class', classLabel),
-          if (scopeLabel.isNotEmpty) ('Scope', scopeLabel),
-          if (a.validUntil != null) ('Valid until', DateFormat('d MMM yyyy').format(a.validUntil!)),
-          ('Sanitary approval', listing.sanitaryApproval ? 'Yes' : 'No'),
+          (context.t('ui_alcohol_permit'), a.status.name),
+          if (classLabel.isNotEmpty) (context.t('ui_alcohol_class'), classLabel),
+          if (scopeLabel.isNotEmpty) (context.t('ui_scope'), scopeLabel),
+          if (a.validUntil != null) (context.t('ui_valid_until'), DateFormat('d MMM yyyy').format(a.validUntil!)),
+          (context.t('ui_sanitary_approval'), listing.sanitaryApproval ? context.t('ui_yes') : context.t('ui_no')),
         ]),
         if (listing.declaredMonthlyRevenue != null) ...[
           const SizedBox(height: 16),
-          Text('Financials (declared)', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_financials_declared'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
-          Text('Declared by the seller · not verified', style: theme.bodySmall.override(color: theme.secondaryText)),
+          Text(context.t('ui_declared_unverified'), style: theme.bodySmall.override(color: theme.secondaryText)),
           const SizedBox(height: 6),
-          Text(
-            'Monthly revenue ${money(listing.declaredMonthlyRevenue)}${listing.declaredAsOf != null ? ' · as of ${DateFormat('MMM yyyy').format(listing.declaredAsOf!)}' : ''}',
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
+          Text('$revenue$asOf', style: const TextStyle(fontWeight: FontWeight.w700)),
         ],
         if (listing.documents.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Text('Documents the seller can show', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_documents_seller_can_show'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
-          Text('Declared by the seller', style: theme.bodySmall.override(color: theme.secondaryText)),
+          Text(context.t('ui_declared_by_seller'), style: theme.bodySmall.override(color: theme.secondaryText)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -623,7 +636,7 @@ class RestoLocationBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Location', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_location'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         Container(
           height: 160,
@@ -634,13 +647,13 @@ class RestoLocationBlock extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: theme.alternate),
           ),
-          child: Text('Map · ${r.city}', style: theme.bodyMedium.override(fontWeight: FontWeight.w700)),
+          child: Text(context.t('ui_map_city', {'city': r.city}), style: theme.bodyMedium.override(fontWeight: FontWeight.w700)),
         ),
         const SizedBox(height: 8),
         Text(r.fullAddress, style: const TextStyle(fontWeight: FontWeight.w800)),
         TextButton(
           onPressed: () => launchUrl(maps, mode: LaunchMode.externalApplication),
-          child: const Text('Get directions', style: TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800)),
+          child: Text(context.t('ui_get_directions'), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800)),
         ),
       ],
     );
@@ -654,11 +667,11 @@ class RestoSafetyTips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    const tips = [
-      'Inspect the lease, landlord consent and permits yourself before paying anything.',
-      'Never send a deposit or advance before you have seen the lease documents.',
-      'Confirm who is authorized to transfer the premises.',
-      'Meet at the premises and verify utilities and inventory on site.',
+    final tips = [
+      context.t('ui_resto_safety_1'),
+      context.t('ui_resto_safety_2'),
+      context.t('ui_resto_safety_3'),
+      context.t('ui_resto_safety_4'),
     ];
     return Container(
       padding: const EdgeInsets.all(16),
@@ -669,12 +682,9 @@ class RestoSafetyTips extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Safety tips', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_safety_tips'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
-          const Text(
-            'Twoja Gastromania does not verify leases, permits or finances and never holds funds.',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
+          Text(context.t('ui_resto_safety_disclaimer'), style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
           for (final t in tips)
             Padding(
@@ -691,7 +701,7 @@ class RestoSafetyTips extends StatelessWidget {
             TextButton.icon(
               onPressed: onReport,
               icon: const Icon(Icons.flag_outlined, size: 18),
-              label: const Text('Report listing'),
+              label: Text(context.t('ui_report_listing')),
             ),
         ],
       ),

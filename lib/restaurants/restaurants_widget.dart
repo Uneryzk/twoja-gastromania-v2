@@ -7,6 +7,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_card.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_filters.dart';
+import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_logic.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_query.dart';
 import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
@@ -344,7 +345,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: FilterChip(
-                    label: Text(RestaurantListing.businessTypeLabel(t)),
+                    label: Text(restoLocalizedBusinessType(context, t)),
                     selected: on,
                     onSelected: (sel) {
                       final next = {...query.businessTypes};

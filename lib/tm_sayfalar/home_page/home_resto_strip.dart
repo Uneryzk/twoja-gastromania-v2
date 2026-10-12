@@ -37,11 +37,8 @@ class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
     final now = TGClock.now();
     final seed = now.day * 17 + now.month;
     final public = RestaurantService.instance.publicListings;
-    final promoted = pickPromotedRestaurants(public.where((r) => r.isPromoted), seed: seed, limit: _limit);
-    if (promoted.length >= _limit) return promoted;
-    final ids = promoted.map((r) => r.id).toSet();
-    final filler = public.where((r) => !ids.contains(r.id)).take(_limit - promoted.length);
-    return [...promoted, ...filler];
+    // Hide the whole strip when there are no active promoted listings.
+    return pickPromotedRestaurants(public.where((r) => r.isPromoted), seed: seed, limit: _limit);
   }
 
   @override

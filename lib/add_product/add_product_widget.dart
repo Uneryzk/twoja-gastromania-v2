@@ -148,18 +148,18 @@ class _AddProductPageState extends State<AddProductPage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text('What are you listing?', style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
+              child: Text(ctx.t('ui_what_are_you_listing'), style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
             ),
             ListTile(
               leading: const Icon(Icons.kitchen_outlined),
-              title: const Text('Equipment', style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: const Text('Machines, furniture, spare parts'),
+              title: Text(ctx.t('ui_listing_kind_equipment'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(ctx.t('ui_listing_kind_equipment_sub')),
               onTap: () => Navigator.pop(ctx, 'equipment'),
             ),
             ListTile(
               leading: const Icon(Icons.storefront_outlined),
-              title: const Text('Restaurant for sale', style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: const Text('Business & premises transfer'),
+              title: Text(ctx.t('ui_listing_kind_restaurant'), style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(ctx.t('ui_listing_kind_restaurant_sub')),
               onTap: () => Navigator.pop(ctx, 'restaurant'),
             ),
           ],
