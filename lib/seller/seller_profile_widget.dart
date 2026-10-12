@@ -1407,7 +1407,7 @@ class _NotFound extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.asset('assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg', height: 180, fit: BoxFit.cover),
+                child: Image.asset('assets/images/paslanmaz-raflar.jpeg', height: 180, fit: BoxFit.cover),
               ),
               const SizedBox(height: 24),
               Text(context.t('ui_store_not_found'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),

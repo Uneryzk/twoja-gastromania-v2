@@ -223,14 +223,14 @@ class SoWhatWeMake extends StatelessWidget {
   final ValueChanged<TGStoreSpecialty> onType;
 
   static const _tiles = <(TGStoreSpecialty, String)>[
-    (TGStoreSpecialty.worktopsTables, 'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg'),
+    (TGStoreSpecialty.worktopsTables, 'assets/images/paslanmaz-raflar.jpeg'),
     (TGStoreSpecialty.extractionHoods, 'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg'),
-    (TGStoreSpecialty.barCounters, 'assets/images/blog-26.jpg'),
-    (TGStoreSpecialty.fullFitout, 'assets/images/10befb6d92142e17d926d07d605d82d8.jpg'),
-    (TGStoreSpecialty.coldRooms, 'assets/images/IMG_3696-scaled.webp'),
-    (TGStoreSpecialty.sinksWashing, 'assets/images/Food_Prepering_table.jpg'),
+    (TGStoreSpecialty.barCounters, 'assets/images/banner-mutfak-ekipmanlari.jpg'),
+    (TGStoreSpecialty.fullFitout, 'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg'),
+    (TGStoreSpecialty.coldRooms, 'assets/images/szafa-chlodnicza-700l.jpeg'),
+    (TGStoreSpecialty.sinksWashing, 'assets/images/food-prep-table.jpg'),
     (TGStoreSpecialty.shelvingStorage, 'assets/images/image.png'),
-    (TGStoreSpecialty.laserBending, 'assets/images/bartscher_2002170.webp'),
+    (TGStoreSpecialty.laserBending, 'assets/images/mutfak-ekipmanlari.jpg'),
   ];
 
   @override
@@ -730,7 +730,7 @@ class SoSponsoredBanner extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(profile.coverUrl ?? 'assets/images/blog-26.jpg', fit: BoxFit.cover),
+            Image.asset(profile.coverUrl ?? 'assets/images/banner-mutfak-ekipmanlari.jpg', fit: BoxFit.cover),
             Container(color: Colors.black.withValues(alpha: 0.55)),
             Padding(
               padding: const EdgeInsets.all(20),
@@ -770,7 +770,7 @@ class SoRecentProjects extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, i) {
           final e = entries[i];
-          final photo = e.project.photos.isEmpty ? 'assets/images/blog-26.jpg' : e.project.photos.first;
+          final photo = e.project.photos.isEmpty ? 'assets/images/banner-mutfak-ekipmanlari.jpg' : e.project.photos.first;
           return SizedBox(
             width: 260,
             child: InkWell(

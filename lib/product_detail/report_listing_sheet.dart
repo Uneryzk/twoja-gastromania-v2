@@ -138,8 +138,8 @@ class TGReportSubject {
 
 const _kEvidencePool = <({String path, int bytes, bool video})>[
   (path: 'assets/images/image.png', bytes: 420000, video: false),
-  (path: 'assets/images/images.jpeg', bytes: 380000, video: false),
-  (path: 'assets/images/bartscher_2002170.webp', bytes: 900000, video: false),
+  (path: 'assets/images/restaurant-kitchen.jpg', bytes: 380000, video: false),
+  (path: 'assets/images/mutfak-ekipmanlari.jpg', bytes: 900000, video: false),
   (path: 'mock/clip.mp4', bytes: 1400000, video: true),
 ];
 

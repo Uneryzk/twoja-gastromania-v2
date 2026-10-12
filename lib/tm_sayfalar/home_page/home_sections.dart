@@ -967,7 +967,7 @@ class _StatData {
 }
 
 const List<_StatData> _stats = [
-  _StatData('assets/images/Ekran_Resmi_2026-09-03_OS_12.31.31.png', 'dkz7hccx', 76),
+  _StatData('assets/images/24_saat.png', 'dkz7hccx', 76),
   _StatData('assets/images/Bussiness.png', 'p15aunky', 465),
   _StatData('assets/images/Product_list.png', 'b81eez74', 1426),
   _StatData('assets/images/24_saat.png', 'eio1zib0', 181),

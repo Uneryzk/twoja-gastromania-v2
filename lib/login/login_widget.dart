@@ -206,7 +206,7 @@ class _LoginBackground extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         Image.asset(
-          'assets/images/Food_Prepering_table.jpg',
+          'assets/images/food-prep-table.jpg',
           fit: BoxFit.cover,
           alignment: const Alignment(0.1, 0),
           errorBuilder: (context, error, stack) {

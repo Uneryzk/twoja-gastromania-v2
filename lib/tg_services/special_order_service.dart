@@ -1184,7 +1184,7 @@ class TGSpecialOrderService extends ChangeNotifier {
         installationNeeded: true,
         deliveryNeeded: true,
         files: const [
-          TGSpecialFile(id: 'f1', name: 'layout.pdf', assetPath: 'assets/images/blog-26.jpg', bytes: 420000),
+          TGSpecialFile(id: 'f1', name: 'layout.pdf', assetPath: 'assets/images/banner-mutfak-ekipmanlari.jpg', bytes: 420000),
         ],
         routingMode: mode,
         selectedSellerIds: sellers,

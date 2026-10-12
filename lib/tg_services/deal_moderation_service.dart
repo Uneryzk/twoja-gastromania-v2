@@ -354,7 +354,7 @@ class DealModerationService extends ChangeNotifier {
 
   void _seed() {
     final now = TGClock.now();
-    const img = 'assets/images/bartscher_2002170.webp';
+    const img = 'assets/images/mutfak-ekipmanlari.jpg';
     TGDealPartyCard seller({String name = 'Technica', TGSellerType type = TGSellerType.store, int unjust = 2, int age = 400}) => TGDealPartyCard(
           userId: FakeAuthState.mockOwnerId,
           name: name,

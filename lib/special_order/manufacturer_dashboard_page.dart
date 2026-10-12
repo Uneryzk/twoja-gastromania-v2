@@ -1221,7 +1221,7 @@ class _SponsorTabState extends State<_SponsorTab> {
                               specialty: _pickedSpec!,
                               region: _pickedRegion!,
                               title: 'Sponsored ${_pickedSpec!.name} · $_pickedRegion',
-                              imageUrl: 'assets/images/blog-26.jpg',
+                              imageUrl: 'assets/images/banner-mutfak-ekipmanlari.jpg',
                             );
                             Navigator.pop(ctx);
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('ui_mfr_reserved_pending'))));

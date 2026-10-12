@@ -1166,22 +1166,22 @@ class ModerationService extends ChangeNotifier {
         listingNoA: '11820463',
         listingNoB: '12938570',
         similarityPercent: 94,
-        imageA: 'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg',
-        imageB: 'assets/images/oztiryakiler-sanayi-tipi-bulasik-yikama-makinesitouch-ekran-oby-50t-tahliye-pompali-tezgah-alti-bulasik-makineleri-oztiryakiler-52978-19-B.webp',
+        imageA: 'assets/images/paslanmaz-raflar.jpeg',
+        imageB: 'assets/images/food-prep-table.jpg',
       ),
       TGPhotoMatch(
         listingNoA: '13049281',
         listingNoB: '17102958',
         similarityPercent: 88,
-        imageA: 'assets/images/pol_pm_Wanna-bemarowa-3X-GN-1-1-Komat-KCB-001-031-2808_2.png',
-        imageB: 'assets/images/IMG_3696-scaled.webp',
+        imageA: 'assets/images/bain-marie.png',
+        imageB: 'assets/images/szafa-chlodnicza-700l.jpeg',
       ),
       TGPhotoMatch(
         listingNoA: '19384720',
         listingNoB: '20491837',
         similarityPercent: 81,
-        imageA: 'assets/images/Food_Prepering_table.jpg',
-        imageB: 'assets/images/blog-26.jpg',
+        imageA: 'assets/images/food-prep-table.jpg',
+        imageB: 'assets/images/banner-mutfak-ekipmanlari.jpg',
       ),
     ]);
 
@@ -1212,10 +1212,10 @@ class ModerationService extends ChangeNotifier {
     // Fraud High — 3 distinct reporters in 7 days on promoted listing 10482137.
     add(no: 'RP-24011', listingNo: '10482137', reason: TGReportReason.fraud, email: 'jan.k@example.com', reporterId: 'r_jan', text: 'Sprzedający poprosił o przelew na zagraniczne konto poza platformą. To wygląda na oszustwo.', ago: const Duration(hours: 6), evidence: ['assets/images/image.png']);
     add(no: 'RP-24012', listingNo: '10482137', reason: TGReportReason.fraud, email: 'ola.w@example.com', reporterId: 'r_ola', text: 'Sprzedający poprosił o przelew BLIK na prywatny numer.', ago: const Duration(hours: 4));
-    add(no: 'RP-24013', listingNo: '10482137', reason: TGReportReason.prohibited, email: 'piotr.b@example.com', reporterId: 'r_piotr', text: 'Tabliczka z numerem seryjnym wygląda na spiłowaną na 3. zdjęciu.', ago: const Duration(hours: 2), evidence: ['assets/images/bartscher_2002170.webp']);
+    add(no: 'RP-24013', listingNo: '10482137', reason: TGReportReason.prohibited, email: 'piotr.b@example.com', reporterId: 'r_piotr', text: 'Tabliczka z numerem seryjnym wygląda na spiłowaną na 3. zdjęciu.', ago: const Duration(hours: 2), evidence: ['assets/images/mutfak-ekipmanlari.jpg']);
 
     // 3 copy cases.
-    add(no: 'RP-24021', listingNo: '11820463', reason: TGReportReason.copied, email: 'studio@example.com', reporterId: 'r_studio', text: 'Te zdjęcia skopiowano z naszego katalogu.', ago: const Duration(hours: 10), evidence: ['assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg']);
+    add(no: 'RP-24021', listingNo: '11820463', reason: TGReportReason.copied, email: 'studio@example.com', reporterId: 'r_studio', text: 'Te zdjęcia skopiowano z naszego katalogu.', ago: const Duration(hours: 10), evidence: ['assets/images/paslanmaz-raflar.jpeg']);
     add(no: 'RP-24022', listingNo: '13049281', reason: TGReportReason.copied, email: 'brand@example.com', reporterId: 'r_brand', text: 'Stolen manufacturer photos — see side-by-side.', ago: const Duration(hours: 18));
     add(no: 'RP-24023', listingNo: '19384720', reason: TGReportReason.duplicate, email: 'kasia.m@example.com', reporterId: 'r_kasia', text: 'Same listing posted twice with a different title.', ago: const Duration(hours: 8));
 
@@ -1225,7 +1225,7 @@ class ModerationService extends ChangeNotifier {
     add(no: 'RP-24034', listingNo: '22614059', reason: TGReportReason.sold, email: 'buyer2@example.com', reporterId: 'r_b2', text: 'To ogłoszenie wygląda na sprzedane.', ago: const Duration(hours: 3));
     add(no: 'RP-24035', listingNo: '23725160', reason: TGReportReason.other, email: 'buyer3@example.com', reporterId: 'r_b3', text: 'Description does not match the photos.', ago: const Duration(hours: 14));
     add(no: 'RP-24036', listingNo: '24836271', reason: TGReportReason.misleading, email: 'buyer4@example.com', reporterId: 'r_b4', text: 'Hours of use look much higher than claimed.', ago: const Duration(hours: 40), status: TGReportStatus.waitingSeller);
-    add(no: 'RP-24037', listingNo: '25947382', reason: TGReportReason.fakePhotos, email: 'buyer5@example.com', reporterId: 'r_b5', text: 'Stock photos, not the actual unit.', ago: const Duration(hours: 22), status: TGReportStatus.waitingSeller, evidence: ['assets/images/images.jpeg']);
+    add(no: 'RP-24037', listingNo: '25947382', reason: TGReportReason.fakePhotos, email: 'buyer5@example.com', reporterId: 'r_b5', text: 'Stock photos, not the actual unit.', ago: const Duration(hours: 22), status: TGReportStatus.waitingSeller, evidence: ['assets/images/restaurant-kitchen.jpg']);
     add(no: 'RP-24038', listingNo: '26058493', reason: TGReportReason.prohibited, email: 'watch@example.com', reporterId: 'r_watch', text: 'Possible illegal import — no CE mark.', ago: const Duration(hours: 30));
 
     add(no: 'R-2026-000401', listingNo: '48019273', reason: TGReportReason.fraud, email: 'buyer.a@example.com', reporterId: 'r_pub1', text: 'Sprzedający poprosił o przelew BLIK przed odbiorem.', ago: const Duration(hours: 16), status: TGReportStatus.waitingSeller);

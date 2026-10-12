@@ -248,22 +248,27 @@ class TGProduct {
   /// Cover used in cards / thumbnails — never empty when a title-matched asset exists.
   String get displayImageUrl {
     final u = imageUrl.trim();
-    if (u.isNotEmpty) return u;
+    if (u.isNotEmpty) return TGListingImages.ensureBundled(u, fallback: TGListingImages.bestForTitle(title, category: category));
     if (imageUrls.isNotEmpty) {
       final first = imageUrls.firstWhere((e) => e.trim().isNotEmpty, orElse: () => '');
-      if (first.isNotEmpty) return first;
+      if (first.isNotEmpty) {
+        return TGListingImages.ensureBundled(first, fallback: TGListingImages.bestForTitle(title, category: category));
+      }
     }
     return TGListingImages.bestForTitle(title, category: category);
   }
 
   /// Photos shown in the PDP gallery (falls back to [imageUrl], then title-matched asset).
   List<String> get gallery {
+    final fallback = TGListingImages.bestForTitle(title, category: category);
     if (imageUrls.isNotEmpty) {
-      final cleaned = [for (final u in imageUrls) u.trim()].where((u) => u.isNotEmpty).toList();
+      final cleaned = TGListingImages.onlyBundled(imageUrls, fallback: fallback);
       if (cleaned.isNotEmpty) return List<String>.unmodifiable(cleaned);
     }
-    if (imageUrl.trim().isNotEmpty) return [imageUrl.trim()];
-    return [TGListingImages.bestForTitle(title, category: category)];
+    if (imageUrl.trim().isNotEmpty) {
+      return [TGListingImages.ensureBundled(imageUrl, fallback: fallback)];
+    }
+    return [fallback];
   }
 
   TGProduct copyWith({

@@ -18,9 +18,9 @@ import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 enum TGStoreEditSection { cover, logo, description, taxonomy, hours, address, links, projects }
 
 const _kUploadPool = <String>[
-  'assets/images/blog-26.jpg',
-  'assets/images/Food_Prepering_table.jpg',
-  'assets/images/images.jpeg',
+  'assets/images/banner-mutfak-ekipmanlari.jpg',
+  'assets/images/food-prep-table.jpg',
+  'assets/images/restaurant-kitchen.jpg',
   'assets/images/TECHNICA.png',
   'assets/images/GASTROPL.png',
   'assets/images/Gastrosilesia-pl.png',
@@ -661,7 +661,7 @@ class _SectionEditorState extends State<_SectionEditor> {
                   : () {
                       final next = [
                         ..._draft.projects,
-                        TGStoreProject(title: 'New project', city: _draft.city, year: 2026, photos: const ['assets/images/blog-26.jpg'], description: ''),
+                        TGStoreProject(title: 'New project', city: _draft.city, year: 2026, photos: const ['assets/images/banner-mutfak-ekipmanlari.jpg'], description: ''),
                       ];
                       setState(() => _draft = _draft.copyWith(projects: next));
                     },

@@ -5,6 +5,7 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
@@ -351,12 +352,14 @@ class _InventoryMiniCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final name = restoLocalizedInventoryName(context, item);
+    final photos = TGListingImages.photosForInventory(nameKey: item.name, photos: item.photos);
+    final cover = photos.first;
     return Material(
       color: const Color(0xFF1F1F1F),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: item.photos.isEmpty ? null : () => onPhoto(item.photos, 0),
+        onTap: () => onPhoto(photos, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -367,9 +370,7 @@ class _InventoryMiniCard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: item.photos.isEmpty
-                        ? ColoredBox(color: theme.primaryBackground, child: const Icon(Icons.kitchen_outlined))
-                        : TGSmartImage(url: item.photos.first, fit: BoxFit.cover),
+                    child: TGSmartImage(url: cover, fit: BoxFit.cover),
                   ),
                   if (badge != null)
                     Positioned(

@@ -445,9 +445,9 @@ class SoStepFiles extends StatelessWidget {
   final VoidCallback onChanged;
 
   static const _pool = <(String, String, int)>[
-    ('layout.pdf', 'assets/images/blog-26.jpg', 420000),
-    ('drawing.dxf', 'assets/images/Food_Prepering_table.jpg', 380000),
-    ('photo.jpg', 'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg', 900000),
+    ('layout.pdf', 'assets/images/banner-mutfak-ekipmanlari.jpg', 420000),
+    ('drawing.dxf', 'assets/images/food-prep-table.jpg', 380000),
+    ('photo.jpg', 'assets/images/paslanmaz-raflar.jpeg', 900000),
     ('detail.png', 'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg', 700000),
   ];
 

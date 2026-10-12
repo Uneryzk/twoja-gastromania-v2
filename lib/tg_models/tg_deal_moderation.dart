@@ -110,7 +110,7 @@ class TGAdminDealCase {
     this.sellerReason,
     this.sellerNote,
     this.buyerNote,
-    this.imageUrl = 'assets/images/bartscher_2002170.webp',
+    this.imageUrl = 'assets/images/mutfak-ekipmanlari.jpg',
     this.linkedDealId,
     this.linkedReviewId,
     this.linkedObjectionId,

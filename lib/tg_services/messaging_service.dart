@@ -254,7 +254,7 @@ class MessagingService extends ChangeNotifier {
         id: 't_p001_${FakeAuthState.mockOwnerId}',
         listingId: 'p001',
         listingTitle: 'Piec konwekcyjno-parowy 10x GN 1/1 – Bartscher',
-        listingImageUrl: 'assets/images/bartscher_2002170.webp',
+        listingImageUrl: 'assets/images/mutfak-ekipmanlari.jpg',
         listingPath: '/product-detail/10482137-piec-konwekcyjno-parowy-10x-gn-11-bartscher',
         listingPrice: 12500,
         listingNo: '10482137',

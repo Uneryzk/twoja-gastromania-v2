@@ -281,7 +281,7 @@ List<RestaurantListing> _buildSeed() {
     return out;
   }
 
-  /// 10–20 equipment rows. Photos start empty — set via admin/seller image panel.
+  /// 10–20 equipment rows with name-matched local photos.
   List<RestaurantInventoryItem> inv(
     String prefix,
     RestaurantBusinessType type, {
@@ -302,7 +302,7 @@ List<RestaurantListing> _buildSeed() {
           brand: i.isEven ? 'Bartscher' : 'Hobart',
           model: 'M-${100 + i}',
           condition: i % 5 == 0 ? RestaurantInventoryCondition.newItem : RestaurantInventoryCondition.used,
-          photos: const [],
+          photos: TGListingImages.photosForInventory(nameKey: keys[i]),
           availability: i < maySell
               ? RestaurantInventoryAvailability.maySellSeparately
               : (i >= n - excluded ? RestaurantInventoryAvailability.excluded : RestaurantInventoryAvailability.included),

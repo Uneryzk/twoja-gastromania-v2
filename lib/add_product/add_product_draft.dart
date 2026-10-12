@@ -100,11 +100,11 @@ class AddProductDraft extends ChangeNotifier {
   static const brands = ['Bartscher', 'Rational', 'Hobart', 'Winterhalter', 'Convotherm', 'Electrolux', 'Zanussi', 'Metos', 'Other'];
 
   static const sampleAssets = [
-    'assets/images/bartscher_2002170.webp',
+    'assets/images/mutfak-ekipmanlari.jpg',
     'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg',
-    'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg',
-    'assets/images/oztiryakiler-sanayi-tipi-bulasik-yikama-makinesitouch-ekran-oby-50t-tahliye-pompali-tezgah-alti-bulasik-makineleri-oztiryakiler-52978-19-B.webp',
-    'assets/images/IMG_20200120_131650.jpg',
+    'assets/images/paslanmaz-raflar.jpeg',
+    'assets/images/food-prep-table.jpg',
+    'assets/images/sogutma-dolaplari.jpg',
   ];
 
   static const Map<TGCategory, List<String>> subcategories = {

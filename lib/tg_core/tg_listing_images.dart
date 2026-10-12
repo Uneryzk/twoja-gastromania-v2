@@ -15,57 +15,141 @@ class TGListingImages {
   static const bool kDisableDynamicListingImages = false;
 
   // ---------------------------------------------------------------------------
-  // Category → local asset
+  // Category → local asset (ASCII filenames only — missing/Unicode paths broke Image.asset)
   // ---------------------------------------------------------------------------
 
-  static const String cooking = 'assets/images/bartscher_2002170.webp';
-  static const String refrigeration = 'assets/images/IMG_20200120_131650.jpg';
-  static const String warewashing = 'assets/images/oztiryakiler-sanayi-tipi-bulasik-yikama-makinesitouch-ekran-oby-50t-tahliye-pompali-tezgah-alti-bulasik-makineleri-oztiryakiler-52978-19-B.webp';
-  static const String foodPrep = 'assets/images/Food_Prepering_table.jpg';
-  static const String stainless = 'assets/images/stainless_steel_table_Food_Preparation_table_gastronomi.jpg';
-  static const String barCafe = 'assets/images/Bar_&_Beverage_Equipment.jpg';
+  static const String cooking = 'assets/images/mutfak-ekipmanlari.jpg';
+  static const String refrigeration = 'assets/images/sogutma-dolaplari.jpg';
+  static const String warewashing = 'assets/images/food-prep-table.jpg';
+  static const String foodPrep = 'assets/images/food-prep-table.jpg';
+  static const String stainless = 'assets/images/paslanmaz-raflar.jpeg';
+  static const String barCafe = 'assets/images/bar-beverage-equipment.jpg';
 
-  // New venue / equipment photos (local only).
-  static const String pizzaGarden = 'assets/images/Pizza With garden.jpg';
-  static const String pizzaColdTop = 'assets/images/nadstawka chłodnicza na pizze.jpeg';
-  static const String coffeeEspresso = 'assets/images/Coffee ekspresso machine.jpg';
-  static const String coffeeSetup = 'assets/images/Coffee setup.jpg';
-  static const String coffeeShop = 'assets/images/specialty coffee shop.jpg';
-  static const String coffeeListing = 'assets/images/Devren Satılık Coffee.jpg';
-  static const String pastryCoffee = 'assets/images/Devren satılık Pastane Coffee.jpg';
-  static const String burgerGrill = 'assets/images/Hamburger Izgarası.jpeg';
-  static const String burgerListing = 'assets/images/Devren satılık Hamburgerci.jpg';
-  static const String burgerCorner = 'assets/images/Hamburger Köşesi.jpg';
-  static const String burgerPrep = 'assets/images/Hamburger hazırlık dolabı.jpeg';
-  static const String milkshake = 'assets/images/Milkshake makinesi.webp';
-  static const String freezerVertical = 'assets/images/Dikey Dondurucu.jpeg';
-  static const String fridge700 = 'assets/images/szafa chłodnicza 700L.jpeg';
-  static const String beverageFridge = 'assets/images/içecek dolabı.jpeg';
-  static const String combiOven = 'assets/images/piec konwekcyjno parowy 10xgn1:1.jpeg';
-  static const String microwave = 'assets/images/Endüstriyel mikrodalga.jpeg';
-  static const String mixer = 'assets/images/mikser planetarny 20lt, 3 koncowki stel.webp';
-  static const String vacuum = 'assets/images/pakowarka próżniowa komorowa.jpeg';
-  static const String shelves = 'assets/images/Paslanmaz raflar.jpeg';
-  static const String pos = 'assets/images/Pos terminali.jpeg';
-  static const String barEquip = 'assets/images/bar equipment.jpg';
-  static const String wineBar = 'assets/images/Wine Bar.jpg';
-  static const String cocktailBar = 'assets/images/Devren Satılık Kokteyl Bar.jpeg';
-  static const String barTips = 'assets/images/Bar kurulumu için altın ipuçları.jpg';
-  static const String familyResto = 'assets/images/Family Restaurant.jpg';
-  static const String foodHall = 'assets/images/Food-hall booth.jpg';
-  static const String productionKitchen = 'assets/images/PRoduction kitchen for catering.jpg';
-  static const String restoKitchen = 'assets/images/Restourant kitchen.jpg';
-  static const String mutfakEquip = 'assets/images/Mutfak ekipmanları.jpg';
-  static const String terraceResto = 'assets/images/Devren Teraslı Restoran(Sponsorlu).png';
-  static const String bannerKitchen = 'assets/images/Banner Mutfak Ekipmanları Resmi.jpg';
-  static const String bainMarie = 'assets/images/pol_pm_Wanna-bemarowa-3X-GN-1-1-Komat-KCB-001-031-2808_2.png';
-  static const String blog26 = 'assets/images/blog-26.jpg';
-  static const String imagesJpeg = 'assets/images/images.jpeg';
+  // Venue / equipment photos (local only).
+  static const String pizzaGarden = 'assets/images/pizza-with-garden.jpg';
+  static const String pizzaColdTop = 'assets/images/nadstawka-chlodnicza-pizza.jpeg';
+  static const String coffeeEspresso = 'assets/images/coffee-espresso-machine.jpg';
+  static const String coffeeSetup = 'assets/images/coffee-setup.jpg';
+  static const String coffeeShop = 'assets/images/specialty-coffee-shop.jpg';
+  static const String coffeeListing = 'assets/images/devren-satilik-coffee.jpg';
+  static const String pastryCoffee = 'assets/images/devren-satilik-pastane-coffee.jpg';
+  static const String burgerGrill = 'assets/images/hamburger-izgarasi.jpeg';
+  static const String burgerListing = 'assets/images/devren-satilik-hamburgerci.jpg';
+  static const String burgerCorner = 'assets/images/hamburger-kosesi.jpg';
+  static const String burgerPrep = 'assets/images/hamburger-hazirlik-dolabi.jpeg';
+  static const String milkshake = 'assets/images/milkshake-makinesi.webp';
+  static const String freezerVertical = 'assets/images/dikey-dondurucu.jpeg';
+  static const String fridge700 = 'assets/images/szafa-chlodnicza-700l.jpeg';
+  static const String beverageFridge = 'assets/images/icecek-dolabi.jpeg';
+  static const String combiOven = 'assets/images/piec-konwekcyjno-parowy.jpeg';
+  static const String microwave = 'assets/images/endustriyel-mikrodalga.jpeg';
+  static const String mixer = 'assets/images/elektrikli-firin.webp';
+  static const String vacuum = 'assets/images/pakowarka-prozniowa.jpeg';
+  static const String shelves = 'assets/images/paslanmaz-raflar.jpeg';
+  static const String pos = 'assets/images/pos-terminali.jpeg';
+  static const String barEquip = 'assets/images/bar-equipment.jpg';
+  static const String wineBar = 'assets/images/wine-bar.jpg';
+  static const String cocktailBar = 'assets/images/devren-satilik-kokteyl-bar.jpeg';
+  static const String barTips = 'assets/images/bar-kurulumu-ipuclari.jpg';
+  static const String familyResto = 'assets/images/family-restaurant.jpg';
+  static const String foodHall = 'assets/images/food-hall-booth.jpg';
+  static const String productionKitchen = 'assets/images/production-kitchen.jpg';
+  static const String restoKitchen = 'assets/images/restaurant-kitchen.jpg';
+  static const String mutfakEquip = 'assets/images/mutfak-ekipmanlari.jpg';
+  static const String terraceResto = 'assets/images/devren-terasli-restoran.png';
+  static const String bannerKitchen = 'assets/images/banner-mutfak-ekipmanlari.jpg';
+  static const String bainMarie = 'assets/images/bain-marie.png';
+  static const String blog26 = 'assets/images/banner-mutfak-ekipmanlari.jpg';
+  static const String imagesJpeg = 'assets/images/restaurant-kitchen.jpg';
   static const String endustriyel = 'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg';
-  static const String img3696 = 'assets/images/IMG_3696-scaled.webp';
-  static const String thumb405 = 'assets/images/17594161762353ebc282350944289b81f72b29ad94_square_thumbnail_405x552.jpg';
+  static const String img3696 = 'assets/images/szafa-chlodnicza-700l.jpeg';
+  static const String thumb405 = 'assets/images/coffee-espresso-machine.jpg';
   static const String imagePng = 'assets/images/image.png';
-  static const String hex10 = 'assets/images/10befb6d92142e17d926d07d605d82d8.jpg';
+  static const String hex10 = 'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg';
+  static const String paslanmazEquip = 'assets/images/paslanmaz-ekipmanlar.jpg';
+  static const String elektrikliFirin = 'assets/images/elektrikli-firin.webp';
+  static const String aspirator = 'assets/images/aspirator.jpeg';
+  static const String barFridge = 'assets/images/bar-buzdolabi.jpeg';
+  static const String iceMachine = 'assets/images/buz-makinesi.jpeg';
+  static const String meatSlicer = 'assets/images/et-dilimleyicisi.jpeg';
+  static const String planetMixer = 'assets/images/planet-mikser.jpeg';
+
+  /// Paths that exist under `assets/images/` and are safe for [Image.asset].
+  /// Unique string literals only (aliases like [warewashing]/[foodPrep] share a path).
+  static const Set<String> bundledAssets = {
+    'assets/images/mutfak-ekipmanlari.jpg',
+    'assets/images/mutfak-ekipmanlari-2.jpg',
+    'assets/images/sogutma-dolaplari.jpg',
+    'assets/images/food-prep-table.jpg',
+    'assets/images/paslanmaz-raflar.jpeg',
+    'assets/images/paslanmaz-ekipmanlar.jpg',
+    'assets/images/bar-beverage-equipment.jpg',
+    'assets/images/pizza-with-garden.jpg',
+    'assets/images/nadstawka-chlodnicza-pizza.jpeg',
+    'assets/images/coffee-espresso-machine.jpg',
+    'assets/images/coffee-setup.jpg',
+    'assets/images/specialty-coffee-shop.jpg',
+    'assets/images/devren-satilik-coffee.jpg',
+    'assets/images/devren-satilik-coffee.webp',
+    'assets/images/devren-satilik-pastane-coffee.jpg',
+    'assets/images/hamburger-izgarasi.jpeg',
+    'assets/images/devren-satilik-hamburgerci.jpg',
+    'assets/images/hamburger-kosesi.jpg',
+    'assets/images/hamburger-hazirlik-dolabi.jpeg',
+    'assets/images/milkshake-makinesi.webp',
+    'assets/images/dikey-dondurucu.jpeg',
+    'assets/images/szafa-chlodnicza-700l.jpeg',
+    'assets/images/icecek-dolabi.jpeg',
+    'assets/images/piec-konwekcyjno-parowy.jpeg',
+    'assets/images/endustriyel-mikrodalga.jpeg',
+    'assets/images/elektrikli-firin.webp',
+    'assets/images/pakowarka-prozniowa.jpeg',
+    'assets/images/pos-terminali.jpeg',
+    'assets/images/bar-equipment.jpg',
+    'assets/images/bar-setup.jpg',
+    'assets/images/bar-kurulumu-ipuclari.jpg',
+    'assets/images/wine-bar.jpg',
+    'assets/images/devren-satilik-kokteyl-bar.jpeg',
+    'assets/images/family-restaurant.jpg',
+    'assets/images/food-hall-booth.jpg',
+    'assets/images/production-kitchen.jpg',
+    'assets/images/restaurant-kitchen.jpg',
+    'assets/images/devren-terasli-restoran.png',
+    'assets/images/banner-mutfak-ekipmanlari.jpg',
+    'assets/images/bain-marie.png',
+    'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg',
+    'assets/images/image.png',
+    'assets/images/espresso-makinesi.jpeg',
+    'assets/images/yemek-isiticlari.jpg',
+    'assets/images/aspirator.jpeg',
+    'assets/images/bar-buzdolabi.jpeg',
+    'assets/images/buz-makinesi.jpeg',
+    'assets/images/et-dilimleyicisi.jpeg',
+    'assets/images/planet-mikser.jpeg',
+  };
+
+  /// Drop missing / renamed assets so galleries never show broken placeholders.
+  static String ensureBundled(String path, {String fallback = mutfakEquip}) {
+    final p = path.trim();
+    if (p.isEmpty) return fallback;
+    if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:')) return p;
+    if (bundledAssets.contains(p)) return p;
+    return fallback;
+  }
+
+  static List<String> onlyBundled(Iterable<String> paths, {String fallback = mutfakEquip}) {
+    final out = <String>[];
+    for (final raw in paths) {
+      final p = raw.trim();
+      if (p.isEmpty) continue;
+      final next = ensureBundled(p, fallback: '');
+      if (next.isEmpty) continue;
+      if (!out.contains(next)) out.add(next);
+    }
+    if (out.isEmpty) out.add(fallback);
+    return out;
+  }
+
   /// All six category covers (stable order for hero rotation).
   static const List<String> allFixed = [
     cooking,
@@ -238,30 +322,48 @@ class TGListingImages {
   }
 
   /// Best local photo for a restaurant inventory name key (`resto_eq_...`).
-  /// Disabled when [kDisableDynamicListingImages] — set [RestaurantInventoryItem.photos] manually.
+  /// Matches near-named files in `assets/images/` (buz makinesi, planet mikser, …).
   static String forEquipmentKey(String nameKey) {
-    if (kDisableDynamicListingImages) return '';
     final k = nameKey.toLowerCase();
     if (k.contains('espresso') || k.contains('coffee_grinder') || k.contains('coffee_brew')) return coffeeEspresso;
-    if (k.contains('coffee_fridge') || k.contains('pastry_case') || k.contains('bar_fridge') || k.contains('display')) {
-      return beverageFridge;
+    if (k.contains('ice_machine') || k.endsWith('_ice') || k.contains('kostkarka') || k.contains('buz_makine')) {
+      return iceMachine;
+    }
+    if (k.contains('slicer') || k.contains('dilim') || k.contains('krajalnic')) return meatSlicer;
+    if (k.contains('dough_mixer') || k.contains('planet') || k.contains('mixer') || k.contains('sheeter') || k.contains('mikser')) {
+      return planetMixer;
+    }
+    if (k.contains('hood') || k.contains('exhaust') || k.contains('aspirator') || k.contains('okap')) return aspirator;
+    if (k.contains('dishwasher') || k.contains('glasswasher') || k.contains('warewash') || k.contains('bulasik') || k.contains('zmywarka')) {
+      return warewashing;
+    }
+    if (k.contains('prep_fridge') || k.contains('burger_prep') || k.contains('warmer')) return burgerPrep;
+    if (k.contains('pizza_cold') || k.contains('ingredient_fridge') || k.contains('cold_table')) return pizzaColdTop;
+    if (k.contains('freezer') || k.contains('dondurucu') || k.contains('zamraz')) return freezerVertical;
+    if (k.contains('bar_fridge') || k.contains('back_bar') || k.contains('resto_bar_fridge')) return barFridge;
+    if (k.contains('coffee_fridge') || k.contains('pastry_case') || k.contains('display')) return beverageFridge;
+    if (k.contains('fridge') || k.contains('buzdolab') || k.contains('chlodnic') || k.contains('lodowka')) {
+      return refrigeration;
+    }
+    if (k.contains('prep_table') || k.contains('prep_counter') || k.contains('tables') || (k.contains('table') && k.contains('prep'))) {
+      return foodPrep;
     }
     if (k.contains('shake') || k.contains('blender') || k.contains('soda')) return milkshake;
     if (k.contains('grill') || k.contains('flat_top') || k.contains('fryer') || k.contains('range')) return burgerGrill;
-    if (k.contains('prep_fridge') || k.contains('burger_prep') || k.contains('warmer')) return burgerPrep;
-    if (k.contains('pizza_cold') || k.contains('ingredient_fridge') || k.contains('cold_table')) return pizzaColdTop;
-    if (k.contains('pizza') || k.contains('deck_oven') || k.contains('combi') || k.contains('oven')) return combiOven;
-    if (k.contains('dough_mixer') || k.contains('mixer') || k.contains('sheeter')) return mixer;
-    if (k.contains('freezer')) return freezerVertical;
-    if (k.contains('fridge') || k.contains('ice_machine') || (k.contains('ice') && !k.contains('service'))) return fridge700;
-    if (k.contains('dishwasher') || k.contains('glasswasher') || k.contains('warewash')) return warewashing;
-    if (k.contains('shelving') || k.contains('table') || k.contains('counter') || k.contains('rail')) return shelves;
+    if (k.contains('deck_oven') || k.contains('combi') || k.contains('oven') || k.contains('pizza')) return combiOven;
+    if (k.contains('shelving') || k.contains('counter') || k.contains('rail') || k.contains('table')) return shelves;
     if (k.contains('microwave')) return microwave;
     if (k.contains('vacuum') || k.contains('packaging')) return vacuum;
     if (k.contains('pos')) return pos;
     if (k.contains('beer') || k.contains('cocktail') || k.contains('bar_')) return barEquip;
-    if (k.contains('hood') || k.contains('exhaust')) return mutfakEquip;
     return mutfakEquip;
+  }
+
+  /// Prefer stored photos; otherwise pick a bundled asset from the equipment key.
+  static List<String> photosForInventory({required String nameKey, List<String> photos = const []}) {
+    final cleaned = [for (final p in photos) p.trim()].where((p) => p.isNotEmpty).toList();
+    if (cleaned.isNotEmpty) return onlyBundled(cleaned, fallback: forEquipmentKey(nameKey));
+    return [forEquipmentKey(nameKey)];
   }
 
   static String themeKey({TGCategory? category, String? label, String? title}) {
@@ -282,16 +384,20 @@ class TGListingImages {
     required int count,
     String? primary,
   }) {
-    if (pool.isEmpty) return primary != null && primary.isNotEmpty ? [primary] : const [];
+    final safePool = onlyBundled(pool);
+    if (safePool.isEmpty) return primary != null && primary.isNotEmpty ? onlyBundled([primary]) : [mutfakEquip];
     final n = count.clamp(1, 12);
     final out = <String>[];
-    if (primary != null && primary.isNotEmpty) out.add(primary);
+    if (primary != null && primary.isNotEmpty) {
+      final cover = ensureBundled(primary);
+      out.add(cover);
+    }
     final start = id.hashCode.abs();
-    for (var i = 0; i < pool.length && out.length < n; i++) {
-      final next = pool[(start + i) % pool.length];
+    for (var i = 0; i < safePool.length && out.length < n; i++) {
+      final next = safePool[(start + i) % safePool.length];
       if (!out.contains(next)) out.add(next);
     }
-    if (out.isEmpty) out.add(pool.first);
+    if (out.isEmpty) out.add(safePool.first);
     return out;
   }
 
