@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_case_page.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
+import 'package:twoja_gastromania/admin/listing_images_editor.dart';
+import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 import 'package:twoja_gastromania/admin/admin_deal_case_page.dart';
 import 'package:twoja_gastromania/admin/admin_deal_queue_page.dart';
 import 'package:twoja_gastromania/admin/admin_queue_page.dart';
@@ -29,6 +32,7 @@ class AdminListingsLookupPage extends StatefulWidget {
 class _AdminListingsLookupPageState extends State<AdminListingsLookupPage> {
   String _q = '';
   List<TGProduct> _all = const [];
+  List<RestaurantListing> _restos = const [];
 
   @override
   void initState() {
@@ -36,14 +40,21 @@ class _AdminListingsLookupPageState extends State<AdminListingsLookupPage> {
     TGProductService.instance.getAll().then((v) {
       if (mounted) setState(() => _all = v);
     });
+    _restos = RestaurantService.instance.all;
   }
 
   @override
   Widget build(BuildContext context) {
-    final hits = _all.where((p) {
-      if (_q.isEmpty) return true;
+    final q = _q.toLowerCase();
+    final productHits = _all.where((p) {
+      if (q.isEmpty) return true;
       final blob = '${p.listingNo} ${p.title} ${p.seller.name} ${p.phone}'.toLowerCase();
-      return blob.contains(_q.toLowerCase());
+      return blob.contains(q);
+    }).take(40).toList();
+    final restoHits = _restos.where((r) {
+      if (q.isEmpty) return true;
+      final blob = '${r.listingNo} ${r.title} ${r.seller.name} ${r.phone}'.toLowerCase();
+      return blob.contains(q);
     }).take(40).toList();
     return Column(
       children: [
@@ -55,16 +66,33 @@ class _AdminListingsLookupPageState extends State<AdminListingsLookupPage> {
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            itemCount: hits.length,
-            itemBuilder: (context, i) {
-              final p = hits[i];
-              return ListTile(
-                title: Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text('${p.listingNo} · ${p.seller.name} · ${p.status.name}'),
-                onTap: () => TGAdminNav.openCase(context, p.listingNo ?? p.id),
-              );
-            },
+          child: ListView(
+            children: [
+              for (final p in productHits)
+                ListTile(
+                  title: Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text('${p.listingNo} · ${p.seller.name} · ${p.status.name}'),
+                  trailing: IconButton(
+                    key: Key('admin-listings-images-${p.id}'),
+                    tooltip: context.t('ui_image_change'),
+                    icon: const Icon(Icons.image_outlined),
+                    onPressed: () => showListingImagesEditor(context, product: p),
+                  ),
+                  onTap: () => TGAdminNav.openCase(context, p.listingNo ?? p.id),
+                ),
+              for (final r in restoHits)
+                ListTile(
+                  title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text('${r.listingNo} · Restaurant · ${r.status.name}'),
+                  trailing: IconButton(
+                    key: Key('admin-resto-images-${r.id}'),
+                    tooltip: context.t('ui_image_change'),
+                    icon: const Icon(Icons.image_outlined),
+                    onPressed: () => showListingImagesEditor(context, restaurant: r),
+                  ),
+                  onTap: () => TGAdminNav.openCase(context, r.listingNo),
+                ),
+            ],
           ),
         ),
       ],

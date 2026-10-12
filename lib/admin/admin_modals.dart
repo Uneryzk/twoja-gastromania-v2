@@ -390,7 +390,7 @@ Future<void> showAdminRequestAuthorization(BuildContext context, String listingN
           vars: {'listingNo': listingNo, 'seller': 'seller', 'to': 'seller@example.com'},
         );
         return AdminDialogScaffold(
-          title: 'Request proof of authorization',
+          title: ctx.t('ui_admin_request_auth'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t('ui_cancel'))),
             const SizedBox(width: 8),
@@ -400,9 +400,7 @@ Future<void> showAdminRequestAuthorization(BuildContext context, String listingN
             children: [
               _LangToggle(value: lang, onChanged: (v) => setSt(() => lang = v)),
               const SizedBox(height: 8),
-              const Text(
-                'Asks for the relevant lease page, owner authorization letter, or agency (pośrednik) contract. Sent to seller and reporter. Listing stays hidden.',
-              ),
+              Text(ctx.t('ui_admin_request_auth_body')),
               const SizedBox(height: 8),
               EmailPreviewBlock(email: preview),
             ],
@@ -618,6 +616,7 @@ class _LangToggle extends StatelessWidget {
       children: [
         ChoiceChip(label: const Text('EN'), selected: value == 'en', onSelected: (_) => onChanged('en')),
         ChoiceChip(label: const Text('PL'), selected: value == 'pl', onSelected: (_) => onChanged('pl')),
+        ChoiceChip(label: const Text('TR'), selected: value == 'tr', onSelected: (_) => onChanged('tr')),
       ],
     );
   }
@@ -638,7 +637,7 @@ class AdminActionBar extends StatelessWidget {
       TGButton(key: const Key('admin-action-hide'), onPressed: () => showAdminHide(context, listingNo), label: context.t('ui_hide'), height: 40, variant: TGButtonVariant.outline),
       TGButton(key: const Key('admin-action-remove'), onPressed: () => showAdminRemove(context, listingNo), label: context.t('ui_remove'), height: 40),
       TGButton(onPressed: () => showAdminRequestProof(context, listingNo), label: context.t('ui_request_proof'), height: 40, variant: TGButtonVariant.ghost),
-      TGButton(onPressed: () => showAdminRequestAuthorization(context, listingNo), label: 'Request proof of authorization', height: 40, variant: TGButtonVariant.ghost),
+      TGButton(onPressed: () => showAdminRequestAuthorization(context, listingNo), label: context.t('ui_admin_request_auth'), height: 40, variant: TGButtonVariant.ghost),
       TGButton(
         onPressed: () {
           final err = RestaurantAdminActions.approveAuthorization(listingNo, actorId: auth.userId);
@@ -649,16 +648,16 @@ class AdminActionBar extends StatelessWidget {
           }
           showTGToast(
             context,
-            'Authorization approved · Undo 10s',
+            context.t('ui_admin_auth_approved_toast'),
             duration: const Duration(seconds: 10),
             action: SnackBarAction(
-              label: 'Undo',
+              label: context.t('ui_admin_undo'),
               textColor: TGColors.cta,
               onPressed: () => RestaurantAdminActions.undo(listingNo, actorId: auth.userId),
             ),
           );
         },
-        label: 'Approve authorization',
+        label: context.t('ui_admin_approve_auth'),
         height: 40,
         variant: TGButtonVariant.outline,
       ),
@@ -668,16 +667,16 @@ class AdminActionBar extends StatelessWidget {
           if (!context.mounted) return;
           showTGToast(
             context,
-            'Authorization rejected · Undo 10s',
+            context.t('ui_admin_auth_rejected_toast'),
             duration: const Duration(seconds: 10),
             action: SnackBarAction(
-              label: 'Undo',
+              label: context.t('ui_admin_undo'),
               textColor: TGColors.cta,
               onPressed: () => RestaurantAdminActions.undo(listingNo, actorId: auth.userId),
             ),
           );
         },
-        label: 'Reject authorization',
+        label: context.t('ui_admin_reject_auth'),
         height: 40,
         variant: TGButtonVariant.outline,
       ),

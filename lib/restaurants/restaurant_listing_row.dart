@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/admin/listing_images_editor.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_renew_sheet.dart';
@@ -88,6 +89,10 @@ class RestaurantListingRow extends StatelessWidget {
                     ),
                     PopupMenuButton<String>(
                       onSelected: (v) {
+                        if (v == 'images') {
+                          final fresh = RestaurantService.instance.byId(r.id) ?? r;
+                          showListingImagesEditor(context, restaurant: fresh);
+                        }
                         if (v == 'transfer') showRestaurantTransferFlow(context, r);
                         if (v == 'remove') {
                           showRestaurantTransferFlow(context, r, mode: RestoCloseMode.removeListing);
@@ -97,6 +102,7 @@ class RestaurantListingRow extends StatelessWidget {
                         if (v == 'banner') context.go('/dashboard/advertising?target=${Uri.encodeComponent(r.detailPath)}');
                       },
                       itemBuilder: (_) => [
+                        PopupMenuItem(value: 'images', child: Text(context.t('ui_image_change'))),
                         if (canRenew || expired) const PopupMenuItem(value: 'renew', child: Text('Renew')),
                         if (r.status == RestaurantListingStatus.active)
                           const PopupMenuItem(value: 'promote', child: Text('Promote')),

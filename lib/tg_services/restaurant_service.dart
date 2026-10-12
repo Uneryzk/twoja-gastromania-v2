@@ -263,15 +263,25 @@ List<RestaurantListing> _buildSeed() {
   const agentAgnieszka = TGSeller(id: 'seller_agnieszka', name: 'Agnieszka T.', type: TGSellerType.private, verified: false, rating: 4.6);
   const ownerTg = TGSeller(id: 'seller_tg', name: 'Piotr M.', type: TGSellerType.private, verified: false, rating: 4.5);
 
-  List<String> imgs(String id, RestaurantBusinessType type, String title, int n) =>
-      TGListingImages.galleryForTheme(
-        id: 'resto-$id',
-        theme: RestaurantListing.businessTypeSlug(type),
-        title: title,
-        count: n,
-      );
+  /// Explicit seed covers only (no dynamic theme matching). Admin can replace later.
+  List<String> imgs(String id, RestaurantBusinessType type, String title, int n) {
+    final pool = switch (type) {
+      RestaurantBusinessType.pizzeria => [TGListingImages.pizzaGarden, TGListingImages.combiOven, TGListingImages.restoKitchen],
+      RestaurantBusinessType.cafe => [TGListingImages.coffeeListing, TGListingImages.coffeeEspresso, TGListingImages.coffeeSetup],
+      RestaurantBusinessType.fastFood => [TGListingImages.burgerListing, TGListingImages.burgerGrill, TGListingImages.foodHall],
+      RestaurantBusinessType.bar => [TGListingImages.cocktailBar, TGListingImages.barEquip, TGListingImages.wineBar],
+      RestaurantBusinessType.bakeryPatisserie => [TGListingImages.pastryCoffee, TGListingImages.mixer, TGListingImages.combiOven],
+      RestaurantBusinessType.cateringDarkKitchen => [TGListingImages.productionKitchen, TGListingImages.mutfakEquip, TGListingImages.restoKitchen],
+      _ => [TGListingImages.terraceResto, TGListingImages.familyResto, TGListingImages.restoKitchen],
+    };
+    final out = <String>[];
+    for (var i = 0; i < n.clamp(1, 8); i++) {
+      out.add(pool[i % pool.length]);
+    }
+    return out;
+  }
 
-  /// 10–20 themed equipment rows; first [maySell] are “sold separately”.
+  /// 10–20 equipment rows. Photos start empty — set via admin/seller image panel.
   List<RestaurantInventoryItem> inv(
     String prefix,
     RestaurantBusinessType type, {
@@ -292,7 +302,7 @@ List<RestaurantListing> _buildSeed() {
           brand: i.isEven ? 'Bartscher' : 'Hobart',
           model: 'M-${100 + i}',
           condition: i % 5 == 0 ? RestaurantInventoryCondition.newItem : RestaurantInventoryCondition.used,
-          photos: [TGListingImages.forEquipmentKey(keys[i])],
+          photos: const [],
           availability: i < maySell
               ? RestaurantInventoryAvailability.maySellSeparately
               : (i >= n - excluded ? RestaurantInventoryAvailability.excluded : RestaurantInventoryAvailability.included),

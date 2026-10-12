@@ -3,8 +3,15 @@ import 'package:twoja_gastromania/tg_models/tg_product.dart';
 /// Local FlutterFlow / project assets for listings, category tiles and banners.
 ///
 /// **No Unsplash / Picsum / remote placeholders.** Every path is under `assets/images/`.
+///
+/// Dynamic title/theme matching for listings is **disabled** ([kDisableDynamicListingImages]).
+/// Listing / equipment photos must be set manually in admin or seller panels.
 class TGListingImages {
   TGListingImages._();
+
+  /// When true, theme/title auto-matching returns empty (or primary-only).
+  /// Category covers and hero slides stay available as a fixed asset library.
+  static const bool kDisableDynamicListingImages = true;
 
   // ---------------------------------------------------------------------------
   // Category → local asset
@@ -139,8 +146,10 @@ class TGListingImages {
     String? title,
     int width = 1200,
     int height = 800,
-  }) =>
-      _assetFor(category: category, title: title);
+  }) {
+    if (kDisableDynamicListingImages) return '';
+    return _assetFor(category: category, title: title);
+  }
 
   static String coverForTheme({
     required String id,
@@ -149,8 +158,10 @@ class TGListingImages {
     int width = 1200,
     int height = 800,
     int index = 0,
-  }) =>
-      _poolForTheme(_normalizeTheme(theme, title)).first;
+  }) {
+    if (kDisableDynamicListingImages) return '';
+    return _poolForTheme(_normalizeTheme(theme, title)).first;
+  }
 
   static List<String> gallery({
     required String id,
@@ -160,11 +171,13 @@ class TGListingImages {
     int width = 1200,
     int height = 800,
   }) {
+    if (kDisableDynamicListingImages) return const [];
     final theme = _themeForCategory(category, title);
     return _galleryFromPool(id: id, pool: _poolForTheme(theme), count: count);
   }
 
   /// Gallery that keeps an existing seed [primary] as the first photo.
+  /// With dynamic matching off, returns only the stored primary (no pool fill).
   static List<String> galleryWithPrimary({
     required String primary,
     required String id,
@@ -172,6 +185,10 @@ class TGListingImages {
     String? title,
     int count = 4,
   }) {
+    if (kDisableDynamicListingImages) {
+      final p = primary.trim();
+      return p.isEmpty ? const [] : [p];
+    }
     final theme = _themeForCategory(category, title);
     final pool = _poolForTheme(theme);
     final cover = primary.startsWith('assets/') ? primary : pool.first;
@@ -186,6 +203,7 @@ class TGListingImages {
     int width = 1200,
     int height = 800,
   }) {
+    if (kDisableDynamicListingImages) return const [];
     final key = _normalizeTheme(theme, title);
     return _galleryFromPool(id: id, pool: _poolForTheme(key), count: count);
   }
@@ -198,7 +216,9 @@ class TGListingImages {
     int width = 1200,
     int height = 800,
   }) {
+    if (kDisableDynamicListingImages) return '';
     final g = gallery(id: id, category: category, title: title, count: (index + 1).clamp(1, 12));
+    if (g.isEmpty) return '';
     return g[index.clamp(0, g.length - 1)];
   }
 
@@ -217,7 +237,9 @@ class TGListingImages {
   }
 
   /// Best local photo for a restaurant inventory name key (`resto_eq_...`).
+  /// Disabled when [kDisableDynamicListingImages] — set [RestaurantInventoryItem.photos] manually.
   static String forEquipmentKey(String nameKey) {
+    if (kDisableDynamicListingImages) return '';
     final k = nameKey.toLowerCase();
     if (k.contains('espresso') || k.contains('coffee_grinder') || k.contains('coffee_brew')) return coffeeEspresso;
     if (k.contains('coffee_fridge') || k.contains('pastry_case') || k.contains('bar_fridge') || k.contains('display')) {

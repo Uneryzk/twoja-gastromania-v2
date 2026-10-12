@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -30,10 +31,14 @@ class _AdminPriorityPageState extends State<AdminPriorityPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
-        content: TextField(controller: c, decoration: const InputDecoration(labelText: 'Reason'), autofocus: true),
+        content: TextField(
+          controller: c,
+          decoration: InputDecoration(labelText: ctx.t('ui_reason')),
+          autofocus: true,
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: 'Confirm', height: 40),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.t('ui_cancel'))),
+          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: ctx.t('ui_confirm'), height: 40),
         ],
       ),
     );
@@ -52,11 +57,11 @@ class _AdminPriorityPageState extends State<AdminPriorityPage> {
     return ListView(
       padding: EdgeInsets.all(phone ? 12 : 20),
       children: [
-        Text('Priority seats', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_priority_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        Text('All counts are from real matching requests — no promised volume.', style: theme.bodySmall.override(color: theme.secondaryText)),
+        Text(context.t('ui_admin_priority_sub'), style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 16),
-        Text('Segments', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_segments'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         if (phone)
           for (final s in segments) _segmentCard(context, s.specialty, s.region, prio, cfg, auth, cap)
@@ -64,14 +69,14 @@ class _AdminPriorityPageState extends State<AdminPriorityPage> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Specialty')),
-                DataColumn(label: Text('Region')),
-                DataColumn(label: Text('30d req')),
-                DataColumn(label: Text('Seats')),
-                DataColumn(label: Text('Waitlist')),
-                DataColumn(label: Text('Gate')),
-                DataColumn(label: Text('Actions')),
+              columns: [
+                DataColumn(label: Text(context.t('ui_admin_specialty'))),
+                DataColumn(label: Text(context.t('ui_region'))),
+                DataColumn(label: Text(context.t('ui_admin_30d_req'))),
+                DataColumn(label: Text(context.t('ui_admin_seats'))),
+                DataColumn(label: Text(context.t('ui_admin_waitlist'))),
+                DataColumn(label: Text(context.t('ui_admin_gate'))),
+                DataColumn(label: Text(context.t('ui_admin_actions'))),
               ],
               rows: [
                 for (final s in segments)
@@ -81,25 +86,25 @@ class _AdminPriorityPageState extends State<AdminPriorityPage> {
                     DataCell(Text('${prio.matchingRequests30d(s.specialty, s.region)}')),
                     DataCell(Text('${prio.seatsTaken(s.specialty, s.region)}/$cap')),
                     DataCell(Text('${prio.waitlistCount(s.specialty, s.region)}')),
-                    DataCell(Text(prio.segmentSaleOpen(s.specialty, s.region) ? 'Open' : 'Closed')),
+                    DataCell(Text(prio.segmentSaleOpen(s.specialty, s.region) ? context.t('ui_open') : context.t('ui_admin_closed'))),
                     DataCell(Row(children: [
                       TextButton(
                         onPressed: () async {
-                          final reason = await _reason('Open gate');
+                          final reason = await _reason(context.t('ui_admin_open_gate'));
                           if (reason == null || reason.isEmpty) return;
                           cfg.overrideSegmentGate(specialty: s.specialty, region: s.region, open: true, reason: reason, actorId: auth.userId);
                           setState(() {});
                         },
-                        child: const Text('Open'),
+                        child: Text(context.t('ui_open')),
                       ),
                       TextButton(
                         onPressed: () async {
-                          final reason = await _reason('Close gate');
+                          final reason = await _reason(context.t('ui_admin_close_gate'));
                           if (reason == null || reason.isEmpty) return;
                           cfg.overrideSegmentGate(specialty: s.specialty, region: s.region, open: false, reason: reason, actorId: auth.userId);
                           setState(() {});
                         },
-                        child: const Text('Close'),
+                        child: Text(context.t('ui_close')),
                       ),
                     ])),
                   ]),
@@ -107,7 +112,7 @@ class _AdminPriorityPageState extends State<AdminPriorityPage> {
             ),
           ),
         const SizedBox(height: 24),
-        Text('Subscribers', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_subscribers'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         for (final e in prio.bySeller.entries)
           ListTile(
             title: Text(
@@ -118,12 +123,12 @@ class _AdminPriorityPageState extends State<AdminPriorityPage> {
               '${e.value.status.name} · ${e.value.source?.name ?? "—"} · next ${e.value.nextBillingAt?.toIso8601String().substring(0, 10) ?? "—"} · quiet credits ${e.value.quietMonthCredits.length}',
             ),
             trailing: IconButton(
-              tooltip: 'Grant seat',
+              tooltip: context.t('ui_admin_grant_seat'),
               icon: const Icon(Icons.add_circle_outline),
               onPressed: () async {
                 final profile = TGSellerProfileService.instance.bySellerKey(e.key);
                 if (profile == null || profile.specialties.isEmpty) return;
-                final reason = await _reason('Grant seat');
+                final reason = await _reason(context.t('ui_admin_grant_seat'));
                 if (reason == null || reason.isEmpty) return;
                 prio.grantSeatManual(
                   sellerId: e.key,
@@ -160,7 +165,7 @@ class _AdminPriorityPageState extends State<AdminPriorityPage> {
         children: [
           Text('${specialty.name} × $region', style: const TextStyle(fontWeight: FontWeight.w900)),
           Text('30d: $req · seats ${prio.seatsTaken(specialty, region)}/$cap · wait ${prio.waitlistCount(specialty, region)}'),
-          Text(prio.segmentSaleOpen(specialty, region) ? 'Gate open' : 'Gate closed'),
+          Text(prio.segmentSaleOpen(specialty, region) ? context.t('ui_admin_gate_open') : context.t('ui_admin_gate_closed')),
         ],
       ),
     );

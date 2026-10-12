@@ -307,8 +307,11 @@ class _RequestDetailState extends State<_RequestDetail> {
           ),
         if (request.status == TGSpecialRequestStatus.awarded) ...[
           const SizedBox(height: 16),
-          Text('Project completion', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-          Text('Status: ${request.completionStatus.name}', style: theme.bodySmall),
+          Text(context.t('ui_so_project_completion'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          Text(
+            context.t('ui_so_completion_status', {'s': context.t('ui_so_completion_${request.completionStatus.name}')}),
+            style: theme.bodySmall,
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -322,7 +325,7 @@ class _RequestDetailState extends State<_RequestDetail> {
                     setState(() {});
                     showSpecialReviewComposer(context, request: svc.byId(request.id)!);
                   },
-                  label: 'Mark completed',
+                  label: context.t('ui_so_mark_completed'),
                   height: 40,
                 ),
               if (request.completionStatus == TGProjectCompletionStatus.inProgress)
@@ -331,16 +334,16 @@ class _RequestDetailState extends State<_RequestDetail> {
                     final auth = context.read<FakeAuthState>();
                     TGSpecialReviewService.instance.markStillInProgress(request.id, buyerId: auth.userId);
                     setState(() {});
-                    showTGToast(context, 'We\'ll ask again in 14 days');
+                    showTGToast(context, context.t('ui_so_ask_again_14d'));
                   },
-                  label: 'Still in progress',
+                  label: context.t('ui_so_still_in_progress'),
                   variant: TGButtonVariant.outline,
                   height: 40,
                 ),
               if (request.completionStatus == TGProjectCompletionStatus.completed)
                 TGButton(
                   onPressed: () => showSpecialReviewComposer(context, request: request),
-                  label: 'Write project review',
+                  label: context.t('ui_so_write_project_review'),
                   height: 40,
                 ),
             ],
@@ -380,15 +383,12 @@ class _RequestDetailState extends State<_RequestDetail> {
             ),
           )
         else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: phone && !_sideBySide ? const PageScrollPhysics() : null,
-            child: _QuoteCompareTable(
-              quotes: qs.take(5).toList(),
-              request: request,
-              lowestId: lowest?.id,
-              fastestId: fastest?.id,
-            ),
+          _QuoteCompareTable(
+            quotes: qs.take(5).toList(),
+            request: request,
+            lowestId: lowest?.id,
+            fastestId: fastest?.id,
+            sideBySide: !phone || _sideBySide,
           ),
         const SizedBox(height: 28),
         Text(context.t('ui_so_featured_makers'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
@@ -476,42 +476,122 @@ class _QuoteCompareTable extends StatelessWidget {
     required this.request,
     required this.lowestId,
     required this.fastestId,
+    required this.sideBySide,
   });
 
   final List<TGQuote> quotes;
   final TGSpecialRequest request;
   final String? lowestId;
   final String? fastestId;
+  final bool sideBySide;
 
   @override
   Widget build(BuildContext context) {
+    final screenW = MediaQuery.sizeOf(context).width;
+    final phone = screenW < TGBreakpoints.phone;
+    final desktop = screenW >= TGBreakpoints.desktop;
+
+    // Mobile stack: full-width cards. Side-by-side / desktop: wider cards (~300–340).
+    final cardW = phone
+        ? (screenW - 40).clamp(300.0, 420.0)
+        : desktop
+            ? 340.0
+            : 300.0;
+
+    if (!sideBySide && phone) {
+      return Column(
+        children: [
+          for (var i = 0; i < quotes.length; i++) ...[
+            if (i > 0) const SizedBox(height: 12),
+            _QuoteColumn(
+              quote: quotes[i],
+              request: request,
+              lowest: lowestId == quotes[i].id,
+              fastest: fastestId == quotes[i].id,
+              width: double.infinity,
+            ),
+          ],
+        ],
+      );
+    }
+
+    const gap = 12.0;
+    final needed = quotes.length * cardW + (quotes.length - 1) * gap;
+    final canFit = !phone && needed <= screenW - 48;
+
+    Widget card(TGQuote q, {required double? w}) => _QuoteColumn(
+          quote: q,
+          request: request,
+          lowest: lowestId == q.id,
+          fastest: fastestId == q.id,
+          width: w,
+        );
+
+    if (canFit) {
+      return Semantics(
+        container: true,
+        label: context.t('ui_so_quotes'),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < quotes.length; i++) ...[
+                if (i > 0) SizedBox(width: gap),
+                Expanded(child: card(quotes[i], w: null)),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
     return Semantics(
       container: true,
       label: context.t('ui_so_quotes'),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (final q in quotes) ...[
-            _QuoteColumn(
-              quote: q,
-              request: request,
-              lowest: lowestId == q.id,
-              fastest: fastestId == q.id,
-            ),
-            const SizedBox(width: 12),
-          ],
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: phone ? const PageScrollPhysics() : null,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < quotes.length; i++) ...[
+                if (i > 0) SizedBox(width: gap),
+                card(quotes[i], w: cardW),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
 class _QuoteColumn extends StatelessWidget {
-  const _QuoteColumn({required this.quote, required this.request, required this.lowest, required this.fastest});
+  const _QuoteColumn({
+    required this.quote,
+    required this.request,
+    required this.lowest,
+    required this.fastest,
+    this.width = 320,
+  });
   final TGQuote quote;
   final TGSpecialRequest request;
   final bool lowest;
   final bool fastest;
+  final double? width;
+
+  String _priceTypeLabel(BuildContext context) => switch (quote.priceType) {
+        TGQuotePriceType.fixed => context.t('ui_so_price_fixed'),
+        TGQuotePriceType.from => context.t('ui_so_price_from'),
+        TGQuotePriceType.estimate => context.t('ui_so_price_estimate'),
+      };
+
+  String _paymentTermsLabel(BuildContext context) {
+    final raw = quote.paymentTerms.trim();
+    if (raw == '40% advance, balance on delivery') return context.t('ui_so_pay_40_advance');
+    return raw;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -519,154 +599,170 @@ class _QuoteColumn extends StatelessWidget {
     final store = TGSellerProfileService.instance.bySellerKey(quote.sellerId);
     final highlight = quote.isNew;
     final makerName = store?.name ?? quote.sellerId;
+    final priceLine = context.t('ui_so_price_line', {
+      'net': '${quote.priceNet}',
+      'gross': '${quote.priceGross}',
+      'vat': '${quote.vatRate}',
+      'netto': context.t('ui_netto'),
+      'brutto': context.t('ui_brutto'),
+      'vatLabel': context.t('ui_vat_short'),
+    });
     return AnimatedContainer(
       duration: TGMotion.of(context, const Duration(milliseconds: 200)),
-      width: 220,
-      padding: const EdgeInsets.all(14),
+      width: width,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: TGColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: highlight ? TGColors.cta : TGColors.border, width: highlight ? 2 : 1),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Semantics(
             header: true,
             child: Row(
               children: [
-                Expanded(child: Text(makerName, style: const TextStyle(fontWeight: FontWeight.w900))),
+                Expanded(child: Text(makerName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16))),
                 if (highlight) Text(context.t('ui_new'), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w900, fontSize: 11)),
               ],
             ),
           ),
           if (store != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Wrap(spacing: 6, runSpacing: 4, children: [
               if (store.verified) const TGVerifiedSellerBadge(),
               AuditedManufacturerBadge(sellerId: store.sellerKey, compact: true),
               TGRatingBadge(rating: store.rating),
             ]),
+            const SizedBox(height: 4),
             CustomProjectsRatingLine(sellerId: store.sellerKey),
             Text(context.t('ui_so_replies_in', {'n': '${store.responseHours ?? 24}'}), style: theme.bodySmall),
-            TextButton(
-              onPressed: () => context.go('${store.path}?tab=about'),
-              child: Text(context.t('ui_so_view_projects')),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => context.go('${store.path}?tab=about'),
+                child: Text(context.t('ui_so_view_projects')),
+              ),
             ),
           ],
-          if (lowest) _tag(context.t('ui_so_lowest_price')),
-          if (quote.isRevised) _tag('Revised'),
-          if (fastest) _tag(context.t('ui_so_fastest')),
-          const SizedBox(height: 8),
-          _row(context.t('ui_price'), '${quote.priceNet} PLN netto\n${quote.priceGross} PLN brutto (${quote.vatRate}% VAT)'),
-          _row(context.t('ui_so_price_type'), quote.priceType.name),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              if (lowest) _tag(context.t('ui_so_lowest_price')),
+              if (quote.isRevised) _tag(context.t('ui_so_revised')),
+              if (fastest) _tag(context.t('ui_so_fastest')),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _row(context.t('ui_price'), priceLine),
+          _row(context.t('ui_so_price_type'), _priceTypeLabel(context)),
           _row(context.t('ui_so_lead_weeks'), '${quote.leadTimeWeeks}'),
           _row(context.t('ui_so_valid_until'), quote.validUntil.toIso8601String().substring(0, 10)),
           _row(context.t('ui_so_install'), quote.installationIncluded ? context.t('ui_yes') : context.t('ui_no')),
           _row(context.t('ui_so_delivery'), quote.deliveryIncluded ? context.t('ui_yes') : context.t('ui_no')),
           _row(context.t('ui_warranty'), '${quote.warrantyMonths}'),
-          _row(context.t('ui_so_payment_terms'), quote.paymentTerms),
-          const SizedBox(height: 10),
+          _row(context.t('ui_so_payment_terms'), _paymentTermsLabel(context)),
+          const SizedBox(height: 12),
           if (store != null) ...[
             Text(store.phone, style: const TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
+            const SizedBox(height: 8),
+            TGButton(
+              onPressed: () async {
+                await launchUrl(Uri(scheme: 'tel', path: store.phone.replaceAll(RegExp(r'[^0-9+]'), '')));
+                if (context.mounted) await copyPhoneNumber(context, store.phone);
+              },
+              label: context.t('ui_call_now'),
+              height: 44,
+            ),
+            const SizedBox(height: 8),
+            TGButton(
+              onPressed: () => MessagingService.instance.openDock(inbox: true, draft: 'Re ${request.requestNo}'),
+              label: context.t('ui_message'),
+              variant: TGButtonVariant.outline,
+              height: 44,
+            ),
+            const SizedBox(height: 4),
+            Row(
               children: [
-                TGButton(
-                  onPressed: () async {
-                    await launchUrl(Uri(scheme: 'tel', path: store.phone.replaceAll(RegExp(r'[^0-9+]'), '')));
-                    if (context.mounted) await copyPhoneNumber(context, store.phone);
-                  },
-                  label: '${context.t('ui_call_now')} ${store.phone}',
-                  height: 36,
-                ),
-                TGButton(
-                  onPressed: () => MessagingService.instance.openDock(inbox: true, draft: 'Re ${request.requestNo}'),
-                  label: context.t('ui_message'),
-                  variant: TGButtonVariant.outline,
-                  height: 36,
-                ),
-                TGButton(
-                  onPressed: () {
-                    TGSpecialOrderService.instance.shortlistQuote(quote.id);
-                    TGSpecialOrderService.instance.clearQuoteNew(quote.id);
-                  },
-                  label: context.t('ui_so_shortlist'),
-                  variant: TGButtonVariant.ghost,
-                  height: 36,
-                ),
-                TGButton(
-                  onPressed: () async {
-                    final reason = await showModalBottomSheet<TGQuoteDeclineReason>(
-                      context: context,
-                      backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
-                      builder: (ctx) => SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(context.t('ui_so_decline'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                              const SizedBox(height: 8),
-                              Text('Optional — used only in aggregated analytics', style: TextStyle(color: FlutterFlowTheme.of(ctx).secondaryText, fontSize: 12)),
-                              const SizedBox(height: 12),
-                              for (final e in const [
-                                (TGQuoteDeclineReason.price, 'Price too high'),
-                                (TGQuoteDeclineReason.leadTime, 'Lead time too long'),
-                                (TGQuoteDeclineReason.choseOther, 'Chose another offer'),
-                                (TGQuoteDeclineReason.projectCancelled, 'Project cancelled'),
-                                (TGQuoteDeclineReason.other, 'Other'),
-                              ])
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: OutlinedButton(
-                                    onPressed: () => Navigator.pop(ctx, e.$1),
-                                    child: Text(e.$2),
-                                  ),
-                                ),
-                              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Skip')),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                    TGSpecialOrderService.instance.declineQuote(quote.id, reason: reason);
-                  },
-                  label: context.t('ui_so_decline'),
-                  variant: TGButtonVariant.ghost,
-                  height: 36,
-                ),
-                if (request.status != TGSpecialRequestStatus.awarded)
-                  TGButton(
-                    onPressed: () => _choose(context, store),
-                    label: context.t('ui_so_choose_maker'),
-                    height: 36,
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      TGSpecialOrderService.instance.shortlistQuote(quote.id);
+                      TGSpecialOrderService.instance.clearQuoteNew(quote.id);
+                    },
+                    child: Text(context.t('ui_so_shortlist')),
                   ),
+                ),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => _decline(context),
+                    child: Text(context.t('ui_so_decline')),
+                  ),
+                ),
               ],
             ),
+            if (request.status != TGSpecialRequestStatus.awarded) ...[
+              const SizedBox(height: 4),
+              TGButton(
+                onPressed: () => _choose(context, store),
+                label: context.t('ui_so_choose_maker'),
+                height: 44,
+              ),
+            ],
           ],
         ],
       ),
     );
   }
 
+  Future<void> _decline(BuildContext context) async {
+    final reason = await showModalBottomSheet<TGQuoteDeclineReason>(
+      context: context,
+      backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(context.t('ui_so_decline'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              const SizedBox(height: 8),
+              Text(context.t('ui_so_decline_optional'), style: TextStyle(color: FlutterFlowTheme.of(ctx).secondaryText, fontSize: 12)),
+              const SizedBox(height: 12),
+              for (final e in TGQuoteDeclineReason.values)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx, e),
+                    child: Text(context.t('ui_so_decline_${e.name}')),
+                  ),
+                ),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(context.t('ui_skip'))),
+            ],
+          ),
+        ),
+      ),
+    );
+    TGSpecialOrderService.instance.declineQuote(quote.id, reason: reason);
+  }
+
   Widget _tag(String label) => Container(
-        margin: const EdgeInsets.only(top: 6),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(border: Border.all(color: TGColors.cta), borderRadius: BorderRadius.circular(TGRadius.pill)),
         child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: TGColors.cta)),
       );
 
   Widget _row(String k, String v) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.only(bottom: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(k, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white54)),
-            Text(v, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.3)),
+            const SizedBox(height: 2),
+            Text(v, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.35)),
           ],
         ),
       );

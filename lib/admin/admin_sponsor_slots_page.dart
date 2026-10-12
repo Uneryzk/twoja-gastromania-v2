@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -29,10 +30,14 @@ class _AdminSponsorSlotsPageState extends State<AdminSponsorSlotsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
-        content: TextField(controller: c, decoration: const InputDecoration(labelText: 'Reason'), autofocus: true),
+        content: TextField(
+          controller: c,
+          decoration: InputDecoration(labelText: ctx.t('ui_reason')),
+          autofocus: true,
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: 'Confirm', height: 40),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.t('ui_cancel'))),
+          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: ctx.t('ui_confirm'), height: 40),
         ],
       ),
     );
@@ -49,13 +54,13 @@ class _AdminSponsorSlotsPageState extends State<AdminSponsorSlotsPage> {
     return ListView(
       padding: EdgeInsets.all(phone ? 12 : 20),
       children: [
-        Text('Sponsor slots', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_sponsor_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        Text('Content approval queue · segment grid', style: theme.bodySmall),
+        Text(context.t('ui_admin_content_queue_sub'), style: theme.bodySmall),
         const SizedBox(height: 16),
-        Text('Content queue', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_content_queue'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         if (pending.isEmpty)
-          Text('No pending content.', style: theme.bodySmall)
+          Text(context.t('ui_admin_no_pending_content'), style: theme.bodySmall)
         else
           for (final s in pending)
             ListTile(
@@ -65,27 +70,27 @@ class _AdminSponsorSlotsPageState extends State<AdminSponsorSlotsPage> {
                 children: [
                   TextButton(
                     onPressed: () async {
-                      final note = await _note('Approve content');
+                      final note = await _note(context.t('ui_admin_approve_content'));
                       if (note == null || note.isEmpty) return;
                       svc.decideContent(slotId: s.id, approve: true, actorId: auth.userId, note: note);
                       setState(() {});
                     },
-                    child: const Text('Approve'),
+                    child: Text(context.t('ui_approve')),
                   ),
                   TextButton(
                     onPressed: () async {
-                      final note = await _note('Reject (full refund)');
+                      final note = await _note(context.t('ui_admin_reject_refund'));
                       if (note == null || note.isEmpty) return;
                       svc.decideContent(slotId: s.id, approve: false, actorId: auth.userId, note: note);
                       setState(() {});
                     },
-                    child: const Text('Reject'),
+                    child: Text(context.t('ui_reject')),
                   ),
                 ],
               ),
             ),
         const SizedBox(height: 20),
-        Text('Segments', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_segments'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -109,19 +114,19 @@ class _AdminSponsorSlotsPageState extends State<AdminSponsorSlotsPage> {
                       const Spacer(),
                       Text(
                         active != null
-                            ? 'Active until ${TGFounderService.fmtDate(active.endsAt!)}'
-                            : (slot?.status.name ?? 'available'),
+                            ? context.t('ui_admin_active_until', {'d': TGFounderService.fmtDate(active.endsAt!)})
+                            : (slot?.status.name ?? context.t('ui_admin_available')),
                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                       if (active != null)
                         TextButton(
                           onPressed: () async {
-                            final note = await _note('Cancel with refund');
+                            final note = await _note(context.t('ui_admin_cancel_with_refund'));
                             if (note == null || note.isEmpty) return;
                             svc.cancel(slotId: active.id, actorId: auth.userId, reason: note, refund: true);
                             setState(() {});
                           },
-                          child: const Text('Cancel/refund', style: TextStyle(fontSize: 11)),
+                          child: Text(context.t('ui_admin_cancel_refund'), style: const TextStyle(fontSize: 11)),
                         ),
                     ],
                   ),

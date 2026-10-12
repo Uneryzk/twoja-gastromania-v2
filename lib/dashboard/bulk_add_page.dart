@@ -59,7 +59,8 @@ class _BulkAddPageState extends State<BulkAddPage> {
   bool _publishing = false;
 
   void _uploadMockPhotos() {
-    final pool = TGListingImages.galleryForTheme(id: 'bulk-${_rows.length}', theme: 'cooking', title: 'bulk', count: 6);
+    // Fixed library assets only — no AI/theme matching.
+    final pool = TGListingImages.listingPool.take(6).toList();
     for (final url in pool) {
       _rows.add(BulkAddRow(id: 'bulk_${DateTime.now().microsecondsSinceEpoch}_${_rows.length}', photos: [url]));
     }

@@ -11,27 +11,23 @@ void main() {
         expect(url, isNot(contains('picsum')));
         expect(url, isNot(contains('http')));
       }
-      expect(TGListingImages.categoryCover(TGCategory.cookingEquipment), TGListingImages.cooking);
-      expect(TGListingImages.categoryCover(TGCategory.refrigerationEquipment), TGListingImages.refrigeration);
+      expect(TGListingImages.categoryCover(TGCategory.cookingEquipment), TGListingImages.mutfakEquip);
+      expect(TGListingImages.categoryCover(TGCategory.refrigerationEquipment), TGListingImages.fridge700);
       expect(TGListingImages.categoryCover(TGCategory.warewashing), TGListingImages.warewashing);
       expect(TGListingImages.categoryCover(TGCategory.foodPreparation), TGListingImages.foodPrep);
-      expect(TGListingImages.categoryCover(TGCategory.stainlessSteelFurniture), TGListingImages.stainless);
-      expect(TGListingImages.categoryCover(TGCategory.barAndBeverageEquipment), TGListingImages.barCafe);
+      expect(TGListingImages.categoryCover(TGCategory.stainlessSteelFurniture), TGListingImages.shelves);
+      expect(TGListingImages.categoryCover(TGCategory.barAndBeverageEquipment), TGListingImages.coffeeEspresso);
     });
 
-    test('cover / gallery / hero never leave assets/images', () {
-      for (final cat in TGCategory.values) {
-        final cover = TGListingImages.cover(id: 'x', category: cat, title: 'test');
-        expect(cover, startsWith('assets/images/'));
-        final gallery = TGListingImages.gallery(id: 'x', category: cat, title: 'test', count: 5);
-        expect(gallery.every((u) => u.startsWith('assets/images/')), isTrue);
-      }
-      for (var i = 0; i < 4; i++) {
-        expect(TGListingImages.heroSlide(i), startsWith('assets/images/'));
-      }
+    test('dynamic listing matching is disabled', () {
+      expect(TGListingImages.kDisableDynamicListingImages, isTrue);
+      expect(TGListingImages.cover(id: 'x', category: TGCategory.cookingEquipment, title: 'Oven'), isEmpty);
+      expect(TGListingImages.gallery(id: 'x', category: TGCategory.cookingEquipment, title: 'Oven', count: 5), isEmpty);
+      expect(TGListingImages.galleryForTheme(id: 'x', theme: 'pizzeria', title: 'Pizza', count: 4), isEmpty);
+      expect(TGListingImages.forEquipmentKey('resto_eq_dishwasher'), isEmpty);
     });
 
-    test('galleryWithPrimary keeps seed cover first', () {
+    test('galleryWithPrimary keeps only stored primary when matching off', () {
       const primary = 'assets/images/bartscher_2002170.webp';
       final g = TGListingImages.galleryWithPrimary(
         primary: primary,
@@ -40,9 +36,13 @@ void main() {
         title: 'Piec',
         count: 4,
       );
-      expect(g.first, primary);
-      expect(g, hasLength(4));
-      expect(g.every((u) => u.startsWith('assets/images/')), isTrue);
+      expect(g, [primary]);
+    });
+
+    test('hero slides stay local assets', () {
+      for (var i = 0; i < 4; i++) {
+        expect(TGListingImages.heroSlide(i), startsWith('assets/images/'));
+      }
     });
 
     test('no remote URL constants remain', () {

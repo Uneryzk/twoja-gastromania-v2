@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -36,9 +37,9 @@ class _AdminAuditsPageState extends State<AdminAuditsPage> {
     return ListView(
       padding: EdgeInsets.all(phone ? 12 : 20),
       children: [
-        Text('Audits', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_audits_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        Text('We sell the audit, not the badge. Documents and video visible to auditors only.', style: theme.bodySmall),
+        Text(context.t('ui_admin_audits_sub'), style: theme.bodySmall),
         const SizedBox(height: 16),
         for (final a in queue)
           Container(
@@ -58,7 +59,7 @@ class _AdminAuditsPageState extends State<AdminAuditsPage> {
                     svc.logView(a.id, auth.displayName);
                     setState(() => _openId = _openId == a.id ? null : a.id);
                   },
-                  child: Text(_openId == a.id ? 'Hide case' : 'Open case'),
+                  child: Text(_openId == a.id ? context.t('ui_admin_hide_case') : context.t('ui_admin_open_case')),
                 ),
                 if (_openId == a.id) _CaseBody(app: a, onChanged: () => setState(() {})),
               ],
@@ -87,9 +88,9 @@ class _CaseBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        Text('Workshop video', style: const TextStyle(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_admin_workshop_video'), style: const TextStyle(fontWeight: FontWeight.w800)),
         if (video == null)
-          const Text('No video')
+          Text(context.t('ui_admin_no_video'))
         else ...[
           Container(
             height: 140,
@@ -109,19 +110,19 @@ class _CaseBody extends StatelessWidget {
               margin: const EdgeInsets.only(top: 6),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(border: Border.all(color: theme.primary), borderRadius: BorderRadius.circular(99)),
-              child: const Text('External link: can change after approval', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+              child: Text(context.t('ui_admin_external_link_note'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
             ),
           const SizedBox(height: 8),
-          Text('Expected code: ${video.challengeCode}', style: const TextStyle(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_admin_expected_code', {'code': video.challengeCode}), style: const TextStyle(fontWeight: FontWeight.w900)),
           Wrap(
             spacing: 4,
             children: [
               for (final m in TGAuditCodeMatch.values)
                 ChoiceChip(
                   label: Text(switch (m) {
-                    TGAuditCodeMatch.matches => 'Matches',
-                    TGAuditCodeMatch.doesntMatch => 'Doesn\'t match',
-                    TGAuditCodeMatch.cantTell => 'Can\'t tell',
+                    TGAuditCodeMatch.matches => context.t('ui_admin_code_matches'),
+                    TGAuditCodeMatch.doesntMatch => context.t('ui_admin_code_no_match'),
+                    TGAuditCodeMatch.cantTell => context.t('ui_admin_code_cant_tell'),
                   }),
                   selected: app.codeMatch == m,
                   onSelected: (_) {
@@ -133,7 +134,7 @@ class _CaseBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 12),
-        Text('Checklist', style: const TextStyle(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_admin_checklist'), style: const TextStyle(fontWeight: FontWeight.w800)),
         for (final c in app.checklist)
           ListTile(
             dense: true,
@@ -155,19 +156,19 @@ class _CaseBody extends StatelessWidget {
               svc.setLinkAck(app.id, v ?? false);
               onChanged();
             },
-            title: const Text('I watched the video and the code matches.'),
+            title: Text(context.t('ui_admin_link_ack')),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
           ),
         if (hints.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text('Hints (human decides)', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+          Text(context.t('ui_admin_hints_human'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
           Wrap(
             spacing: 6,
             children: [
               for (final h in hints)
                 Chip(
-                  label: Text('$h → Consider a live visit', style: const TextStyle(fontSize: 11)),
+                  label: Text(context.t('ui_admin_consider_visit', {'h': h}), style: const TextStyle(fontSize: 11)),
                   backgroundColor: theme.alternate,
                 ),
             ],
@@ -175,9 +176,9 @@ class _CaseBody extends StatelessWidget {
         ],
         if (app.viewLog.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text('Views', style: const TextStyle(fontWeight: FontWeight.w800)),
+          Text(context.t('ui_admin_views'), style: const TextStyle(fontWeight: FontWeight.w800)),
           for (final v in app.viewLog.take(5))
-            Text('Viewed by ${v.viewer} · ${fmt.format(v.at)}', style: theme.bodySmall),
+            Text(context.t('ui_admin_viewed_by', {'viewer': v.viewer, 'at': fmt.format(v.at)}), style: theme.bodySmall),
         ],
         const SizedBox(height: 12),
         Wrap(
@@ -188,7 +189,7 @@ class _CaseBody extends StatelessWidget {
               onPressed: !app.canApprove
                   ? null
                   : () async {
-                      final note = await _dlg(context, 'Approve');
+                      final note = await _dlg(context, context.t('ui_approve'));
                       if (note == null || note.isEmpty) return;
                       final prev = app.status;
                       try {
@@ -199,33 +200,43 @@ class _CaseBody extends StatelessWidget {
                       }
                       onChanged();
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: const Text('Approved'),
+                        content: Text(context.t('ui_admin_approved')),
                         duration: const Duration(seconds: 10),
-                        action: SnackBarAction(label: 'Undo', onPressed: () { app.status = prev; onChanged(); }),
+                        action: SnackBarAction(
+                          label: context.t('ui_undo'),
+                          onPressed: () {
+                            app.status = prev;
+                            onChanged();
+                          },
+                        ),
                       ));
                     },
-              label: 'Approve',
+              label: context.t('ui_approve'),
               height: 40,
             ),
             TGButton(
               onPressed: () async {
-                final note = await _dlg(context, 'Reject');
+                final note = await _dlg(context, context.t('ui_reject'));
                 if (note == null || note.isEmpty) return;
                 svc.decide(applicationId: app.id, status: TGAuditApplicationStatus.rejected, actorId: auth.userId, note: note);
                 onChanged();
               },
-              label: 'Reject',
+              label: context.t('ui_reject'),
               height: 40,
               variant: TGButtonVariant.outline,
             ),
             TGButton(
               onPressed: () async {
-                final note = await _dlg(context, 'Request more documents', template: 'Please send updated documents within 5 days.');
+                final note = await _dlg(
+                  context,
+                  context.t('ui_admin_request_more_docs_title'),
+                  template: context.t('ui_admin_request_more_docs_tpl'),
+                );
                 if (note == null || note.isEmpty) return;
                 svc.requestMoreDocuments(applicationId: app.id, actorId: auth.userId, note: note, days: 5);
                 onChanged();
               },
-              label: 'Request more docs',
+              label: context.t('ui_admin_request_more_docs'),
               height: 40,
               variant: TGButtonVariant.ghost,
             ),
@@ -233,14 +244,14 @@ class _CaseBody extends StatelessWidget {
               onPressed: () async {
                 final note = await _dlg(
                   context,
-                  'Request Live Video Visit',
-                  template: 'We\'d like to verify a few details in a short video call (10–15 min, not recorded).',
+                  context.t('ui_admin_request_live_visit'),
+                  template: context.t('ui_admin_request_live_visit_tpl'),
                 );
                 if (note == null || note.isEmpty) return;
                 svc.requestLiveVisit(applicationId: app.id, actorId: auth.userId, reason: note);
                 onChanged();
               },
-              label: 'Request Live Video Visit',
+              label: context.t('ui_admin_request_live_visit'),
               height: 40,
               variant: TGButtonVariant.outline,
             ),
@@ -250,18 +261,18 @@ class _CaseBody extends StatelessWidget {
                   svc.markVisitDone(app.id, notes: 'Visit completed — notes (mock)');
                   onChanged();
                 },
-                label: 'Mark visit done',
+                label: context.t('ui_admin_mark_visit_done'),
                 height: 40,
               ),
             if (app.badgeActive)
               TGButton(
                 onPressed: () async {
-                  final note = await _dlg(context, 'Revoke');
+                  final note = await _dlg(context, context.t('ui_admin_revoke'));
                   if (note == null || note.isEmpty) return;
                   svc.revoke(applicationId: app.id, actorId: auth.userId, reason: note);
                   onChanged();
                 },
-                label: 'Revoke',
+                label: context.t('ui_admin_revoke'),
                 height: 40,
                 variant: TGButtonVariant.ghost,
               ),
@@ -269,7 +280,7 @@ class _CaseBody extends StatelessWidget {
         ),
         if (svc.auditLog.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text('Audit log', style: const TextStyle(fontWeight: FontWeight.w800)),
+          Text(context.t('ui_admin_audit_log_section'), style: const TextStyle(fontWeight: FontWeight.w800)),
           for (final e in svc.auditLog.where((e) => e.detail == app.id || (e.detail?.contains(app.id) ?? false)).take(6))
             Text('${e.action} · ${e.actorId}', style: theme.bodySmall),
         ],
@@ -287,14 +298,19 @@ class _CaseBody extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(controller: c, maxLines: 4, decoration: const InputDecoration(labelText: 'Reason / message'), autofocus: true),
+            TextField(
+              controller: c,
+              maxLines: 4,
+              decoration: InputDecoration(labelText: ctx.t('ui_admin_reason_message')),
+              autofocus: true,
+            ),
             const SizedBox(height: 8),
-            const Text('Email preview (neutral)\nSubject: Audit update\nYour Audited Manufacturer application status was updated.'),
+            Text(ctx.t('ui_admin_audit_email_preview')),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: 'Confirm', height: 40),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.t('ui_cancel'))),
+          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: ctx.t('ui_confirm'), height: 40),
         ],
       ),
     );

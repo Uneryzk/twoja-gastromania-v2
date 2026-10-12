@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
@@ -35,10 +36,15 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
-        content: TextField(controller: c, decoration: const InputDecoration(labelText: 'Reason'), autofocus: true, maxLines: 3),
+        content: TextField(
+          controller: c,
+          decoration: InputDecoration(labelText: ctx.t('ui_reason')),
+          autofocus: true,
+          maxLines: 3,
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: 'Confirm', height: 40),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.t('ui_cancel'))),
+          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: ctx.t('ui_confirm'), height: 40),
         ],
       ),
     );
@@ -48,7 +54,7 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
     final auth = context.read<FakeAuthState>();
     final ads = AdSlotService.instance;
     if (!approve) {
-      final reason = await _reason('Reject (full refund)');
+      final reason = await _reason(context.t('ui_admin_reject_refund'));
       if (reason == null || reason.isEmpty) return;
       final preview = TGQueuedEmail(
         id: 'ad_reject_${slot.id}',
@@ -65,11 +71,11 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Reject · email preview'),
+          title: Text(ctx.t('ui_admin_reject_email_preview')),
           content: SingleChildScrollView(child: EmailPreviewBlock(email: preview)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            TGButton(onPressed: () => Navigator.pop(ctx, true), label: 'Reject', height: 40),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t('ui_cancel'))),
+            TGButton(onPressed: () => Navigator.pop(ctx, true), label: ctx.t('ui_reject'), height: 40),
           ],
         ),
       );
@@ -79,12 +85,16 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
       if (!mounted) return;
       showTGToast(
         context,
-        'Rejected · Undo 10s',
+        context.t('ui_admin_rejected_undo'),
         duration: const Duration(seconds: 10),
-        action: SnackBarAction(label: 'Undo', textColor: TGColors.cta, onPressed: () {
-          ads.undo(slot.id);
-          if (mounted) setState(() {});
-        }),
+        action: SnackBarAction(
+          label: context.t('ui_undo'),
+          textColor: TGColors.cta,
+          onPressed: () {
+            ads.undo(slot.id);
+            if (mounted) setState(() {});
+          },
+        ),
       );
     } else {
       ads.approve(slot.id, actorId: auth.userId, actorRole: auth.role.name);
@@ -92,12 +102,16 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
       if (!mounted) return;
       showTGToast(
         context,
-        'Approved · Undo 10s',
+        context.t('ui_admin_approved_undo'),
         duration: const Duration(seconds: 10),
-        action: SnackBarAction(label: 'Undo', textColor: TGColors.cta, onPressed: () {
-          ads.undo(slot.id);
-          if (mounted) setState(() {});
-        }),
+        action: SnackBarAction(
+          label: context.t('ui_undo'),
+          textColor: TGColors.cta,
+          onPressed: () {
+            ads.undo(slot.id);
+            if (mounted) setState(() {});
+          },
+        ),
       );
     }
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -120,14 +134,14 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
     return ListView(
       padding: EdgeInsets.all(phone ? 12 : 20),
       children: [
-        Text('Banner ads', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_banner_ads_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 6),
-        Text('Ad review · live slides · early termination · slot conflicts', style: theme.bodySmall),
+        Text(context.t('ui_admin_banner_ads_sub'), style: theme.bodySmall),
         const SizedBox(height: 18),
-        Text('Ad review', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_ad_review'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         if (pending.isEmpty)
-          Text('No pending ads.', style: theme.bodySmall)
+          Text(context.t('ui_admin_no_pending_ads'), style: theme.bodySmall)
         else
           for (final s in pending)
             Card(
@@ -158,7 +172,11 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
                           child: _decisionFlash?.startsWith(s.id) == true
                               ? Chip(
                                   key: ValueKey(_decisionFlash),
-                                  label: Text(_decisionFlash!.endsWith('approve') ? 'Approved' : 'Rejected'),
+                                  label: Text(
+                                    _decisionFlash!.endsWith('approve')
+                                        ? context.t('ui_admin_approved')
+                                        : context.t('ui_admin_rejected'),
+                                  ),
                                 )
                               : const SizedBox.shrink(key: ValueKey('empty')),
                         ),
@@ -170,13 +188,13 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
                       children: [
                         TGButton(
                           onPressed: () => _decide(s, approve: true),
-                          label: 'Approve',
+                          label: context.t('ui_approve'),
                           height: 40,
                           borderRadius: BorderRadius.circular(TGRadius.pill),
                         ),
                         TGButton(
                           onPressed: () => _decide(s, approve: false),
-                          label: 'Reject',
+                          label: context.t('ui_reject'),
                           variant: TGButtonVariant.outline,
                           height: 40,
                           borderRadius: BorderRadius.circular(TGRadius.pill),
@@ -188,10 +206,10 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
               ),
             ),
         const SizedBox(height: 20),
-        Text('Live slides', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_live_slides'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         if (live.isEmpty)
-          Text('No live slides.', style: theme.bodySmall)
+          Text(context.t('ui_admin_no_live_slides'), style: theme.bodySmall)
         else
           for (final s in live)
             ListTile(
@@ -203,35 +221,44 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
               ),
               trailing: TextButton(
                 onPressed: () async {
-                  final reason = await _reason('Early termination');
+                  final reason = await _reason(context.t('ui_admin_early_termination'));
                   if (reason == null || reason.isEmpty) return;
                   ads.terminateEarly(s.id, actorId: auth.userId, actorRole: auth.role.name, reason: reason);
                   setState(() {});
                   if (!context.mounted) return;
                   showTGToast(
                     context,
-                    'Ended · Undo 10s',
+                    context.t('ui_admin_ended_undo'),
                     duration: const Duration(seconds: 10),
-                    action: SnackBarAction(label: 'Undo', textColor: TGColors.cta, onPressed: () {
-                      ads.undo(s.id);
-                      if (mounted) setState(() {});
-                    }),
+                    action: SnackBarAction(
+                      label: context.t('ui_undo'),
+                      textColor: TGColors.cta,
+                      onPressed: () {
+                        ads.undo(s.id);
+                        if (mounted) setState(() {});
+                      },
+                    ),
                   );
                 },
-                child: const Text('End early'),
+                child: Text(context.t('ui_admin_end_early')),
               ),
             ),
         const SizedBox(height: 20),
-        Text('Slot conflicts', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_slot_conflicts'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         if (conflicts.isEmpty)
-          Text('No overlapping approved/live windows beyond capacity view.', style: theme.bodySmall)
+          Text(context.t('ui_admin_no_slot_conflicts'), style: theme.bodySmall)
         else
           for (final c in conflicts)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Overlap: “${c.a.title}” ↔ “${c.b.title}” (${fmt.format(c.a.startsAt)}–${fmt.format(c.a.endsAt)})',
+                context.t('ui_admin_ad_overlap', {
+                  'a': c.a.title,
+                  'b': c.b.title,
+                  'from': fmt.format(c.a.startsAt),
+                  'to': fmt.format(c.a.endsAt),
+                }),
                 style: theme.bodySmall.override(fontWeight: FontWeight.w700),
               ),
             ),

@@ -240,7 +240,7 @@ class _SpecialReviewCase extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Project review', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_project_review'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         AdminCard(
           child: Column(
@@ -249,19 +249,28 @@ class _SpecialReviewCase extends StatelessWidget {
               Text('${review.authorName} · ${review.rating}/5 · ${review.state.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
               Text(review.text),
               Text('${review.requestNo} · ${review.projectTitleSnapshot}'),
-              Text('Platform signals: award record, quote record, time-to-award, message/call logs', style: theme.bodySmall),
-              if (review.riskFlags.isNotEmpty) Text('Risk: ${review.riskFlags.join(", ")}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(context.t('ui_admin_platform_signals'), style: theme.bodySmall),
+              if (review.riskFlags.isNotEmpty)
+                Text(context.t('ui_admin_risk_label', {'flags': review.riskFlags.join(', ')}), style: const TextStyle(fontWeight: FontWeight.w700)),
             ],
           ),
         ),
         if (obj != null) ...[
           const SizedBox(height: 12),
-          Text('Objection: ${obj.reason.name} · ${obj.status.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
+          Text(
+            context.t('ui_admin_objection_line', {'reason': obj.reason.name, 'status': obj.status.name}),
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
           Text(obj.note),
-          Text('Suggested evidence: Handover protocol, invoice, contract, photos of the delivered project', style: theme.bodySmall),
+          Text(context.t('ui_admin_suggested_evidence'), style: theme.bodySmall),
         ],
         for (final e in ev) ListTile(dense: true, title: Text(e.fileUrl), subtitle: Text(e.type.name)),
-        for (final p in private) ListTile(dense: true, title: Text('Private buyer report (team only): ${p.reason.name}'), subtitle: Text(p.note)),
+        for (final p in private)
+          ListTile(
+            dense: true,
+            title: Text(context.t('ui_admin_private_buyer_report', {'reason': p.reason.name})),
+            subtitle: Text(p.note),
+          ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -275,7 +284,7 @@ class _SpecialReviewCase extends StatelessWidget {
                   note: 'Moderator confirmed',
                 );
               },
-              label: 'Confirm',
+              label: context.t('ui_confirm'),
               height: 40,
             ),
             TGButton(
@@ -287,7 +296,7 @@ class _SpecialReviewCase extends StatelessWidget {
                   note: 'Removed',
                 );
               },
-              label: 'Remove',
+              label: context.t('ui_remove'),
               height: 40,
               variant: TGButtonVariant.outline,
             ),
@@ -300,7 +309,7 @@ class _SpecialReviewCase extends StatelessWidget {
                   note: 'Not verified',
                 );
               },
-              label: 'Not verified',
+              label: context.t('ui_admin_not_verified'),
               height: 40,
               variant: TGButtonVariant.ghost,
             ),

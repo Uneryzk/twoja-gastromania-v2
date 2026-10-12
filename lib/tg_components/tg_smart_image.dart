@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 
-/// Loads `http(s)` via [Image.network], `assets/` via [Image.asset], else fallback.
+/// Loads `http(s)` via [Image.network], `assets/` via [Image.asset],
+/// `data:image/...;base64,...` via [Image.memory], else fallback.
 class TGSmartImage extends StatelessWidget {
   const TGSmartImage({
     super.key,
@@ -21,11 +24,22 @@ class TGSmartImage extends StatelessWidget {
     Widget fb(BuildContext c, Object e, StackTrace? s) =>
         fallback?.call(c) ?? _defaultFallback(c);
 
+    if (url.isEmpty) return fallback?.call(context) ?? _defaultFallback(context);
+
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return Image.network(url, fit: fit, cacheWidth: cacheWidth, gaplessPlayback: true, errorBuilder: fb);
     }
     if (url.startsWith('assets/')) {
       return Image.asset(url, fit: fit, cacheWidth: cacheWidth, gaplessPlayback: true, errorBuilder: fb);
+    }
+    if (url.startsWith('data:image')) {
+      try {
+        final b64 = url.contains(',') ? url.split(',').last : url;
+        final bytes = base64Decode(b64);
+        return Image.memory(bytes, fit: fit, gaplessPlayback: true, errorBuilder: fb);
+      } catch (_) {
+        return fallback?.call(context) ?? _defaultFallback(context);
+      }
     }
     return fallback?.call(context) ?? _defaultFallback(context);
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -32,8 +33,8 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
         title: Text(title),
         content: Text(body),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TGButton(onPressed: () => Navigator.pop(ctx, true), label: 'Confirm', height: 40),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t('ui_cancel'))),
+          TGButton(onPressed: () => Navigator.pop(ctx, true), label: ctx.t('ui_confirm'), height: 40),
         ],
       ),
     );
@@ -50,9 +51,9 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
     return ListView(
       padding: EdgeInsets.all(phone ? 12 : 20),
       children: [
-        Text('Revenue config', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_revenue_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        Text('Phase & flags control Priority, market insight, and production mode.', style: theme.bodySmall.override(color: theme.secondaryText)),
+        Text(context.t('ui_admin_revenue_sub'), style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 16),
         Builder(builder: (context) {
           final s = RestaurantLifecycleService.instance.revenueStats();
@@ -65,18 +66,18 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Restaurant listings (live data)', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+                Text(context.t('ui_admin_resto_live_data'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
                 const SizedBox(height: 6),
-                Text('Listing revenue: ${s.listingRevenuePln} PLN'),
-                Text('Renew count: ${s.renewCount}'),
-                Text('Free starts: ${s.freeStartCount} · Extensions: ${s.extensionCount}'),
-                Text('Free→paid conversion: ${(s.freeToPaidConversion * 100).toStringAsFixed(1)}%'),
+                Text(context.t('ui_admin_listing_revenue', {'n': '${s.listingRevenuePln}'})),
+                Text(context.t('ui_admin_renew_count', {'n': '${s.renewCount}'})),
+                Text(context.t('ui_admin_free_starts', {'f': '${s.freeStartCount}', 'e': '${s.extensionCount}'})),
+                Text(context.t('ui_admin_free_paid_conv', {'p': (s.freeToPaidConversion * 100).toStringAsFixed(1)})),
               ],
             ),
           );
         }),
         const SizedBox(height: 16),
-        Text('Phase', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_phase'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         SegmentedButton<int>(
           segments: const [
@@ -86,24 +87,29 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
           ],
           selected: {_draft.phase},
           onSelectionChanged: (s) async {
-            if (!await _confirm('Change phase', 'Apply phase ${s.first} presets?')) return;
+            if (!await _confirm(context.t('ui_admin_change_phase'), context.t('ui_admin_apply_phase', {'n': '${s.first}'}))) return;
             svc.setPhase(s.first, actorId: auth.userId, reason: 'admin phase');
             setState(() => _draft = svc.config);
           },
         ),
         const SizedBox(height: 16),
         SwitchListTile(
-          title: const Text('Production mode'),
-          subtitle: const Text('Hides mock manufacturers and requires real stats ≥5'),
+          title: Text(context.t('ui_admin_production_mode')),
+          subtitle: Text(context.t('ui_admin_production_mode_sub')),
           value: _draft.productionMode,
           onChanged: (v) async {
-            if (!await _confirm('Production mode', v ? 'Enable production mode?' : 'Disable production mode?')) return;
+            if (!await _confirm(
+              context.t('ui_admin_production_mode'),
+              v ? context.t('ui_admin_enable_prod') : context.t('ui_admin_disable_prod'),
+            )) {
+              return;
+            }
             svc.setProductionMode(v, actorId: auth.userId, reason: 'admin toggle');
             setState(() => _draft = svc.config);
           },
         ),
         const Divider(height: 32),
-        Text('Flags', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_flags'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         for (final e in [
           ('priorityForSale', _draft.flags.priorityForSale),
           ('marketInsight', _draft.flags.marketInsight),
@@ -117,30 +123,48 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
             title: Text(e.$1),
             value: e.$2,
             onChanged: (v) async {
-              if (!await _confirm('Flag ${e.$1}', 'Set ${e.$1} = $v?')) return;
+              if (!await _confirm(
+                context.t('ui_admin_flag_set', {'name': e.$1}),
+                context.t('ui_admin_flag_confirm', {'name': e.$1, 'v': '$v'}),
+              )) {
+                return;
+              }
               svc.setFlag(e.$1, v, actorId: auth.userId, reason: 'admin flag');
               setState(() => _draft = svc.config);
             },
           ),
         const Divider(height: 32),
-        Text('Thresholds', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_thresholds'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         ListTile(
-          title: Text('Quiet month threshold: ${_draft.quietMonthThreshold}'),
-          subtitle: Text('Priority seat cap: ${_draft.priority.capPerSegment} · Wave delay ${_draft.waves.delayHours}h / ASAP ${_draft.waves.delayHoursAsap}h'),
+          title: Text(context.t('ui_admin_quiet_month', {'n': '${_draft.quietMonthThreshold}'})),
+          subtitle: Text(context.t('ui_admin_priority_cap_wave', {
+            'cap': '${_draft.priority.capPerSegment}',
+            'd': '${_draft.waves.delayHours}',
+            'a': '${_draft.waves.delayHoursAsap}',
+          })),
         ),
         ListTile(
-          title: Text('Gate: ≥${_draft.priority.gate.minRequests30d} requests / 30d in ${_draft.priority.gate.openRegions.join(", ")}'),
+          title: Text(context.t('ui_admin_gate_rule', {
+            'n': '${_draft.priority.gate.minRequests30d}',
+            'regions': _draft.priority.gate.openRegions.join(', '),
+          })),
         ),
         ListTile(
           title: Text(
-            'Banner ads: ${_draft.bannerAds.adSlotPln14} PLN / 14d · '
-            'Enterprise included ${_draft.bannerAds.enterpriseIncludedSlidesPerMonth}/mo · '
-            'max live ${_draft.bannerAds.maxLiveHeroSlides}',
+            context.t('ui_admin_banner_ads_cfg', {
+              'price': '${_draft.bannerAds.adSlotPln14}',
+              'inc': '${_draft.bannerAds.enterpriseIncludedSlidesPerMonth}',
+              'max': '${_draft.bannerAds.maxLiveHeroSlides}',
+            }),
           ),
-          subtitle: Text(_draft.flags.bannerAds && _draft.phase >= 2 ? 'Purchase visible (flag on, phase ≥ 2)' : 'Purchase hidden'),
+          subtitle: Text(
+            _draft.flags.bannerAds && _draft.phase >= 2
+                ? context.t('ui_admin_purchase_visible')
+                : context.t('ui_admin_purchase_hidden'),
+          ),
         ),
         const SizedBox(height: 16),
-        Text('Audit', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_audit_log_section'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         for (final a in svc.audit.take(12))
           ListTile(
             dense: true,

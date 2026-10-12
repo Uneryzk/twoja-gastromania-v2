@@ -105,7 +105,7 @@ class _AdminQueuePageState extends State<AdminQueuePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Ad review', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+                    Text(context.t('ui_admin_ad_review'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 8),
                     for (final a in pendingAds.take(5))
                       ListTile(
@@ -118,7 +118,7 @@ class _AdminQueuePageState extends State<AdminQueuePage> {
                       ),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: TextButton(onPressed: () => context.go('/admin/ads'), child: const Text('Open Ad review')),
+                      child: TextButton(onPressed: () => context.go('/admin/ads'), child: Text(context.t('ui_admin_open_ad_review'))),
                     ),
                   ],
                 ),
@@ -137,7 +137,7 @@ class _AdminQueuePageState extends State<AdminQueuePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Description check · target 2 business days',
+                      context.t('ui_admin_desc_check_card'),
                       style: theme.titleSmall.override(fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 8),
@@ -147,7 +147,7 @@ class _AdminQueuePageState extends State<AdminQueuePage> {
                         contentPadding: EdgeInsets.zero,
                         title: Text('${c.itemName} · No. ${c.listingNo}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                         subtitle: Text(
-                          c.matchedSentences.isEmpty ? 'Possible description conflict' : c.matchedSentences.first,
+                          c.matchedSentences.isEmpty ? context.t('ui_admin_desc_conflict') : c.matchedSentences.first,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -171,7 +171,7 @@ class _AdminQueuePageState extends State<AdminQueuePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Pending authorization · target 2 business days',
+                      context.t('ui_admin_pending_auth_card'),
                       style: theme.titleSmall.override(fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 8),
@@ -180,7 +180,7 @@ class _AdminQueuePageState extends State<AdminQueuePage> {
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         title: Text(r.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                        subtitle: Text('No. ${r.listingNo} · ${r.fullAddress} · Restaurant'),
+                        subtitle: Text('No. ${r.listingNo} · ${r.fullAddress} · ${context.t('ui_admin_restaurant')}'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => context.go('/admin/l/${r.listingNo}'),
                       ),
@@ -411,7 +411,7 @@ class _QueueTable extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(border: Border.all(color: TGColors.cta), borderRadius: BorderRadius.circular(99)),
-                    child: const Text('Restaurant', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: TGColors.cta)),
+                    child: Text(context.t('ui_admin_restaurant'), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: TGColors.cta)),
                   ),
                 ],
               ],
@@ -484,7 +484,7 @@ class _QueueCards extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(border: Border.all(color: TGColors.cta), borderRadius: BorderRadius.circular(99)),
-                          child: const Text('Restaurant', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: TGColors.cta)),
+                          child: Text(context.t('ui_admin_restaurant'), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: TGColors.cta)),
                         ),
                       ],
                       const Spacer(),

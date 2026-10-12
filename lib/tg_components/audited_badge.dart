@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/audit_service.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
@@ -35,7 +36,7 @@ class AuditedManufacturerBadge extends StatelessWidget {
             Icon(Icons.fact_check_outlined, size: compact ? 14 : 16, color: theme.primary),
             const SizedBox(width: 4),
             Text(
-              'Audited Manufacturer',
+              context.t('ui_audited_manufacturer'),
               style: TextStyle(fontSize: compact ? 11 : 12, fontWeight: FontWeight.w800, color: theme.primary),
             ),
           ],
@@ -49,20 +50,20 @@ class AuditedManufacturerBadge extends StatelessWidget {
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final app = TGAuditService.instance.activeFor(sellerId);
     final lines = <String>[
-      'KRS/NIP',
-      'Workshop address',
-      'Workshop and equipment video reviewed by our team',
-      'Liability insurance (OC)',
-      '3 references',
-      'Sample project documentation',
-      if (app?.hadLiveVisit == true) 'Live visit completed',
-      'Valid until $validUntil',
+      context.t('ui_audit_check_krs'),
+      context.t('ui_audit_check_workshop'),
+      context.t('ui_audit_check_video'),
+      context.t('ui_audit_check_insurance'),
+      context.t('ui_audit_check_refs'),
+      context.t('ui_audit_check_docs'),
+      if (app?.hadLiveVisit == true) context.t('ui_audit_check_visit'),
+      context.t('ui_audit_valid_until', {'d': validUntil}),
     ];
     final body = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('What we checked', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_audit_what_checked'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
         for (final line in lines)
           Padding(
@@ -75,7 +76,7 @@ class AuditedManufacturerBadge extends StatelessWidget {
           ),
         const SizedBox(height: 8),
         Text(
-          'This is not a guarantee of any project outcome. Twoja Gastromania isn\'t a party to agreements.',
+          context.t('ui_audit_disclaimer'),
           style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.35),
         ),
       ],
@@ -95,7 +96,10 @@ class AuditedManufacturerBadge extends StatelessWidget {
         context: context,
         builder: (ctx) => CallbackShortcuts(
           bindings: {const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.pop(ctx)},
-          child: AlertDialog(content: body, actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close'))]),
+          child: AlertDialog(
+            content: body,
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(context.t('ui_close')))],
+          ),
         ),
       );
     }
@@ -110,8 +114,14 @@ class CustomProjectsRatingLine extends StatelessWidget {
   Widget build(BuildContext context) {
     TGSpecialReviewService.instance.ensureSeeded();
     final theme = FlutterFlowTheme.of(context);
-    final line = TGSpecialReviewService.instance.summaryFor(sellerId).displayLine;
-    if (line == null) return const SizedBox.shrink();
+    final summary = TGSpecialReviewService.instance.summaryFor(sellerId);
+    if (summary.completedCount <= 0) return const SizedBox.shrink();
+    final line = summary.countedCount >= 3 && summary.average != null
+        ? context.t('ui_custom_projects_rated', {
+            'avg': summary.average!.toStringAsFixed(1),
+            'n': '${summary.completedCount}',
+          })
+        : context.t('ui_custom_projects_count', {'n': '${summary.completedCount}'});
     return Text(line, style: theme.bodySmall.override(fontWeight: FontWeight.w700));
   }
 }

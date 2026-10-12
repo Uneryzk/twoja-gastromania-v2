@@ -9,12 +9,14 @@ import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/admin/listing_images_editor.dart';
 import 'package:twoja_gastromania/dashboard/seller_moderation_sheets.dart';
 import 'package:twoja_gastromania/deals/sold_flow_sheet.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/product_service.dart';
 
 class ListingRow extends StatelessWidget {
   const ListingRow({super.key, required this.product, this.onRenew, this.onRenewEarly, this.onResume});
@@ -183,14 +185,20 @@ class ListingRow extends StatelessWidget {
         ? PopupMenuButton<String>(
             key: Key('listing-more-${product.id}'),
             tooltip: context.t('ui_more'),
-            onSelected: (v) {
+            onSelected: (v) async {
               if (v == 'sold') showSoldFlow(context, product, mode: SoldFlowMode.markSold);
               if (v == 'remove') showSoldFlow(context, product, mode: SoldFlowMode.removeListing);
               if (v == 'banner') {
                 context.go('/dashboard/advertising?target=${Uri.encodeComponent(product.detailPath)}');
               }
+              if (v == 'images') {
+                final fresh = await TGProductService.instance.getById(product.id) ?? product;
+                if (!context.mounted) return;
+                await showListingImagesEditor(context, product: fresh);
+              }
             },
             itemBuilder: (_) => [
+              PopupMenuItem(value: 'images', child: Text(context.t('ui_image_change'))),
               if (product.status == TGListingStatus.active && AdSlotService.instance.purchaseVisible)
                 const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
               PopupMenuItem(value: 'sold', child: Text(context.t('ui_mark_sold'))),

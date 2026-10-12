@@ -40,7 +40,11 @@ Future<void> showSoRejectModal(BuildContext context, TGSpecialRequest request) a
             TextField(controller: reason, decoration: InputDecoration(labelText: ctx.t('ui_reason')), onChanged: (_) => setSt(() {})),
             const SizedBox(height: 8),
             SegmentedButton<String>(
-              segments: const [ButtonSegment(value: 'en', label: Text('EN')), ButtonSegment(value: 'pl', label: Text('PL'))],
+              segments: const [
+                ButtonSegment(value: 'en', label: Text('EN')),
+                ButtonSegment(value: 'pl', label: Text('PL')),
+                ButtonSegment(value: 'tr', label: Text('TR')),
+              ],
               selected: {lang},
               onSelectionChanged: (s) => setSt(() => lang = s.first),
             ),
@@ -89,7 +93,11 @@ Future<void> showSoContactBuyerModal(BuildContext context, TGSpecialRequest requ
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SegmentedButton<String>(
-              segments: const [ButtonSegment(value: 'en', label: Text('EN')), ButtonSegment(value: 'pl', label: Text('PL'))],
+              segments: const [
+                ButtonSegment(value: 'en', label: Text('EN')),
+                ButtonSegment(value: 'pl', label: Text('PL')),
+                ButtonSegment(value: 'tr', label: Text('TR')),
+              ],
               selected: {lang},
               onSelectionChanged: (s) => setSt(() {
                 lang = s.first;

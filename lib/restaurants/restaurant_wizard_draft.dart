@@ -235,13 +235,14 @@ class RestaurantWizardDraft extends ChangeNotifier {
     touch();
   }
 
+  /// Adds photos from the fixed asset library (no AI/theme matching).
   void addMockPhotos(int count) {
-    final urls = TGListingImages.galleryForTheme(
-      id: 'resto-draft-${draftId ?? ownerId}',
-      theme: businessType != null ? RestaurantListing.businessTypeSlug(businessType!) : 'restaurant',
-      title: title.isEmpty ? 'draft' : title,
-      count: count,
-    );
+    const pool = TGListingImages.listingPool;
+    if (pool.isEmpty || count <= 0) return;
+    final start = photos.length;
+    final urls = <String>[
+      for (var i = 0; i < count; i++) pool[(start + i) % pool.length],
+    ];
     photos = [...photos, ...urls].take(20).toList();
     touch();
   }

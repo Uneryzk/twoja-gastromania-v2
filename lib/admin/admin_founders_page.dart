@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -25,7 +26,7 @@ class _AdminFoundersPageState extends State<AdminFoundersPage> {
     TGFounderService.instance.ensureSeeded();
   }
 
-  Future<String?> _note(String title, {String hint = 'Reason'}) async {
+  Future<String?> _note(String title, {String? hint}) async {
     final c = TextEditingController();
     return showDialog<String>(
       context: context,
@@ -35,18 +36,19 @@ class _AdminFoundersPageState extends State<AdminFoundersPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(controller: c, decoration: InputDecoration(labelText: hint), autofocus: true),
-            const SizedBox(height: 12),
-            Text('Email preview (neutral)', style: FlutterFlowTheme.of(ctx).bodySmall.override(fontWeight: FontWeight.w800)),
-            Text(
-              'Subject: Application update\nYour founding manufacturer application status was updated.',
-              style: FlutterFlowTheme.of(ctx).bodySmall,
+            TextField(
+              controller: c,
+              decoration: InputDecoration(labelText: hint ?? ctx.t('ui_reason')),
+              autofocus: true,
             ),
+            const SizedBox(height: 12),
+            Text(ctx.t('ui_admin_founder_email_preview'), style: FlutterFlowTheme.of(ctx).bodySmall.override(fontWeight: FontWeight.w800)),
+            Text(ctx.t('ui_admin_founder_email_body'), style: FlutterFlowTheme.of(ctx).bodySmall),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: 'Confirm', height: 40),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.t('ui_cancel'))),
+          TGButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), label: ctx.t('ui_confirm'), height: 40),
         ],
       ),
     );
@@ -70,7 +72,7 @@ class _AdminFoundersPageState extends State<AdminFoundersPage> {
         content: Text('${status.name} — $note'),
         duration: const Duration(seconds: 10),
         action: SnackBarAction(
-          label: 'Undo',
+          label: context.t('ui_undo'),
           onPressed: () {
             TGFounderService.instance.decide(
               applicationId: app.id,
@@ -99,39 +101,48 @@ class _AdminFoundersPageState extends State<AdminFoundersPage> {
     return ListView(
       padding: EdgeInsets.all(phone ? 12 : 20),
       children: [
-        Text('Founder program', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_founders_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         Text(
-          'Quota ${svc.spotsTaken} / ${svc.cfg.quota}${svc.quotaFull ? ' · waitlist open' : ''}',
+          context.t('ui_admin_founder_quota', {
+            'taken': '${svc.spotsTaken}',
+            'quota': '${svc.cfg.quota}',
+            'wait': svc.quotaFull ? context.t('ui_admin_waitlist_open') : '',
+          }),
           style: theme.titleSmall.override(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         Text(
-          'Report: ${report.founders} founders · ${report.qualifiedListings} qualified listings · '
-          '${report.discountSales} discounted sales · list ${report.listTotal} / paid ${report.paidTotal} PLN '
-          '(Δ ${report.listTotal - report.paidTotal})',
+          context.t('ui_admin_founder_report', {
+            'founders': '${report.founders}',
+            'qualified': '${report.qualifiedListings}',
+            'sales': '${report.discountSales}',
+            'list': '${report.listTotal}',
+            'paid': '${report.paidTotal}',
+            'delta': '${report.listTotal - report.paidTotal}',
+          }),
           style: theme.bodySmall,
         ),
         const SizedBox(height: 20),
-        Text('Application queue', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_app_queue'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         if (queue.isEmpty)
-          Text('No pending applications.', style: theme.bodySmall)
+          Text(context.t('ui_admin_no_pending_apps'), style: theme.bodySmall)
         else if (phone)
           for (final a in queue) _appCard(context, a, auth, detail: true)
         else
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Company')),
-                DataColumn(label: Text('NIP')),
-                DataColumn(label: Text('Profile %')),
-                DataColumn(label: Text('Projects')),
-                DataColumn(label: Text('Call')),
-                DataColumn(label: Text('NIP dup')),
-                DataColumn(label: Text('Status')),
-                DataColumn(label: Text('Actions')),
+              columns: [
+                DataColumn(label: Text(context.t('ui_company'))),
+                const DataColumn(label: Text('NIP')),
+                DataColumn(label: Text(context.t('ui_admin_profile_pct'))),
+                DataColumn(label: Text(context.t('ui_admin_projects'))),
+                DataColumn(label: Text(context.t('ui_admin_call'))),
+                DataColumn(label: Text(context.t('ui_admin_nip_dup'))),
+                DataColumn(label: Text(context.t('ui_status'))),
+                DataColumn(label: Text(context.t('ui_admin_actions'))),
               ],
               rows: [
                 for (final a in queue)
@@ -141,19 +152,23 @@ class _AdminFoundersPageState extends State<AdminFoundersPage> {
                     DataCell(Text('${a.profileCompletePct}%')),
                     DataCell(Text('${a.referenceProjectsCount}')),
                     DataCell(Text(a.feedbackCallDone ? '✓' : '—')),
-                    DataCell(Text(svc.nipAlreadyUsed(a.nip, exceptSellerId: a.sellerId) ? 'dup' : 'ok')),
+                    DataCell(Text(
+                      svc.nipAlreadyUsed(a.nip, exceptSellerId: a.sellerId)
+                          ? context.t('ui_admin_nip_duplicate')
+                          : context.t('ui_admin_nip_ok'),
+                    )),
                     DataCell(Text(a.status.name)),
                     DataCell(Wrap(spacing: 4, children: [
-                      TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.approved, auth), child: const Text('Approve')),
-                      TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.rejected, auth), child: const Text('Reject')),
-                      TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.waitlisted, auth), child: const Text('Waitlist')),
+                      TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.approved, auth), child: Text(context.t('ui_approve'))),
+                      TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.rejected, auth), child: Text(context.t('ui_reject'))),
+                      TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.waitlisted, auth), child: Text(context.t('ui_admin_waitlist'))),
                     ])),
                   ]),
               ],
             ),
           ),
         const SizedBox(height: 24),
-        Text('Participants', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_admin_participants'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         for (final e in participants)
           phone
               ? _participantCard(context, e.key, e.value, auth)
@@ -172,32 +187,32 @@ class _AdminFoundersPageState extends State<AdminFoundersPage> {
                     children: [
                       TextButton(
                         onPressed: () async {
-                          final note = await _note('Manual tier', hint: 'Tier 0|1|2 + reason');
+                          final note = await _note(context.t('ui_admin_manual_tier'), hint: context.t('ui_admin_manual_tier_hint'));
                           if (note == null || note.isEmpty) return;
                           final tier = int.tryParse(note.split(' ').first) ?? e.value.tier;
                           TGFounderService.instance.setTierManual(sellerId: e.key, tier: tier, actorId: auth.userId, reason: note);
                           setState(() {});
                         },
-                        child: const Text('Tier'),
+                        child: Text(context.t('ui_admin_tier')),
                       ),
                       TextButton(
                         onPressed: () async {
-                          final note = await _note('End program');
+                          final note = await _note(context.t('ui_admin_end_program'));
                           if (note == null || note.isEmpty) return;
                           TGFounderService.instance.endProgram(sellerId: e.key, actorId: auth.userId, reason: note);
                           setState(() {});
                         },
-                        child: const Text('End'),
+                        child: Text(context.t('ui_admin_end')),
                       ),
                       TextButton(
                         onPressed: () async {
-                          final note = await _note('Extend program', hint: 'Days + reason');
+                          final note = await _note(context.t('ui_admin_extend_program'), hint: context.t('ui_admin_extend_hint'));
                           if (note == null || note.isEmpty) return;
                           final days = int.tryParse(note.split(' ').first) ?? 30;
                           TGFounderService.instance.extendProgram(sellerId: e.key, days: days, actorId: auth.userId, reason: note);
                           setState(() {});
                         },
-                        child: const Text('Extend'),
+                        child: Text(context.t('ui_admin_extend')),
                       ),
                       IconButton(
                         icon: Icon(_detailId == e.key ? Icons.expand_less : Icons.expand_more),
@@ -208,7 +223,7 @@ class _AdminFoundersPageState extends State<AdminFoundersPage> {
                 ),
         if (_detailId != null) ...[
           const SizedBox(height: 8),
-          Text('Qualified listing reasons ($_detailId)', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+          Text(context.t('ui_admin_qualified_reasons', {'id': _detailId!}), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
           for (final info in svc.evaluateSellerListings(_detailId!))
             Text('${info.title}: ${info.qualified ? "OK" : info.reasons.join(", ")}', style: theme.bodySmall),
         ],
@@ -228,14 +243,16 @@ class _AdminFoundersPageState extends State<AdminFoundersPage> {
         children: [
           Text(a.companyName ?? a.sellerId, style: const TextStyle(fontWeight: FontWeight.w900)),
           Text('NIP ${a.nip} · profile ${a.profileCompletePct}% · projects ${a.referenceProjectsCount} · call ${a.feedbackCallDone ? "✓" : "—"}'),
-          Text('NIP ${svc.nipAlreadyUsed(a.nip, exceptSellerId: a.sellerId) ? "duplicate" : "ok"} · ${a.status.name}'),
+          Text(
+            'NIP ${svc.nipAlreadyUsed(a.nip, exceptSellerId: a.sellerId) ? context.t('ui_admin_nip_duplicate') : context.t('ui_admin_nip_ok')} · ${a.status.name}',
+          ),
           if (detail)
             Wrap(
               spacing: 4,
               children: [
-                TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.approved, auth), child: const Text('Approve')),
-                TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.rejected, auth), child: const Text('Reject')),
-                TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.waitlisted, auth), child: const Text('Waitlist')),
+                TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.approved, auth), child: Text(context.t('ui_approve'))),
+                TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.rejected, auth), child: Text(context.t('ui_reject'))),
+                TextButton(onPressed: () => _decide(a, TGFounderApplicationStatus.waitlisted, auth), child: Text(context.t('ui_admin_waitlist'))),
               ],
             ),
         ],
@@ -264,22 +281,22 @@ class _AdminFoundersPageState extends State<AdminFoundersPage> {
             children: [
               TextButton(
                 onPressed: () async {
-                  final note = await _note('Manual tier', hint: 'Tier 0|1|2 + reason');
+                  final note = await _note(context.t('ui_admin_manual_tier'), hint: context.t('ui_admin_manual_tier_hint'));
                   if (note == null || note.isEmpty) return;
                   final tier = int.tryParse(note.split(' ').first) ?? f.tier;
                   TGFounderService.instance.setTierManual(sellerId: sellerId, tier: tier, actorId: auth.userId, reason: note);
                   setState(() {});
                 },
-                child: const Text('Tier'),
+                child: Text(context.t('ui_admin_tier')),
               ),
               TextButton(
                 onPressed: () async {
-                  final note = await _note('End program');
+                  final note = await _note(context.t('ui_admin_end_program'));
                   if (note == null || note.isEmpty) return;
                   TGFounderService.instance.endProgram(sellerId: sellerId, actorId: auth.userId, reason: note);
                   setState(() {});
                 },
-                child: const Text('End'),
+                child: Text(context.t('ui_admin_end')),
               ),
             ],
           ),

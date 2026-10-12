@@ -150,7 +150,16 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
         final customList = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (customSummary.displayLine != null) Text(customSummary.displayLine!, style: const TextStyle(fontWeight: FontWeight.w800)),
+            if (customSummary.completedCount > 0)
+              Text(
+                customSummary.countedCount >= 3 && customSummary.average != null
+                    ? context.t('ui_custom_projects_rated', {
+                        'avg': customSummary.average!.toStringAsFixed(1),
+                        'n': '${customSummary.completedCount}',
+                      })
+                    : context.t('ui_custom_projects_count', {'n': '${customSummary.completedCount}'}),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
             if (subAvgs != null)
               Text(
                 context.t('ui_mfr_subscores', {

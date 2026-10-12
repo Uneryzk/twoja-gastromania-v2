@@ -287,7 +287,7 @@ class _EvidenceViewer extends StatelessWidget {
             ListTile(
               dense: true,
               leading: const Icon(Icons.receipt_long_outlined, size: 18),
-              title: const Text('Payment trace', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              title: Text(context.t('ui_admin_payment_trace'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
               onTap: () {
                 svc.logView(kase, actorName: 'Anna M.', kind: 'payment');
                 showAdminDialog<void>(
@@ -300,7 +300,7 @@ class _EvidenceViewer extends StatelessWidget {
             ListTile(
               dense: true,
               leading: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-              title: const Text('Document', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              title: Text(context.t('ui_admin_document'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
               onTap: () {
                 svc.logView(kase, actorName: 'Anna M.', kind: 'document');
                 showAdminDialog<void>(
@@ -498,9 +498,17 @@ class _ThreadsState extends State<_Threads> {
           Wrap(
             spacing: 8,
             children: [
-              ActionChip(label: Text(_lang == 'pl' ? 'Szablon PL' : 'EN template'), onPressed: () => _text.text = _lang == 'pl' ? 'Dzień dobry, piszemy w sprawie ${kase.dealNo}.' : 'Hello, we are writing about ${kase.dealNo}.'),
+              ActionChip(
+                label: Text(_lang == 'pl' ? 'Szablon PL' : _lang == 'tr' ? 'TR şablon' : 'EN template'),
+                onPressed: () => _text.text = _lang == 'pl'
+                    ? 'Dzień dobry, piszemy w sprawie ${kase.dealNo}.'
+                    : _lang == 'tr'
+                        ? 'Merhaba, ${kase.dealNo} hakkında yazıyoruz.'
+                        : 'Hello, we are writing about ${kase.dealNo}.',
+              ),
               ChoiceChip(label: const Text('EN'), selected: _lang == 'en', onSelected: (_) => setState(() => _lang = 'en')),
               ChoiceChip(label: const Text('PL'), selected: _lang == 'pl', onSelected: (_) => setState(() => _lang = 'pl')),
+              ChoiceChip(label: const Text('TR'), selected: _lang == 'tr', onSelected: (_) => setState(() => _lang = 'tr')),
             ],
           ),
           TextField(controller: _text, maxLines: 3, onChanged: (_) => setState(() {}), decoration: InputDecoration(hintText: context.t('ui_message'))),

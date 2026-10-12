@@ -402,6 +402,9 @@ class RestaurantInventoryItem {
   final DateTime? statusChangedAt;
   final DateTime? reviewDueAt;
 
+  /// Primary equipment image (first photo). Empty until set in admin/seller panel.
+  String get equipmentImage => photos.isNotEmpty ? photos.first : '';
+
   RestaurantInventoryItem copyWith({
     String? name,
     int? qty,
@@ -409,6 +412,7 @@ class RestaurantInventoryItem {
     String? model,
     RestaurantInventoryCondition? condition,
     List<String>? photos,
+    String? equipmentImage,
     RestaurantInventoryAvailability? availability,
     RestaurantInventoryStatus? status,
     DateTime? statusChangedAt,
@@ -416,22 +420,28 @@ class RestaurantInventoryItem {
     bool clearReviewDue = false,
     String? linkedListingNo,
     bool clearLinked = false,
-  }) =>
-      RestaurantInventoryItem(
-        id: id,
-        category: category,
-        name: name ?? this.name,
-        qty: qty ?? this.qty,
-        brand: brand ?? this.brand,
-        model: model ?? this.model,
-        condition: condition ?? this.condition,
-        photos: photos ?? this.photos,
-        availability: availability ?? this.availability,
-        linkedListingNo: clearLinked ? null : (linkedListingNo ?? this.linkedListingNo),
-        status: status ?? this.status,
-        statusChangedAt: statusChangedAt ?? this.statusChangedAt,
-        reviewDueAt: clearReviewDue ? null : (reviewDueAt ?? this.reviewDueAt),
-      );
+  }) {
+    var nextPhotos = photos ?? this.photos;
+    if (equipmentImage != null) {
+      final rest = nextPhotos.length > 1 ? nextPhotos.sublist(1) : const <String>[];
+      nextPhotos = equipmentImage.trim().isEmpty ? rest : [equipmentImage.trim(), ...rest];
+    }
+    return RestaurantInventoryItem(
+      id: id,
+      category: category,
+      name: name ?? this.name,
+      qty: qty ?? this.qty,
+      brand: brand ?? this.brand,
+      model: model ?? this.model,
+      condition: condition ?? this.condition,
+      photos: nextPhotos,
+      availability: availability ?? this.availability,
+      linkedListingNo: clearLinked ? null : (linkedListingNo ?? this.linkedListingNo),
+      status: status ?? this.status,
+      statusChangedAt: statusChangedAt ?? this.statusChangedAt,
+      reviewDueAt: clearReviewDue ? null : (reviewDueAt ?? this.reviewDueAt),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,

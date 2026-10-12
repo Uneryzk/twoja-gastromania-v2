@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/admin/admin_modals.dart';
+import 'package:twoja_gastromania/admin/listing_images_editor.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
@@ -174,7 +175,7 @@ class _LeftColumn extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(border: Border.all(color: TGColors.cta), borderRadius: BorderRadius.circular(99)),
-                  child: const Text('Restaurant', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: TGColors.cta)),
+                  child: Text(context.t('ui_admin_restaurant'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: TGColors.cta)),
                 ),
                 const SizedBox(height: 8),
                 if (r.images.isNotEmpty)
@@ -199,7 +200,12 @@ class _LeftColumn extends StatelessWidget {
                 Text('No. ${r.listingNo} · ${r.status.name}', style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
                 const SizedBox(height: 6),
                 Text(r.fullAddress, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                Text('Unit: ${r.unitNo?.isNotEmpty == true ? r.unitNo : 'No unit number'}', style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+                Text(
+                  context.t('ui_admin_unit_label', {
+                    'u': r.unitNo?.isNotEmpty == true ? r.unitNo! : context.t('ui_admin_no_unit'),
+                  }),
+                  style: const TextStyle(fontSize: 12, color: TGColors.textSecondary),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Views ${r.engagement.views} · Contacts ${r.engagement.uniqueContacts} · Favorites ${r.engagement.uniqueFavorites}',
@@ -207,11 +213,11 @@ class _LeftColumn extends StatelessWidget {
                 ),
                 if (r.documents.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text('Authorization document', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+                  Text(context.t('ui_admin_auth_document'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
                   for (final d in r.documents) Text('· $d', style: const TextStyle(fontSize: 12)),
                 ] else if (r.status == RestaurantListingStatus.pendingAuthorization) ...[
                   const SizedBox(height: 8),
-                  Text('Authorization document: not uploaded yet', style: theme.bodySmall.override(color: TGColors.slaAmber, fontWeight: FontWeight.w700)),
+                  Text(context.t('ui_admin_auth_doc_missing'), style: theme.bodySmall.override(color: TGColors.slaAmber, fontWeight: FontWeight.w700)),
                 ],
               ] else if (product != null) ...[
                 SizedBox(
@@ -241,15 +247,28 @@ class _LeftColumn extends StatelessWidget {
               ] else
                 Text(context.t('ui_listing_no', {'n': listingNo}), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
               const SizedBox(height: 10),
-              TextButton.icon(
-                key: const Key('admin-open-public'),
-                onPressed: r != null
-                    ? () => context.go(r.detailPath)
-                    : product == null
-                        ? null
-                        : () => context.go(product!.detailPath),
-                icon: const Icon(Icons.open_in_new, size: 16),
-                label: Text(context.t('ui_open_public_page')),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  TextButton.icon(
+                    key: const Key('admin-open-public'),
+                    onPressed: r != null
+                        ? () => context.go(r.detailPath)
+                        : product == null
+                            ? null
+                            : () => context.go(product!.detailPath),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: Text(context.t('ui_open_public_page')),
+                  ),
+                  if (r != null || product != null)
+                    TextButton.icon(
+                      key: const Key('admin-manage-images'),
+                      onPressed: () => showListingImagesEditor(context, product: product, restaurant: r),
+                      icon: const Icon(Icons.image_outlined, size: 16),
+                      label: Text(context.t('ui_image_manage')),
+                    ),
+                ],
               ),
               if (flags.isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -289,7 +308,12 @@ class _LeftColumn extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  TGInlineTranslate(text: r.text, enKey: Key('admin-report-translate-en-${r.reportNo}')),
+                  TGInlineTranslate(
+                    text: r.text == 'Item appears on the prohibited equipment list.'
+                        ? context.t('ui_admin_report_prohibited_seed')
+                        : r.text,
+                    enKey: Key('admin-report-translate-en-${r.reportNo}'),
+                  ),
                   const SizedBox(height: 6),
                   Text(r.reporterEmail, style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
                   if (r.evidenceUrls.isNotEmpty) ...[
@@ -480,8 +504,8 @@ class _DescriptionCheckCardState extends State<_DescriptionCheckCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Description check · ${widget.kase.itemName}', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-          Text('Target 2 business days', style: theme.bodySmall.override(color: TGColors.slaAmber, fontWeight: FontWeight.w700)),
+          Text(context.t('ui_admin_desc_check_title', {'name': widget.kase.itemName}), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_admin_target_2bd'), style: theme.bodySmall.override(color: TGColors.slaAmber, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           for (final s in widget.kase.matchedSentences)
             CheckboxListTile(
@@ -498,20 +522,20 @@ class _DescriptionCheckCardState extends State<_DescriptionCheckCard> {
             children: [
               TGButton(
                 onPressed: () => _act(context, auth, sync, r, before, RestoDescriptionCheckAction.removeSentence),
-                label: 'Remove sentence',
+                label: context.t('ui_admin_remove_sentence'),
                 height: 36,
                 borderRadius: BorderRadius.circular(TGRadius.pill),
               ),
               TGButton(
                 onPressed: () => _act(context, auth, sync, r, before, RestoDescriptionCheckAction.editMinimally),
-                label: 'Edit minimally',
+                label: context.t('ui_admin_edit_minimally'),
                 variant: TGButtonVariant.outline,
                 height: 36,
                 borderRadius: BorderRadius.circular(TGRadius.pill),
               ),
               TGButton(
                 onPressed: () => _act(context, auth, sync, r, before, RestoDescriptionCheckAction.dismiss),
-                label: 'Dismiss (no conflict)',
+                label: context.t('ui_admin_dismiss_no_conflict'),
                 variant: TGButtonVariant.ghost,
                 height: 36,
                 borderRadius: BorderRadius.circular(TGRadius.pill),
@@ -536,7 +560,7 @@ class _DescriptionCheckCardState extends State<_DescriptionCheckCard> {
     String? minimal;
     if (action == RestoDescriptionCheckAction.removeSentence) {
       if (_selected == null) {
-        showTGToast(context, 'Select a sentence');
+        showTGToast(context, context.t('ui_admin_select_sentence'));
         return;
       }
       after = before.replaceFirst(_selected!, '').trim();
@@ -546,9 +570,9 @@ class _DescriptionCheckCardState extends State<_DescriptionCheckCard> {
         builder: (ctx) {
           final c = TextEditingController(text: before);
           return AlertDialog(
-            title: const Text('Edit minimally'),
+            title: Text(ctx.t('ui_admin_edit_minimally')),
             content: TextField(controller: c, maxLines: 8),
-            actions: [TextButton(onPressed: () => Navigator.pop(ctx, c.text), child: const Text('Preview'))],
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx, c.text), child: Text(ctx.t('ui_preview')))],
           );
         },
       );
@@ -560,26 +584,26 @@ class _DescriptionCheckCardState extends State<_DescriptionCheckCard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(action == RestoDescriptionCheckAction.dismiss ? 'Dismiss?' : 'Diff + email preview'),
+        title: Text(action == RestoDescriptionCheckAction.dismiss ? ctx.t('ui_admin_dismiss_q') : ctx.t('ui_admin_diff_email')),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Before', style: TextStyle(fontWeight: FontWeight.w800)),
+              Text(ctx.t('ui_admin_before'), style: const TextStyle(fontWeight: FontWeight.w800)),
               Text(before, style: const TextStyle(fontSize: 12)),
               const SizedBox(height: 8),
-              const Text('After', style: TextStyle(fontWeight: FontWeight.w800)),
+              Text(ctx.t('ui_admin_after'), style: const TextStyle(fontWeight: FontWeight.w800)),
               Text(after, style: const TextStyle(fontSize: 12)),
               const SizedBox(height: 12),
-              Text('Email → ${email.to}', style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(ctx.t('ui_admin_email_to', {'to': email.to}), style: const TextStyle(fontWeight: FontWeight.w800)),
               Text(email.subject, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
               Text(email.body, style: const TextStyle(fontSize: 11)),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.t('ui_cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(ctx.t('ui_confirm'))),
         ],
       ),
     );
@@ -595,10 +619,10 @@ class _DescriptionCheckCardState extends State<_DescriptionCheckCard> {
     if (!context.mounted) return;
     showTGToast(
       context,
-      err ?? 'Done · Undo 10s',
+      err ?? context.t('ui_admin_done_undo'),
       duration: const Duration(seconds: 10),
       action: SnackBarAction(
-        label: 'Undo',
+        label: context.t('ui_undo'),
         onPressed: () => sync.undoDescriptionCase(widget.kase.id),
       ),
     );
