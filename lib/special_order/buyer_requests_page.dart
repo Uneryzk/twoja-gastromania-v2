@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/special_order/so_status_chip.dart';
+import 'package:twoja_gastromania/special_order/special_order_hub_widgets.dart' show SoRecentProjects;
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_badges.dart';
 import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
@@ -227,6 +228,83 @@ class _RequestDetailState extends State<_RequestDetail> {
         const SizedBox(height: 8),
         Text(request.title, style: theme.titleLarge.override(fontWeight: FontWeight.w900)),
         Text('${request.city} · ${request.voivodeship}', style: theme.bodyMedium.override(color: theme.secondaryText)),
+        if (request.dimensionsText.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(request.dimensionsText, style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w700)),
+        ],
+        if (request.description.trim().isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(request.description, style: theme.bodyMedium),
+        ],
+        const SizedBox(height: 16),
+        Text(context.t('ui_so_attachments'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 10),
+        if (request.files.isEmpty)
+          Text(context.t('ui_so_no_attachments'), style: theme.bodySmall.override(color: theme.secondaryText))
+        else
+          SizedBox(
+            height: 132,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: request.files.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, i) {
+                final f = request.files[i];
+                final isImage = f.assetPath.toLowerCase().contains('.jpg') ||
+                    f.assetPath.toLowerCase().contains('.jpeg') ||
+                    f.assetPath.toLowerCase().contains('.png') ||
+                    f.assetPath.toLowerCase().contains('.webp');
+                return InkWell(
+                  onTap: () => _openAttachment(context, request.files, i),
+                  borderRadius: BorderRadius.circular(12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 160,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (isImage)
+                            Image.asset(f.assetPath, fit: BoxFit.cover, errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate, child: const Icon(Icons.insert_drive_file_outlined)))
+                          else
+                            ColoredBox(
+                              color: theme.alternate,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.picture_as_pdf_outlined, size: 36),
+                                  const SizedBox(height: 6),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    child: Text(f.name, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Colors.transparent, Colors.black87],
+                                ),
+                              ),
+                              child: Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         if (request.status == TGSpecialRequestStatus.awarded) ...[
           const SizedBox(height: 16),
           Text('Project completion', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
@@ -312,7 +390,82 @@ class _RequestDetailState extends State<_RequestDetail> {
               fastestId: fastest?.id,
             ),
           ),
+        const SizedBox(height: 28),
+        Text(context.t('ui_so_featured_makers'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        Text(context.t('ui_so_featured_makers_sub'), style: theme.bodyMedium.override(color: theme.secondaryText)),
+        const SizedBox(height: 14),
+        SoRecentProjects(entries: svc.recentProjectEntries()),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => context.go('/special-order'),
+            child: Text(context.t('ui_browse_manufacturers'), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800)),
+          ),
+        ),
       ],
+    );
+  }
+
+  Future<void> _openAttachment(BuildContext context, List<TGSpecialFile> files, int index) async {
+    final theme = FlutterFlowTheme.of(context);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        var i = index;
+        return StatefulBuilder(
+          builder: (ctx, setLocal) {
+            final f = files[i];
+            return Dialog(
+              backgroundColor: theme.secondaryBackground,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720, maxHeight: 640),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(f.name, style: const TextStyle(fontWeight: FontWeight.w900))),
+                          if (files.length > 1) ...[
+                            IconButton(
+                              onPressed: i > 0 ? () => setLocal(() => i--) : null,
+                              icon: const Icon(Icons.chevron_left),
+                            ),
+                            IconButton(
+                              onPressed: i < files.length - 1 ? () => setLocal(() => i++) : null,
+                              icon: const Icon(Icons.chevron_right),
+                            ),
+                          ],
+                          IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
+                        ],
+                      ),
+                    ),
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            f.assetPath,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => SizedBox(
+                              height: 200,
+                              child: Center(child: Text(ctx.t('ui_so_open_file'))),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

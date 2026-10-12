@@ -32,6 +32,7 @@ class RestaurantFiltersPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
+    final t = (String k) => context.t(k);
     if (loading) {
       return Container(
         height: 480,
@@ -41,7 +42,7 @@ class RestaurantFiltersPanel extends StatelessWidget {
     }
 
     return Semantics(
-      label: 'Restaurant filters',
+      label: context.t('ui_filters'),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF1F1F1F),
@@ -54,23 +55,23 @@ class RestaurantFiltersPanel extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Filters', style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+                Text(context.t('ui_filters'), style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
                 const Spacer(),
                 if (query.activeFilterCount > 0)
                   TextButton(
                     onPressed: () => _emit(query.clearedFilters()),
-                    child: const Text('Clear all'),
+                    child: Text(context.t('ui_clear_all')),
                   ),
               ],
             ),
             const SizedBox(height: 8),
             _section(
               theme,
-              'Verified seller',
+              context.t('ui_verified_seller'),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 dense: true,
-                title: Text('Verified only', style: theme.bodyMedium.override(fontWeight: FontWeight.w600)),
+                title: Text(context.t('ui_verified_only'), style: theme.bodyMedium.override(fontWeight: FontWeight.w600)),
                 activeThumbColor: Colors.greenAccent.shade400,
                 value: query.verifiedOnly,
                 onChanged: (v) => _emit(query.copyWith(verifiedOnly: v)),
@@ -78,18 +79,18 @@ class RestaurantFiltersPanel extends StatelessWidget {
             ),
             _section(
               theme,
-              'Business type',
+              context.t('ui_business_type'),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: RestaurantBusinessType.values.map((t) {
-                  final on = query.businessTypes.contains(t);
+                children: RestaurantBusinessType.values.map((bt) {
+                  final on = query.businessTypes.contains(bt);
                   return FilterChip(
-                    label: Text(restoLocalizedBusinessType(context, t)),
+                    label: Text(restoLocalizedBusinessType(context, bt)),
                     selected: on,
                     onSelected: (sel) {
                       final next = {...query.businessTypes};
-                      sel ? next.add(t) : next.remove(t);
+                      sel ? next.add(bt) : next.remove(bt);
                       _emit(query.copyWith(businessTypes: next));
                     },
                   );
@@ -98,15 +99,15 @@ class RestaurantFiltersPanel extends StatelessWidget {
             ),
             _section(
               theme,
-              'Location',
+              context.t('ui_location'),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   DropdownButtonFormField<String>(
                     initialValue: query.city ?? '',
-                    decoration: const InputDecoration(labelText: 'City', isDense: true),
+                    decoration: InputDecoration(labelText: context.t('ui_city'), isDense: true),
                     items: [
-                      const DropdownMenuItem(value: '', child: Text('Any city')),
+                      DropdownMenuItem(value: '', child: Text(context.t('ui_any_city'))),
                       ...TGGeo.cities.map((c) => DropdownMenuItem(value: c.name, child: Text(c.name))),
                     ],
                     onChanged: (v) {
@@ -115,7 +116,7 @@ class RestaurantFiltersPanel extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 8),
-                  Text('Radius', style: theme.bodySmall),
+                  Text(context.t('ui_radius'), style: theme.bodySmall),
                   Wrap(
                     spacing: 6,
                     children: [0, 10, 25, 50, 100].map((km) {
@@ -149,13 +150,13 @@ class RestaurantFiltersPanel extends StatelessWidget {
             ),
             _section(
               theme,
-              'Area m²',
+              context.t('ui_area_m2'),
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       initialValue: query.areaMin?.toString() ?? '',
-                      decoration: const InputDecoration(labelText: 'Min', isDense: true),
+                      decoration: InputDecoration(labelText: context.t('ui_min'), isDense: true),
                       keyboardType: TextInputType.number,
                       onFieldSubmitted: (v) {
                         final n = int.tryParse(v);
@@ -167,7 +168,7 @@ class RestaurantFiltersPanel extends StatelessWidget {
                   Expanded(
                     child: TextFormField(
                       initialValue: query.areaMax?.toString() ?? '',
-                      decoration: const InputDecoration(labelText: 'Max', isDense: true),
+                      decoration: InputDecoration(labelText: context.t('ui_max'), isDense: true),
                       keyboardType: TextInputType.number,
                       onFieldSubmitted: (v) {
                         final n = int.tryParse(v);
@@ -180,14 +181,14 @@ class RestaurantFiltersPanel extends StatelessWidget {
             ),
             _section(
               theme,
-              'Monthly rent PLN',
+              context.t('ui_monthly_rent_pln'),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SegmentedButton<RestaurantVatBasis>(
-                    segments: const [
-                      ButtonSegment(value: RestaurantVatBasis.netto, label: Text('Netto')),
-                      ButtonSegment(value: RestaurantVatBasis.brutto, label: Text('Brutto')),
+                    segments: [
+                      ButtonSegment(value: RestaurantVatBasis.netto, label: Text(context.t('ui_netto'))),
+                      ButtonSegment(value: RestaurantVatBasis.brutto, label: Text(context.t('ui_brutto'))),
                     ],
                     selected: {query.rentBasis == RestaurantVatBasis.brutto ? RestaurantVatBasis.brutto : RestaurantVatBasis.netto},
                     onSelectionChanged: (s) => _emit(query.copyWith(rentBasis: s.first)),
@@ -195,7 +196,7 @@ class RestaurantFiltersPanel extends StatelessWidget {
                   const SizedBox(height: 8),
                   TextFormField(
                     initialValue: query.rentMax?.toString() ?? '',
-                    decoration: const InputDecoration(labelText: 'Max rent', isDense: true),
+                    decoration: InputDecoration(labelText: context.t('ui_max_rent'), isDense: true),
                     keyboardType: TextInputType.number,
                     onFieldSubmitted: (v) {
                       final n = int.tryParse(v);
@@ -207,20 +208,20 @@ class RestaurantFiltersPanel extends StatelessWidget {
                     dense: true,
                     value: query.includeVatUnspecified,
                     onChanged: (v) => _emit(query.copyWith(includeVatUnspecified: v ?? true)),
-                    title: Text('Include listings without VAT info', style: theme.bodySmall),
+                    title: Text(context.t('ui_include_vat_unspecified'), style: theme.bodySmall),
                   ),
                 ],
               ),
             ),
             _section(
               theme,
-              'Transfer fee PLN',
+              context.t('ui_transfer_fee_pln'),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextFormField(
                     initialValue: query.feeMax?.toString() ?? '',
-                    decoration: const InputDecoration(labelText: 'Max fee', isDense: true),
+                    decoration: InputDecoration(labelText: context.t('ui_max_fee'), isDense: true),
                     keyboardType: TextInputType.number,
                     onFieldSubmitted: (v) {
                       final n = int.tryParse(v);
@@ -232,23 +233,23 @@ class RestaurantFiltersPanel extends StatelessWidget {
                     dense: true,
                     value: query.includeNoTransferFee,
                     onChanged: (v) => _emit(query.copyWith(includeNoTransferFee: v ?? true)),
-                    title: Text('Include listings with no transfer fee', style: theme.bodySmall),
+                    title: Text(context.t('ui_include_no_fee'), style: theme.bodySmall),
                   ),
                 ],
               ),
             ),
             _section(
               theme,
-              'Lease',
+              context.t('ui_lease'),
               Wrap(
                 spacing: 6,
                 children: RestaurantLeaseMin.values.map((m) {
                   final label = switch (m) {
-                    RestaurantLeaseMin.any => 'Any',
-                    RestaurantLeaseMin.m12 => '12+ mo',
-                    RestaurantLeaseMin.m24 => '24+ mo',
-                    RestaurantLeaseMin.m36 => '36+ mo',
-                    RestaurantLeaseMin.indefinite => 'Indefinite lease',
+                    RestaurantLeaseMin.any => context.t('ui_lease_any'),
+                    RestaurantLeaseMin.m12 => context.t('ui_lease_12mo'),
+                    RestaurantLeaseMin.m24 => context.t('ui_lease_24mo'),
+                    RestaurantLeaseMin.m36 => context.t('ui_lease_36mo'),
+                    RestaurantLeaseMin.indefinite => context.t('ui_indefinite_lease'),
                   };
                   return ChoiceChip(
                     label: Text(label),
@@ -260,14 +261,14 @@ class RestaurantFiltersPanel extends StatelessWidget {
             ),
             _section(
               theme,
-              'Features',
+              context.t('ui_features'),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
                 children: RestaurantFeature.values.map((f) {
                   final on = query.features.contains(f);
                   return FilterChip(
-                    label: Text(featureLabel(f)),
+                    label: Text(featureLabel(f, t: t)),
                     selected: on,
                     onSelected: (sel) {
                       final next = {...query.features};
@@ -280,14 +281,14 @@ class RestaurantFiltersPanel extends StatelessWidget {
             ),
             _section(
               theme,
-              'Available',
+              context.t('ui_available'),
               Wrap(
                 spacing: 6,
                 children: [
-                  (RestaurantAvailFilter.any, 'Any'),
-                  (RestaurantAvailFilter.immediately, 'Immediately'),
-                  (RestaurantAvailFilter.within1m, 'Within 1 month'),
-                  (RestaurantAvailFilter.within3m, 'Within 3 months'),
+                  (RestaurantAvailFilter.any, context.t('ui_avail_any')),
+                  (RestaurantAvailFilter.immediately, context.t('ui_avail_immediately')),
+                  (RestaurantAvailFilter.within1m, context.t('ui_avail_1m')),
+                  (RestaurantAvailFilter.within3m, context.t('ui_avail_3m')),
                 ].map((e) {
                   return ChoiceChip(
                     label: Text(e.$2),
@@ -299,12 +300,12 @@ class RestaurantFiltersPanel extends StatelessWidget {
             ),
             _section(
               theme,
-              'Seller',
+              context.t('ui_seller'),
               Wrap(
                 spacing: 6,
                 children: [
                   FilterChip(
-                    label: const Text('Owner'),
+                    label: Text(context.t('resto_poster_owner')),
                     selected: query.sellerFilters.contains(RestaurantSellerFilter.owner),
                     onSelected: (sel) {
                       final next = {...query.sellerFilters};
@@ -313,7 +314,7 @@ class RestaurantFiltersPanel extends StatelessWidget {
                     },
                   ),
                   FilterChip(
-                    label: const Text('Agent'),
+                    label: Text(context.t('resto_poster_agent')),
                     selected: query.sellerFilters.contains(RestaurantSellerFilter.agent),
                     onSelected: (sel) {
                       final next = {...query.sellerFilters};
@@ -326,7 +327,7 @@ class RestaurantFiltersPanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '${countRestaurantResults(all, query)} results',
+              localizedResultsCount(context, countRestaurantResults(all, query)),
               style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w700),
             ),
           ],
@@ -358,31 +359,32 @@ class RestaurantAppliedChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String k) => context.t(k);
     final chips = <(String, VoidCallback)>[];
     if (query.verifiedOnly) {
-      chips.add(('✔ Verified only', () => onChanged(query.copyWith(verifiedOnly: false, page: 1))));
+      chips.add(('✔ ${context.t('ui_verified_only')}', () => onChanged(query.copyWith(verifiedOnly: false, page: 1))));
     }
-    for (final t in query.businessTypes) {
+    for (final bt in query.businessTypes) {
       chips.add((
-        restoLocalizedBusinessType(context, t),
+        restoLocalizedBusinessType(context, bt),
         () {
-          final next = {...query.businessTypes}..remove(t);
+          final next = {...query.businessTypes}..remove(bt);
           onChanged(query.copyWith(businessTypes: next, page: 1));
         },
       ));
     }
     if (query.hasCity) {
-      chips.add(('City: ${query.city}', () => onChanged(query.copyWith(cityToNull: true, page: 1))));
+      chips.add((context.t('ui_city_chip', {'c': '${query.city}'}), () => onChanged(query.copyWith(cityToNull: true, page: 1))));
     }
     if (query.rentMax != null) {
-      chips.add(('Rent ≤ ${query.rentMax}', () => onChanged(query.copyWith(rentMaxToNull: true, page: 1))));
+      chips.add((context.t('ui_rent_lte', {'n': '${query.rentMax}'}), () => onChanged(query.copyWith(rentMaxToNull: true, page: 1))));
     }
     if (query.feeMax != null) {
-      chips.add(('Fee ≤ ${query.feeMax}', () => onChanged(query.copyWith(feeMaxToNull: true, page: 1))));
+      chips.add((context.t('ui_fee_lte', {'n': '${query.feeMax}'}), () => onChanged(query.copyWith(feeMaxToNull: true, page: 1))));
     }
     for (final f in query.features) {
       chips.add((
-        featureLabel(f),
+        featureLabel(f, t: t),
         () {
           final next = {...query.features}..remove(f);
           onChanged(query.copyWith(features: next, page: 1));
@@ -403,7 +405,7 @@ class RestaurantAppliedChips extends StatelessWidget {
             onDeleted: c.$2,
             deleteIconColor: TGColors.cta,
           ),
-        TextButton(onPressed: () => onChanged(query.clearedFilters()), child: const Text('Clear all')),
+        TextButton(onPressed: () => onChanged(query.clearedFilters()), child: Text(context.t('ui_clear_all'))),
       ],
     );
   }

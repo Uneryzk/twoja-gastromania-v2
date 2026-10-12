@@ -272,15 +272,15 @@ RestaurantSort decodeSort(String? raw) => switch ((raw ?? '').toLowerCase()) {
       _ => RestaurantSort.recommended,
     };
 
-String sortLabel(RestaurantSort s) => switch (s) {
-      RestaurantSort.recommended => 'Recommended',
-      RestaurantSort.newest => 'Newest',
-      RestaurantSort.rentLowHigh => 'Rent low→high',
-      RestaurantSort.rentHighLow => 'Rent high→low',
-      RestaurantSort.feeLowHigh => 'Transfer fee low→high',
-      RestaurantSort.feeHighLow => 'Transfer fee high→low',
-      RestaurantSort.area => 'Area',
-      RestaurantSort.nearest => 'Nearest',
+String sortLabel(RestaurantSort s, {required String Function(String key) t}) => switch (s) {
+      RestaurantSort.recommended => t('ui_recommended'),
+      RestaurantSort.newest => t('ui_sort_newest'),
+      RestaurantSort.rentLowHigh => t('ui_sort_rent_asc'),
+      RestaurantSort.rentHighLow => t('ui_sort_rent_desc'),
+      RestaurantSort.feeLowHigh => t('ui_sort_fee_asc'),
+      RestaurantSort.feeHighLow => t('ui_sort_fee_desc'),
+      RestaurantSort.area => t('ui_area_label'),
+      RestaurantSort.nearest => t('ui_sort_nearest'),
     };
 
 String encodeFeature(RestaurantFeature f) => switch (f) {
@@ -306,15 +306,15 @@ RestaurantFeature? decodeFeature(String raw) => switch (raw.toLowerCase()) {
       _ => null,
     };
 
-String featureLabel(RestaurantFeature f) => switch (f) {
-      RestaurantFeature.terrace => 'Terrace',
-      RestaurantFeature.garden => 'Garden',
-      RestaurantFeature.playArea => 'Play area',
-      RestaurantFeature.extraction => 'Extraction system',
-      RestaurantFeature.parking => 'Parking',
-      RestaurantFeature.equipmentList => 'Equipment list available',
-      RestaurantFeature.alcoholPermit => 'Alcohol permit in place',
-      RestaurantFeature.takeawayDelivery => 'Takeaway/delivery ready',
+String featureLabel(RestaurantFeature f, {required String Function(String key) t}) => switch (f) {
+      RestaurantFeature.terrace => t('ui_feat_terrace'),
+      RestaurantFeature.garden => t('ui_feat_garden'),
+      RestaurantFeature.playArea => t('ui_feat_play'),
+      RestaurantFeature.extraction => t('ui_feat_extraction'),
+      RestaurantFeature.parking => t('ui_feat_parking'),
+      RestaurantFeature.equipmentList => t('ui_feat_equipment'),
+      RestaurantFeature.alcoholPermit => t('ui_feat_alcohol'),
+      RestaurantFeature.takeawayDelivery => t('ui_feat_delivery'),
     };
 
 String encodeLeaseMin(RestaurantLeaseMin m) => switch (m) {

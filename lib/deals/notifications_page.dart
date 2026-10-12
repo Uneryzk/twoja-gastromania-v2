@@ -29,6 +29,7 @@ String localizedNotificationBody(BuildContext context, TGAppNotification n) {
   final params = {
     'title': n.params['title'] ?? n.body,
     'name': n.params['name'] ?? 'Technica',
+    'n': n.params['n'] ?? n.dealId,
   };
   final key = switch (n.type) {
     'deal_reminder' || 'deal_reminder_d3' || 'deal_reminder_d10' || 'deal_review_requested' || 'deal_expired' => 'notif_listing_body',

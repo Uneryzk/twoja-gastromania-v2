@@ -339,9 +339,9 @@ class _RestoBodyState extends State<_RestoBody> {
   }
 
   String _basisLabel(RestaurantVatBasis b) => switch (b) {
-        RestaurantVatBasis.netto => 'NETTO',
-        RestaurantVatBasis.brutto => 'BRUTTO',
-        RestaurantVatBasis.vatUnspecified => 'VAT not specified',
+        RestaurantVatBasis.netto => context.t('ui_netto'),
+        RestaurantVatBasis.brutto => context.t('ui_brutto'),
+        RestaurantVatBasis.vatUnspecified => context.t('ui_vat_not_specified'),
       };
 
   int? _monthsLeft() {

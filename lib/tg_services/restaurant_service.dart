@@ -282,13 +282,6 @@ List<RestaurantListing> _buildSeed() {
   }) {
     final keys = restoEquipmentNameKeys(type);
     final n = (count ?? keys.length).clamp(10, 20).clamp(1, keys.length);
-    final theme = RestaurantListing.businessTypeSlug(type);
-    final photoPool = TGListingImages.galleryForTheme(
-      id: 'resto-$prefix-inv',
-      theme: theme,
-      title: keys.first,
-      count: n.clamp(4, 12),
-    );
     return [
       for (var i = 0; i < n; i++)
         RestaurantInventoryItem(
@@ -299,7 +292,7 @@ List<RestaurantListing> _buildSeed() {
           brand: i.isEven ? 'Bartscher' : 'Hobart',
           model: 'M-${100 + i}',
           condition: i % 5 == 0 ? RestaurantInventoryCondition.newItem : RestaurantInventoryCondition.used,
-          photos: [photoPool[i % photoPool.length]],
+          photos: [TGListingImages.forEquipmentKey(keys[i])],
           availability: i < maySell
               ? RestaurantInventoryAvailability.maySellSeparately
               : (i >= n - excluded ? RestaurantInventoryAvailability.excluded : RestaurantInventoryAvailability.included),

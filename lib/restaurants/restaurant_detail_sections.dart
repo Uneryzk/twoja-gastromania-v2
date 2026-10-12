@@ -34,9 +34,9 @@ String restoInvCatLabel(BuildContext context, RestaurantInventoryCategory c) {
       : t;
 }
 
-String restoConditionLabel(RestaurantInventoryCondition c) => switch (c) {
-      RestaurantInventoryCondition.newItem => 'NOWY',
-      RestaurantInventoryCondition.used => 'UŻYWANY',
+String restoConditionLabel(BuildContext context, RestaurantInventoryCondition c) => switch (c) {
+      RestaurantInventoryCondition.newItem => context.t('ui_condition_new'),
+      RestaurantInventoryCondition.used => context.t('ui_condition_used'),
       RestaurantInventoryCondition.unknown => '—',
     };
 
@@ -367,7 +367,7 @@ class _InventoryMiniCard extends StatelessWidget {
                     style: theme.bodySmall.override(color: theme.secondaryText, fontSize: 11),
                   ),
                   const SizedBox(height: 4),
-                  Text(restoConditionLabel(item.condition), style: theme.bodySmall.override(fontWeight: FontWeight.w800, fontSize: 11)),
+                  Text(restoConditionLabel(context, item.condition), style: theme.bodySmall.override(fontWeight: FontWeight.w800, fontSize: 11)),
                 ],
               ),
             ),

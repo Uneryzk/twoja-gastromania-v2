@@ -48,7 +48,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
     await Clipboard.setData(ClipboardData(text: r.phone));
     TGAnalytics.track('resto_call_click', {'listingNo': r.listingNo, 'mode': 'copy'});
     if (!mounted) return;
-    showTGToast(context, 'Phone copied', icon: Icons.phone_rounded);
+    showTGToast(context, context.t('ui_phone_copied'), icon: Icons.phone_rounded);
   }
 
   @override
@@ -268,8 +268,8 @@ class _RestaurantCardState extends State<RestaurantCard> {
   Widget _compact(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final fee = r.transferFee.isNone
-        ? 'No transfer fee'
-        : 'fee ${NumberFormat.decimalPattern('pl_PL').format(r.transferFee.amountPln ?? 0)}';
+        ? context.t('ui_no_transfer_fee')
+        : '${context.t('ui_transfer_fee')} ${NumberFormat.decimalPattern('pl_PL').format(r.transferFee.amountPln ?? 0)}';
     return Material(
       color: const Color(0xFF1F1F1F),
       borderRadius: BorderRadius.circular(16),
@@ -306,14 +306,16 @@ class _RestaurantCardState extends State<RestaurantCard> {
                     Text(restoLocalizedTitle(context, r), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
                     Text(
-                      '${_area(r.totalAreaM2)} · ${NumberFormat.decimalPattern('pl_PL').format(r.rentMonthly)} / mies. · $fee',
+                      '${_area(r.totalAreaM2)} · ${NumberFormat.decimalPattern('pl_PL').format(r.rentMonthly)} ${context.t('ui_per_month')} · $fee',
                       maxLines: 2,
                       style: theme.bodySmall.override(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),
                     Text(r.city, style: theme.bodySmall.override(color: theme.secondaryText)),
                     Text(
-                      r.seller.verified ? r.seller.name : (r.posterRole == RestaurantPosterRole.owner ? 'Owner' : 'Agent'),
+                      r.seller.verified
+                          ? r.seller.name
+                          : (r.posterRole == RestaurantPosterRole.owner ? context.t('resto_poster_owner') : context.t('resto_poster_agent')),
                       style: theme.bodySmall.override(fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -345,16 +347,23 @@ class _RestaurantCardState extends State<RestaurantCard> {
   Widget _metricRow(FlutterFlowTheme theme) {
     return Row(
       children: [
-        Expanded(child: _metricBox(theme, 'Area', _area(r.totalAreaM2), null)),
-        const SizedBox(width: 6),
-        Expanded(child: _metricBox(theme, 'Rent', '${_pln(r.rentMonthly)} / mies.', _vatLabel(r.rentBasis))),
+        Expanded(child: _metricBox(theme, context.t('ui_area_label'), _area(r.totalAreaM2), null)),
         const SizedBox(width: 6),
         Expanded(
           child: _metricBox(
             theme,
-            'Transfer fee',
-            r.transferFee.isNone ? 'No transfer fee' : _pln(r.transferFee.amountPln ?? 0),
-            r.transferFee.isNone ? null : _vatLabel(r.transferFee.basis),
+            context.t('ui_rent_label'),
+            '${_pln(r.rentMonthly)} ${context.t('ui_per_month')}',
+            _vatLabel(context, r.rentBasis),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _metricBox(
+            theme,
+            context.t('ui_transfer_fee'),
+            r.transferFee.isNone ? context.t('ui_no_transfer_fee') : _pln(r.transferFee.amountPln ?? 0),
+            r.transferFee.isNone ? null : _vatLabel(context, r.transferFee.basis),
           ),
         ),
       ],
@@ -363,15 +372,21 @@ class _RestaurantCardState extends State<RestaurantCard> {
 
   Widget _metricColumn(FlutterFlowTheme theme) => Column(
         children: [
-          _metricBox(theme, 'Area', _area(r.totalAreaM2), null, tall: true),
-          const SizedBox(height: 6),
-          _metricBox(theme, 'Rent', '${_pln(r.rentMonthly)} / mies.', _vatLabel(r.rentBasis), tall: true),
+          _metricBox(theme, context.t('ui_area_label'), _area(r.totalAreaM2), null, tall: true),
           const SizedBox(height: 6),
           _metricBox(
             theme,
-            'Transfer fee',
-            r.transferFee.isNone ? 'No transfer fee' : _pln(r.transferFee.amountPln ?? 0),
-            r.transferFee.isNone ? null : _vatLabel(r.transferFee.basis),
+            context.t('ui_rent_label'),
+            '${_pln(r.rentMonthly)} ${context.t('ui_per_month')}',
+            _vatLabel(context, r.rentBasis),
+            tall: true,
+          ),
+          const SizedBox(height: 6),
+          _metricBox(
+            theme,
+            context.t('ui_transfer_fee'),
+            r.transferFee.isNone ? context.t('ui_no_transfer_fee') : _pln(r.transferFee.amountPln ?? 0),
+            r.transferFee.isNone ? null : _vatLabel(context, r.transferFee.basis),
             tall: true,
           ),
         ],
@@ -400,19 +415,19 @@ class _RestaurantCardState extends State<RestaurantCard> {
   List<Widget> _specChips(FlutterFlowTheme theme) {
     final chips = <Widget>[];
     if (r.seats != null && r.seats! > 0) {
-      chips.add(_tipChip(theme, '${r.seats} seats', 'Seating capacity'));
+      chips.add(_tipChip(theme, context.t('ui_seats_n', {'n': '${r.seats}'})));
     }
     if (r.leaseType == RestaurantLeaseType.indefinite) {
-      chips.add(_tipChip(theme, 'Indefinite lease', 'Lease has no fixed end date'));
+      chips.add(_tipChip(theme, context.t('ui_indefinite_lease')));
     } else if (r.leaseEndsAt != null) {
-      chips.add(_tipChip(theme, 'Lease until ${r.leaseEndsAt!.year}', 'Fixed-term lease end year'));
+      chips.add(_tipChip(theme, context.t('ui_lease_until_year', {'y': '${r.leaseEndsAt!.year}'})));
     }
-    if ((r.terraceM2 ?? 0) > 0) chips.add(_tipChip(theme, 'Terrace', 'Outdoor terrace'));
-    if (r.details.garden.hasGarden) chips.add(_tipChip(theme, 'Garden', 'Garden / outdoor seating'));
+    if ((r.terraceM2 ?? 0) > 0) chips.add(_tipChip(theme, context.t('ui_feat_terrace')));
+    if (r.details.garden.hasGarden) chips.add(_tipChip(theme, context.t('ui_garden')));
     final inv = r.inventoryIncludedCount;
-    if (inv > 0) chips.add(_tipChip(theme, '$inv items included', 'Equipment inventory included'));
-    if (r.alcoholPermit.inPlace) chips.add(_tipChip(theme, 'Alcohol permit', 'Alcohol licence in place'));
-    chips.add(_tipChip(theme, 'Available from ${_fmtDay(r.availableFrom)}', 'Availability date'));
+    if (inv > 0) chips.add(_tipChip(theme, context.t('ui_items_included_n', {'n': '$inv'})));
+    if (r.alcoholPermit.inPlace) chips.add(_tipChip(theme, context.t('ui_alcohol_permit')));
+    chips.add(_tipChip(theme, context.t('ui_available_from', {'d': _fmtDay(context, r.availableFrom)})));
     return chips;
   }
 
@@ -462,26 +477,24 @@ class _RestaurantCardState extends State<RestaurantCard> {
     );
   }
 
-  Widget _tipChip(FlutterFlowTheme theme, String label, String tip) {
-    return Tooltip(
-      message: tip,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF2F2F2F)),
-          borderRadius: BorderRadius.circular(99),
-        ),
-        child: Text(label, style: theme.bodySmall.override(fontSize: 11, fontWeight: FontWeight.w600)),
+  Widget _tipChip(FlutterFlowTheme theme, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF2F2F2F)),
+        borderRadius: BorderRadius.circular(99),
       ),
+      child: Text(label, style: theme.bodySmall.override(fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 
   static String _pln(int v) => NumberFormat.decimalPattern('pl_PL').format(v);
   static String _area(double m2) => '${NumberFormat.decimalPattern('pl_PL').format(m2.round())} m²';
-  static String _vatLabel(RestaurantVatBasis b) => switch (b) {
-        RestaurantVatBasis.netto => 'NETTO',
-        RestaurantVatBasis.brutto => 'BRUTTO',
-        RestaurantVatBasis.vatUnspecified => 'VAT n/a',
+  static String _vatLabel(BuildContext context, RestaurantVatBasis b) => switch (b) {
+        RestaurantVatBasis.netto => context.t('ui_netto'),
+        RestaurantVatBasis.brutto => context.t('ui_brutto'),
+        RestaurantVatBasis.vatUnspecified => context.t('ui_vat_na'),
       };
-  static String _fmtDay(DateTime d) => DateFormat('d MMM', 'en').format(d);
+  static String _fmtDay(BuildContext context, DateTime d) =>
+      DateFormat('d MMM', Localizations.localeOf(context).toString()).format(d);
 }

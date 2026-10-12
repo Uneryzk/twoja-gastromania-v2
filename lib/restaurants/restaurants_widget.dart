@@ -234,7 +234,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
           ),
         );
         final sub = Text(
-          'Take over a ready business. Area, rent and transfer fee are shown upfront.',
+          context.t('ui_resto_hub_sub'),
           style: theme.bodyMedium.override(color: theme.secondaryText, fontSize: phone ? 14 : 16),
         );
         final cta = FilledButton(
@@ -244,7 +244,10 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
             foregroundColor: TGColors.onCta,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           ),
-          child: Text(cfg.listCtaLabel, style: const TextStyle(fontWeight: FontWeight.w800)),
+          child: Text(
+            context.t('ui_resto_list_cta', {'n': '${cfg.freeDays}'}),
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
         );
         if (stack) {
           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [title, const SizedBox(height: 8), sub, const SizedBox(height: 14), cta]);
@@ -267,13 +270,15 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
       children: [
         Semantics(
           liveRegion: true,
-          child: Text('$total results', style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+          child: Text(localizedResultsCount(context, total), style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
         ),
         const Spacer(),
         DropdownButton<RestaurantSort>(
           value: query.sort,
           underline: const SizedBox.shrink(),
-          items: RestaurantSort.values.map((s) => DropdownMenuItem(value: s, child: Text(sortLabel(s)))).toList(),
+          items: RestaurantSort.values
+              .map((s) => DropdownMenuItem(value: s, child: Text(sortLabel(s, t: (k) => context.t(k)))))
+              .toList(),
           onChanged: (s) {
             if (s != null) _apply(query.copyWith(sort: s, page: 1));
           },
@@ -296,7 +301,10 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Semantics(liveRegion: true, child: Text('$total results', style: const TextStyle(fontWeight: FontWeight.w800))),
+        Semantics(
+          liveRegion: true,
+          child: Text(localizedResultsCount(context, total), style: const TextStyle(fontWeight: FontWeight.w800)),
+        ),
         const SizedBox(height: 8),
         Material(
           color: const Color(0xFF1F1F1F),
@@ -309,14 +317,14 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
                   child: TextButton.icon(
                     onPressed: () => _openFiltersSheet(query),
                     icon: const Icon(Icons.tune),
-                    label: Text('Filters (${query.activeFilterCount})'),
+                    label: Text(context.t('ui_filters_n', {'n': '${query.activeFilterCount}'})),
                   ),
                 ),
                 Expanded(
                   child: TextButton.icon(
                     onPressed: () => _openSortSheet(query),
                     icon: const Icon(Icons.sort),
-                    label: const Text('Sort'),
+                    label: Text(context.t('ui_sort')),
                   ),
                 ),
                 IconButton(
@@ -335,7 +343,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
           child: Row(
             children: [
               FilterChip(
-                label: const Text('✔ Verified only'),
+                label: Text('✔ ${context.t('ui_verified_only')}'),
                 selected: query.verifiedOnly,
                 onSelected: (v) => _apply(query.copyWith(verifiedOnly: v, page: 1)),
               ),
@@ -391,7 +399,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
             const SizedBox(height: 16),
           ],
           if (!phone && results.promoted.isNotEmpty && query.page == 1) ...[
-            Text('Featured · Promoted', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+            Text(context.t('ui_featured_promoted'), style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             LayoutBuilder(
               builder: (context, c) {
@@ -458,7 +466,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
         if (shown < total)
           OutlinedButton(
             onPressed: () => setState(() => _mobileShown = min(_mobileShown + kRestoMobilePageSize, total)),
-            child: const Text('Show more'),
+            child: Text(context.t('ui_show_more')),
           ),
       ],
     );
@@ -493,12 +501,15 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
       child: Row(
         children: [
           Expanded(
-            child: Text(cfg.listBannerTitle, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+            child: Text(
+              context.t('ui_resto_selling_banner', {'n': '${cfg.freeDays}'}),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+            ),
           ),
           FilledButton(
             onPressed: () => context.go('/restaurants/new'),
             style: FilledButton.styleFrom(backgroundColor: TGColors.cta, foregroundColor: TGColors.onCta),
-            child: Text(cfg.listCtaLabel),
+            child: Text(context.t('ui_resto_list_cta', {'n': '${cfg.freeDays}'})),
           ),
         ],
       ),
@@ -507,11 +518,11 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
 
   Widget _beforeYouTakeOver() {
     final theme = FlutterFlowTheme.of(context);
-    final tips = const [
-      'Read the lease and ask for the landlord\'s written consent to the transfer',
-      'Check licences and permits yourself, including alcohol and sanitary approval',
-      'Ask for proof of debts, taxes and financial statements',
-      'Never pay a deposit before seeing the lease',
+    final tips = [
+      context.t('ui_before_tip_1'),
+      context.t('ui_before_tip_2'),
+      context.t('ui_before_tip_3'),
+      context.t('ui_before_tip_4'),
     ];
     return Container(
       padding: const EdgeInsets.all(20),
@@ -523,21 +534,21 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Before you take over', style: theme.titleMedium.override(fontWeight: FontWeight.w800)),
+          Text(context.t('ui_before_takeover'), style: theme.titleMedium.override(fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
-          for (final t in tips) ...[
+          for (final tip in tips) ...[
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('•  '),
-                Expanded(child: Text(t, style: theme.bodyMedium)),
+                Expanded(child: Text(tip, style: theme.bodyMedium)),
               ],
             ),
             const SizedBox(height: 6),
           ],
           const SizedBox(height: 8),
           Text(
-            'Twoja Gastromania doesn\'t verify leases, permits or finances and never holds funds.',
+            context.t('ui_before_disclaimer'),
             style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w600),
           ),
         ],
@@ -552,17 +563,17 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => TGNav.specialOrder(context),
-        child: const Padding(
-          padding: EdgeInsets.all(20),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  'Planning a refit? Get quotes',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                  context.t('ui_planning_refit'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                 ),
               ),
-              Icon(Icons.arrow_forward_rounded),
+              const Icon(Icons.arrow_forward_rounded),
             ],
           ),
         ),
@@ -571,20 +582,21 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
   }
 
   Widget _empty(RestaurantQueryState query) {
+    final cfg = RestaurantConfigService.instance.config;
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
-          const Text('No listings match', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          Text(context.t('ui_no_listings_match'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
           if (query.activeFilterCount > 0)
-            TextButton(onPressed: () => _apply(query.clearedFilters()), child: const Text('Remove filters')),
+            TextButton(onPressed: () => _apply(query.clearedFilters()), child: Text(context.t('ui_remove_filters'))),
           const SizedBox(height: 8),
           FilledButton(
             onPressed: () => context.go('/restaurants/new'),
             style: FilledButton.styleFrom(backgroundColor: TGColors.cta),
-            child: Text(RestaurantConfigService.instance.config.listCtaLabel),
+            child: Text(context.t('ui_resto_list_cta', {'n': '${cfg.freeDays}'})),
           ),
         ],
       ),
@@ -646,7 +658,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
                             child: FilledButton(
                               onPressed: () => Navigator.pop(context, draft),
                               style: FilledButton.styleFrom(backgroundColor: TGColors.cta, foregroundColor: TGColors.onCta),
-                              child: Text('Show $n results'),
+                              child: Text(context.t('ui_show_n_results', {'n': '$n'})),
                             ),
                           ),
                         ),
@@ -671,7 +683,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
           mainAxisSize: MainAxisSize.min,
           children: RestaurantSort.values
               .map((s) => ListTile(
-                    title: Text(sortLabel(s)),
+                    title: Text(sortLabel(s, t: (k) => context.t(k))),
                     trailing: current.sort == s ? const Icon(Icons.check) : null,
                     onTap: () => Navigator.pop(context, s),
                   ))

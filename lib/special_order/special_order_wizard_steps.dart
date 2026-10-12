@@ -10,9 +10,26 @@ import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 
-const kSoMaterials = ['AISI 304', 'AISI 430', 'Aluminium', 'Other', 'Not sure'];
-const kSoFinishes = ['Brushed', 'Polished', 'Other'];
+/// Canonical material ids (stored on the request) → l10n keys.
+const kSoMaterials = <(String, String)>[
+  ('AISI 304', 'ui_so_mat_aisi304'),
+  ('AISI 430', 'ui_so_mat_aisi430'),
+  ('Aluminium', 'ui_so_mat_aluminium'),
+  ('Other', 'ui_so_mat_other'),
+  ('Not sure', 'ui_so_mat_not_sure'),
+];
+
+/// Canonical finish ids → l10n keys.
+const kSoFinishes = <(String, String)>[
+  ('Brushed', 'ui_so_finish_brushed'),
+  ('Polished', 'ui_so_finish_polished'),
+  ('Other', 'ui_so_finish_other'),
+];
+
 const kSoCities = ['Gliwice', 'Katowice', 'Chorzów', 'Kraków', 'Warszawa', 'Wrocław', 'Łódź', 'Rybnik'];
+
+bool _descHasInsert(String description, List<String> labels) =>
+    labels.any((l) => l.isNotEmpty && description.contains(l));
 
 class SoStepProject extends StatelessWidget {
   const SoStepProject({super.key, required this.draft, required this.onChanged});
@@ -84,8 +101,9 @@ class SoStepProject extends StatelessWidget {
               ActionChip(
                 label: Text(context.t('ui_so_chip_dimensions')),
                 onPressed: () {
-                  if (!draft.description.contains('Dimensions:')) {
-                    draft.description = '${draft.description.trim()}\n\nDimensions: '.trim();
+                  final label = context.t('ui_so_insert_dimensions');
+                  if (!_descHasInsert(draft.description, ['Dimensions:', 'Wymiary:', 'Ölçüler:', label])) {
+                    draft.description = '${draft.description.trim()}\n\n$label '.trim();
                     onChanged();
                   }
                 },
@@ -93,8 +111,9 @@ class SoStepProject extends StatelessWidget {
               ActionChip(
                 label: Text(context.t('ui_so_chip_certs')),
                 onPressed: () {
-                  if (!draft.description.contains('Certificates:')) {
-                    draft.description = '${draft.description.trim()}\n\nCertificates: '.trim();
+                  final label = context.t('ui_so_insert_certs');
+                  if (!_descHasInsert(draft.description, ['Certificates:', 'Certyfikaty:', 'Sertifikalar:', label])) {
+                    draft.description = '${draft.description.trim()}\n\n$label '.trim();
                     onChanged();
                   }
                 },
@@ -121,14 +140,73 @@ class SoStepSpecs extends StatelessWidget {
         children: [
           Text(context.t('ui_so_step_specs'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 14),
-          WizardLabel(context.t('ui_dimensions')),
           Row(
             children: [
-              Expanded(child: _num(context, 'W', draft.widthMm, (v) { draft.widthMm = v; onChanged(); })),
+              Expanded(child: WizardLabel(context.t('ui_dimensions'))),
+              Text(context.t('ui_unit'), style: theme.bodySmall.override(fontWeight: FontWeight.w700, color: theme.secondaryText)),
               const SizedBox(width: 8),
-              Expanded(child: _num(context, 'D', draft.depthMm, (v) { draft.depthMm = v; onChanged(); })),
+              ChoiceChip(
+                label: Text(context.t('ui_unit_mm')),
+                selected: !draft.dimensionsInCm,
+                selectedColor: TGColors.accent.withValues(alpha: 0.35),
+                onSelected: (_) {
+                  draft.dimensionsInCm = false;
+                  onChanged();
+                },
+              ),
+              const SizedBox(width: 6),
+              ChoiceChip(
+                label: Text(context.t('ui_unit_cm')),
+                selected: draft.dimensionsInCm,
+                selectedColor: TGColors.accent.withValues(alpha: 0.35),
+                onSelected: (_) {
+                  draft.dimensionsInCm = true;
+                  onChanged();
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _SoStableNumField(
+                  label: context.t('ui_dim_w'),
+                  valueMm: draft.widthMm,
+                  inCm: draft.dimensionsInCm,
+                  showUnitSuffix: true,
+                  onChangedMm: (v) {
+                    draft.widthMm = v;
+                    onChanged();
+                  },
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _num(context, 'H', draft.heightMm, (v) { draft.heightMm = v; onChanged(); })),
+              Expanded(
+                child: _SoStableNumField(
+                  label: context.t('ui_dim_d'),
+                  valueMm: draft.depthMm,
+                  inCm: draft.dimensionsInCm,
+                  showUnitSuffix: true,
+                  onChangedMm: (v) {
+                    draft.depthMm = v;
+                    onChanged();
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _SoStableNumField(
+                  label: context.t('ui_dim_h'),
+                  valueMm: draft.heightMm,
+                  inCm: draft.dimensionsInCm,
+                  showUnitSuffix: true,
+                  onChangedMm: (v) {
+                    draft.heightMm = v;
+                    onChanged();
+                  },
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -150,7 +228,14 @@ class SoStepSpecs extends StatelessWidget {
             spacing: 8,
             children: [
               for (final m in kSoMaterials)
-                ChoiceChip(label: Text(m), selected: draft.material == m, onSelected: (_) { draft.material = m; onChanged(); }),
+                ChoiceChip(
+                  label: Text(context.t(m.$2)),
+                  selected: draft.material == m.$1,
+                  onSelected: (_) {
+                    draft.material = m.$1;
+                    onChanged();
+                  },
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -159,7 +244,14 @@ class SoStepSpecs extends StatelessWidget {
             spacing: 8,
             children: [
               for (final f in kSoFinishes)
-                ChoiceChip(label: Text(f), selected: draft.finish == f, onSelected: (_) { draft.finish = f; onChanged(); }),
+                ChoiceChip(
+                  label: Text(context.t(f.$2)),
+                  selected: draft.finish == f.$1,
+                  onSelected: (_) {
+                    draft.finish = f.$1;
+                    onChanged();
+                  },
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -174,9 +266,29 @@ class SoStepSpecs extends StatelessWidget {
           if (!draft.budgetUnsure)
             Row(
               children: [
-                Expanded(child: _num(context, 'Min', draft.budgetMin, (v) { draft.budgetMin = v; onChanged(); })),
+                Expanded(
+                  child: _SoStableNumField(
+                    label: context.t('ui_min'),
+                    valueMm: draft.budgetMin,
+                    inCm: false,
+                    onChangedMm: (v) {
+                      draft.budgetMin = v;
+                      onChanged();
+                    },
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _num(context, 'Max', draft.budgetMax, (v) { draft.budgetMax = v; onChanged(); })),
+                Expanded(
+                  child: _SoStableNumField(
+                    label: context.t('ui_max'),
+                    valueMm: draft.budgetMax,
+                    inCm: false,
+                    onChangedMm: (v) {
+                      draft.budgetMax = v;
+                      onChanged();
+                    },
+                  ),
+                ),
               ],
             ),
           const SizedBox(height: 12),
@@ -233,13 +345,96 @@ class SoStepSpecs extends StatelessWidget {
     );
   }
 
-  Widget _num(BuildContext context, String label, int? value, ValueChanged<int?> onSet) {
+}
+
+/// Owns its [TextEditingController] so parent rebuilds don't reverse typed digits.
+class _SoStableNumField extends StatefulWidget {
+  const _SoStableNumField({
+    required this.label,
+    required this.valueMm,
+    required this.inCm,
+    required this.onChangedMm,
+    this.showUnitSuffix = false,
+  });
+
+  final String label;
+  final int? valueMm;
+  final bool inCm;
+  final ValueChanged<int?> onChangedMm;
+  final bool showUnitSuffix;
+
+  @override
+  State<_SoStableNumField> createState() => _SoStableNumFieldState();
+}
+
+class _SoStableNumFieldState extends State<_SoStableNumField> {
+  late final TextEditingController _c;
+  final FocusNode _focus = FocusNode();
+
+  String _format(int? mm, bool inCm) {
+    if (mm == null) return '';
+    if (!inCm) return '$mm';
+    return mm % 10 == 0 ? '${mm ~/ 10}' : (mm / 10).toStringAsFixed(1);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _c = TextEditingController(text: _format(widget.valueMm, widget.inCm));
+  }
+
+  @override
+  void didUpdateWidget(covariant _SoStableNumField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.inCm != widget.inCm) {
+      _c.text = _format(widget.valueMm, widget.inCm);
+      return;
+    }
+    // Sync only when value changed externally and field is not focused.
+    if (!_focus.hasFocus) {
+      final next = _format(widget.valueMm, widget.inCm);
+      if (_c.text != next) _c.text = next;
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String v) {
+    final raw = v.trim().replaceAll(',', '.');
+    if (raw.isEmpty) {
+      widget.onChangedMm(null);
+      return;
+    }
+    if (widget.inCm) {
+      final cm = double.tryParse(raw);
+      widget.onChangedMm(cm == null ? null : (cm * 10).round());
+    } else {
+      widget.onChangedMm(int.tryParse(raw.replaceAll(RegExp(r'[^\d]'), '')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return TextField(
-      controller: TextEditingController(text: value?.toString() ?? ''),
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: InputDecoration(labelText: label, isDense: true),
-      onChanged: (v) => onSet(v.isEmpty ? null : int.tryParse(v)),
+      controller: _c,
+      focusNode: _focus,
+      keyboardType: widget.inCm || widget.showUnitSuffix
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(widget.inCm ? r'[\d.,]' : r'\d')),
+      ],
+      decoration: InputDecoration(
+        labelText: widget.label,
+        isDense: true,
+        suffixText: widget.showUnitSuffix ? (widget.inCm ? 'cm' : 'mm') : null,
+      ),
+      onChanged: _onChanged,
     );
   }
 }

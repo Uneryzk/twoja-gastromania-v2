@@ -27,6 +27,8 @@ class SpecialOrderDraft extends ChangeNotifier {
   int? widthMm;
   int? depthMm;
   int? heightMm;
+  /// UI unit for dimension fields; values are always stored in millimetres.
+  bool dimensionsInCm = false;
   String dimensionsNote = '';
   int quantity = 1;
   String material = 'AISI 304';
@@ -71,7 +73,12 @@ class SpecialOrderDraft extends ChangeNotifier {
   String get dimensionsText {
     final parts = <String>[];
     if (widthMm != null || depthMm != null || heightMm != null) {
-      parts.add('${widthMm ?? '—'} × ${depthMm ?? '—'} × ${heightMm ?? '—'} mm');
+      if (dimensionsInCm) {
+        String cm(int? mm) => mm == null ? '—' : ((mm % 10 == 0) ? '${mm ~/ 10}' : (mm / 10).toStringAsFixed(1));
+        parts.add('${cm(widthMm)} × ${cm(depthMm)} × ${cm(heightMm)} cm');
+      } else {
+        parts.add('${widthMm ?? '—'} × ${depthMm ?? '—'} × ${heightMm ?? '—'} mm');
+      }
     }
     if (dimensionsNote.trim().isNotEmpty) parts.add(dimensionsNote.trim());
     return parts.join(' · ');

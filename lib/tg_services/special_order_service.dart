@@ -406,6 +406,7 @@ class TGSpecialOrderService extends ChangeNotifier {
       title: 'Request received',
       body: '${saved.requestNo} was sent to manufacturers.',
       deepLink: '/account/requests/${saved.requestNo}',
+      params: {'n': saved.requestNo},
     );
     NotificationService.instance.add(
       userId: 'staff_admin',
@@ -414,6 +415,7 @@ class TGSpecialOrderService extends ChangeNotifier {
       title: 'New Special Order',
       body: saved.title,
       deepLink: '/admin/special-orders/${saved.requestNo}',
+      params: {'n': saved.requestNo, 'title': saved.title},
     );
     _notifyNewLeads(saved);
     TGAnalytics.track('so_request_submit', {'requestNo': saved.requestNo, 'status': saved.status.name});
@@ -487,6 +489,7 @@ class TGSpecialOrderService extends ChangeNotifier {
           title: priorityInstant ? 'Priority early access lead' : 'New Special Order lead',
           body: saved.title,
           deepLink: '/dashboard/leads?id=${saved.requestNo}',
+          params: {'n': saved.requestNo, 'title': saved.title},
         );
       }
     }
@@ -549,6 +552,7 @@ class TGSpecialOrderService extends ChangeNotifier {
         title: 'New quote',
         body: 'A manufacturer quoted on ${r.requestNo}.',
         deepLink: '/account/requests/${r.requestNo}',
+        params: {'n': r.requestNo},
       );
       TGAnalytics.track('so_quote_received', {'requestNo': r.requestNo, 'sellerId': sellerId});
     }
@@ -768,6 +772,7 @@ class TGSpecialOrderService extends ChangeNotifier {
       title: 'More manufacturers matched',
       body: 'Our team matched more manufacturers to ${r.requestNo}.',
       deepLink: '/account/requests/${r.requestNo}',
+      params: {'n': r.requestNo},
     );
     notifyListeners();
   }
@@ -914,6 +919,7 @@ class TGSpecialOrderService extends ChangeNotifier {
       title: 'More manufacturers matched',
       body: 'Our team matched manufacturers to ${r.requestNo}.',
       deepLink: '/account/requests/${r.requestNo}',
+      params: {'n': r.requestNo},
     );
     _audit(requestId, actorId, actorRole, 'match', detail: sellerIds.join(','));
     TGAnalytics.track('so_admin_match', {'requestNo': r.requestNo, 'n': sellerIds.length});
