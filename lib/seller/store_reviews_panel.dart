@@ -870,3 +870,122 @@ String _ago(BuildContext context, DateTime at) {
   if (d.inDays < 14) return context.t('ui_days_ago', {'n': '${d.inDays}'});
   return DateFormat('d MMM', Localizations.localeOf(context).languageCode).format(at);
 }
+
+/// Compact reviews strip shown under active listings (tabs stay unchanged).
+class StoreListingsReviewsSection extends StatelessWidget {
+  const StoreListingsReviewsSection({super.key, required this.profile, required this.onSeeAll});
+
+  final TGStoreProfile profile;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    DealService.instance.ensureSeeded();
+    return ListenableBuilder(
+      listenable: DealService.instance,
+      builder: (context, _) {
+        final theme = FlutterFlowTheme.of(context);
+        final deals = DealService.instance;
+        final reviews = [...deals.publicReviewsFor(profile.sellerKey)]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        final avg = deals.averageFor(profile.sellerKey);
+        final count = profile.reviewsCount > 0 ? profile.reviewsCount : reviews.length;
+        final preview = reviews.take(3).toList();
+        final fmt = DateFormat('d MMM yyyy', Localizations.localeOf(context).languageCode);
+
+        return Container(
+          key: const Key('store-listings-reviews'),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: TGColors.surface,
+            borderRadius: BorderRadius.circular(TGRadius.card),
+            border: Border.all(color: TGColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(context.t('ui_reviews'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+                  ),
+                  if (count > 0)
+                    TextButton(
+                      key: const Key('store-listings-reviews-see-all'),
+                      onPressed: onSeeAll,
+                      child: Text(context.t('ui_see_all_reviews')),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(avg.toStringAsFixed(1), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+                  _GoldStars(rating: avg, size: 20),
+                  Text(
+                    context.t('ui_reviews_n', {'n': '$count'}),
+                    style: theme.bodyMedium.override(color: theme.secondaryText, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              if (preview.isEmpty) ...[
+                const SizedBox(height: 14),
+                Text(context.t('ui_no_reviews_yet'), style: theme.bodyMedium.override(color: theme.secondaryText)),
+              ] else ...[
+                const SizedBox(height: 16),
+                for (var i = 0; i < preview.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: theme.alternate.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(TGRadius.card),
+                      border: Border.all(color: TGColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(preview[i].authorName, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+                            ),
+                            Text(fmt.format(preview[i].createdAt), style: theme.bodySmall.override(color: theme.secondaryText)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        _GoldStars(rating: preview[i].rating.toDouble(), size: 16),
+                        const SizedBox(height: 8),
+                        Text(
+                          preview[i].text,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.bodyMedium.override(lineHeight: 1.45),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (reviews.length > preview.length) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TGButton(
+                      onPressed: onSeeAll,
+                      label: context.t('ui_see_all_reviews'),
+                      variant: TGButtonVariant.outline,
+                      height: 40,
+                    ),
+                  ),
+                ],
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}

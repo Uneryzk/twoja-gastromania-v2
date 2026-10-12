@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
@@ -87,7 +88,7 @@ class _RestaurantDetailsEditorPageState extends State<RestaurantDetailsEditorPag
     TGAnalytics.track('details_section_saved', {'listingNo': next.listingNo, 'section': section});
     _autosave?.cancel();
     _autosave = Timer(const Duration(milliseconds: 400), () {
-      if (mounted) showTGToast(context, 'Saved');
+      if (mounted) showTGToast(context, context.t('ui_saved'));
     });
     setState(() {});
   }

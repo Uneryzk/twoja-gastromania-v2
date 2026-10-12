@@ -1203,42 +1203,73 @@ class _AddProductPageState extends State<AddProductPage> {
         if (err['photos'] != null) WizardError(context.t(err['photos']!)),
         const SizedBox(height: 8),
         WizardHelp(context.t('ui_photos_help')),
+        if (draft.photos.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          WizardHelp(context.t('ui_photos_reorder_hint')),
+        ],
         const SizedBox(height: 12),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: draft.photos.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: phone ? 3 : 4, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: 4 / 3),
-          itemBuilder: (context, i) {
-            final p = draft.photos[i];
-            return _PhotoThumb(
-              photo: p,
-              cover: i == 0 && p.error == null,
-              onDelete: () {
-                _undoPhoto = draft.removePhoto(p.id);
-                _undoIndex = i;
-                showTGToast(
-                  context,
-                  context.t('ui_photo_removed'),
-                  icon: Icons.undo,
-                  duration: const Duration(seconds: 5),
-                  action: SnackBarAction(
-                    label: context.t('ui_undo'),
-                    onPressed: () {
-                      if (_undoPhoto != null) {
-                        draft.insertPhoto(_undoIndex, _undoPhoto!);
-                        _undoPhoto = null;
-                      }
-                    },
+        if (draft.photos.isNotEmpty)
+          SizedBox(
+            height: phone ? 132 : 148,
+            child: ReorderableListView.builder(
+              scrollDirection: Axis.horizontal,
+              buildDefaultDragHandles: false,
+              itemCount: draft.photos.length,
+              onReorder: draft.reorderPhotos,
+              proxyDecorator: (child, index, animation) {
+                return AnimatedBuilder(
+                  animation: animation,
+                  builder: (context, _) => Material(
+                    elevation: 6,
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.transparent,
+                    child: child,
                   ),
                 );
               },
-              onRetry: p.error == null ? null : _addPhoto,
-              onLeft: i == 0 ? null : () => draft.movePhoto(i, i - 1),
-              onRight: i == draft.photos.length - 1 ? null : () => draft.movePhoto(i, i + 1),
-            );
-          },
-        ),
+              itemBuilder: (context, i) {
+                final p = draft.photos[i];
+                final isCover = i == 0 && p.error == null;
+                return ReorderableDragStartListener(
+                  key: ValueKey(p.id),
+                  index: i,
+                  child: Padding(
+                    padding: EdgeInsets.only(right: i == draft.photos.length - 1 ? 0 : 8),
+                    child: SizedBox(
+                      width: phone ? 148 : 168,
+                      child: _PhotoThumb(
+                        photo: p,
+                        cover: isCover,
+                        onDelete: () {
+                          _undoPhoto = draft.removePhoto(p.id);
+                          _undoIndex = i;
+                          showTGToast(
+                            context,
+                            context.t('ui_photo_removed'),
+                            icon: Icons.undo,
+                            duration: const Duration(seconds: 5),
+                            action: SnackBarAction(
+                              label: context.t('ui_undo'),
+                              onPressed: () {
+                                if (_undoPhoto != null) {
+                                  draft.insertPhoto(_undoIndex, _undoPhoto!);
+                                  _undoPhoto = null;
+                                }
+                              },
+                            ),
+                          );
+                        },
+                        onRetry: p.error == null ? null : _addPhoto,
+                        onLeft: i == 0 ? null : () => draft.movePhoto(i, i - 1),
+                        onRight: i == draft.photos.length - 1 ? null : () => draft.movePhoto(i, i + 1),
+                        onSetCover: isCover || p.error != null ? null : () => draft.setCoverPhoto(i),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         if (_undoPhoto != null)
           TextButton(
             onPressed: () {
@@ -1571,7 +1602,7 @@ class _PreviewPanel extends StatelessWidget {
                 child: empty
                     ? const TGProductCardSkeleton()
                     : LayoutBuilder(
-                        key: ValueKey(product.title),
+                        key: ValueKey('${product.title}|${product.imageUrl}|${product.imageUrls.join('|')}'),
                         builder: (context, c) {
                           final w = c.maxWidth;
                           return SizedBox(
@@ -1803,13 +1834,22 @@ class _DropZoneState extends State<_DropZone> {
 }
 
 class _PhotoThumb extends StatelessWidget {
-  const _PhotoThumb({required this.photo, required this.cover, required this.onDelete, this.onLeft, this.onRight, this.onRetry});
+  const _PhotoThumb({
+    required this.photo,
+    required this.cover,
+    required this.onDelete,
+    this.onLeft,
+    this.onRight,
+    this.onRetry,
+    this.onSetCover,
+  });
   final AddProductPhoto photo;
   final bool cover;
   final VoidCallback onDelete;
   final VoidCallback? onLeft;
   final VoidCallback? onRight;
   final VoidCallback? onRetry;
+  final VoidCallback? onSetCover;
 
   @override
   Widget build(BuildContext context) {
@@ -1817,7 +1857,10 @@ class _PhotoThumb extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: photo.error != null ? TGColors.error : theme.tertiary),
+        border: Border.all(
+          color: cover ? TGColors.accent : (photo.error != null ? TGColors.error : theme.tertiary),
+          width: cover ? 2 : 1,
+        ),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(11),
@@ -1843,7 +1886,21 @@ class _PhotoThumb extends StatelessWidget {
             if (cover)
               Positioned(top: 6, left: 6, child: _MiniPill(text: context.t('ui_cover'), pink: true)),
             if (photo.error == null)
-              const Positioned(top: 6, right: 6, child: Icon(Icons.check_circle, color: TGColors.cta, size: 18)),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (onSetCover != null)
+                      Tooltip(
+                        message: context.t('ui_set_as_cover'),
+                        child: _TinyIcon(icon: Icons.star_outline, onTap: onSetCover),
+                      ),
+                    if (cover) const Icon(Icons.check_circle, color: TGColors.cta, size: 18),
+                  ],
+                ),
+              ),
             Positioned(
               left: 4,
               right: 4,
@@ -1851,6 +1908,7 @@ class _PhotoThumb extends StatelessWidget {
               child: Row(
                 children: [
                   _TinyIcon(icon: Icons.chevron_left, onTap: onLeft),
+                  _TinyIcon(icon: Icons.drag_indicator, onTap: null),
                   _TinyIcon(icon: Icons.chevron_right, onTap: onRight),
                   const Spacer(),
                   _TinyIcon(icon: Icons.delete_outline, onTap: onDelete),

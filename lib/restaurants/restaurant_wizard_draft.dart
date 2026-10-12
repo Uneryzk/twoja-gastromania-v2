@@ -122,33 +122,33 @@ class RestaurantWizardDraft extends ChangeNotifier {
     errors.clear();
     switch (s) {
       case 0:
-        if (!authorized) errors['auth'] = 'Confirm you are authorized.';
-        if (businessType == null) errors['type'] = 'Choose a business type.';
-        if (title.trim().length < 15 || title.trim().length > 80) errors['title'] = 'Title must be 15–80 characters.';
+        if (!authorized) errors['auth'] = 'err_resto_authorized';
+        if (businessType == null) errors['type'] = 'err_resto_business_type';
+        if (title.trim().length < 15 || title.trim().length > 80) errors['title'] = 'err_wizard_title_len';
         if (description.trim().length < 50 || description.trim().length > 4000) {
-          errors['description'] = 'Description must be 50–4000 characters.';
+          errors['description'] = 'err_wizard_description_len';
         }
       case 1:
-        if (city.trim().isEmpty) errors['city'] = 'City is required.';
-        if (street.trim().isEmpty) errors['street'] = 'Street is required.';
-        if (buildingNo.trim().isEmpty) errors['building'] = 'Building number is required.';
-        if (!noUnit && unitNo.trim().isEmpty) errors['unit'] = 'Unit number or “No unit number”.';
-        if (totalAreaM2 == null || totalAreaM2! <= 0) errors['area'] = 'Total area (m²) is required.';
+        if (city.trim().isEmpty) errors['city'] = 'err_resto_city_required';
+        if (street.trim().isEmpty) errors['street'] = 'err_resto_street';
+        if (buildingNo.trim().isEmpty) errors['building'] = 'err_resto_building';
+        if (!noUnit && unitNo.trim().isEmpty) errors['unit'] = 'err_resto_unit';
+        if (totalAreaM2 == null || totalAreaM2! <= 0) errors['area'] = 'err_resto_area';
       case 2:
-        if (rentMonthly == null || rentMonthly! <= 0) errors['rent'] = 'Monthly rent is required.';
-        if (feeKind == null) errors['fee'] = 'Choose Amount or No transfer fee.';
+        if (rentMonthly == null || rentMonthly! <= 0) errors['rent'] = 'err_resto_rent';
+        if (feeKind == null) errors['fee'] = 'err_resto_fee_kind';
         if (feeKind == RestaurantTransferFeeKind.amount && (feeAmount == null || feeAmount! <= 0)) {
-          errors['feeAmount'] = 'Enter the transfer fee amount.';
+          errors['feeAmount'] = 'err_resto_fee_amount';
         }
         if (leaseType == RestaurantLeaseType.fixed && leaseEndsAt == null) {
-          errors['leaseEnds'] = 'Lease end date is required for fixed leases.';
+          errors['leaseEnds'] = 'err_resto_lease_ends';
         }
       case 3:
-        if (photos.length < 3) errors['photos'] = 'At least 3 photos are required (5 recommended).';
+        if (photos.length < 3) errors['photos'] = 'err_resto_photos_min';
       case 4:
-        if (!phoneVerified) errors['phone'] = 'Verify your phone number.';
-        if (contactName.trim().isEmpty) errors['name'] = 'Name is required.';
-        if (email.trim().isEmpty || !email.contains('@')) errors['email'] = 'Valid email is required.';
+        if (!phoneVerified) errors['phone'] = 'err_resto_phone_verify';
+        if (contactName.trim().isEmpty) errors['name'] = 'err_resto_name';
+        if (email.trim().isEmpty || !email.contains('@')) errors['email'] = 'err_resto_email';
     }
     notifyListeners();
     return errors.isEmpty;

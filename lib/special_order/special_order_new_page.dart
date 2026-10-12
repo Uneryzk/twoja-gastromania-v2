@@ -175,7 +175,7 @@ class _SpecialOrderNewPageState extends State<SpecialOrderNewPage> {
   Future<void> _next() async {
     final errs = draft.errorsForStep(draft.step);
     if (errs.isNotEmpty) {
-      showTGToast(context, errs.first);
+      showTGToast(context, context.t(errs.first));
       return;
     }
     TGAnalytics.track('so_step_complete', {'step': draft.step});
@@ -199,7 +199,7 @@ class _SpecialOrderNewPageState extends State<SpecialOrderNewPage> {
     }
     final errs = draft.errorsForStep(4);
     if (errs.isNotEmpty) {
-      showTGToast(context, errs.first);
+      showTGToast(context, context.t(errs.first));
       return;
     }
     setState(() => _sending = true);

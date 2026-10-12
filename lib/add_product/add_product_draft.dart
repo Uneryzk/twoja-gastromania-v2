@@ -298,6 +298,7 @@ class AddProductDraft extends ChangeNotifier {
     if (photos.length >= 12) return;
     final asset = sampleAssets[photos.length % sampleAssets.length];
     photos.add(AddProductPhoto(id: 'ph_${DateTime.now().microsecondsSinceEpoch}', assetPath: asset));
+    fieldErrors.remove('photos');
     markDirty();
   }
 
@@ -310,20 +311,60 @@ class AddProductDraft extends ChangeNotifier {
     final i = photos.indexWhere((p) => p.id == id);
     if (i < 0) return null;
     final removed = photos.removeAt(i);
+    _ensureValidCoverFirst();
+    if (photos.where((p) => p.error == null).isNotEmpty) fieldErrors.remove('photos');
     markDirty();
     return removed;
   }
 
+  /// Keep a valid photo at index 0 so the leftmost slot is always the cover.
+  void _ensureValidCoverFirst() {
+    final i = photos.indexWhere((p) => p.error == null && p.assetPath.isNotEmpty);
+    if (i > 0) {
+      final p = photos.removeAt(i);
+      photos.insert(0, p);
+    }
+  }
+
   void insertPhoto(int index, AddProductPhoto photo) {
     photos.insert(index.clamp(0, photos.length), photo);
+    if (photo.error == null) fieldErrors.remove('photos');
     markDirty();
   }
 
   void movePhoto(int from, int to) {
-    if (from < 0 || from >= photos.length || to < 0 || to >= photos.length) return;
+    if (from < 0 || from >= photos.length || to < 0 || to >= photos.length || from == to) return;
     final item = photos.removeAt(from);
     photos.insert(to, item);
     markDirty();
+  }
+
+  /// Reorder for [ReorderableListView] (handles newIndex shift).
+  void reorderPhotos(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= photos.length) return;
+    var target = newIndex;
+    if (target > oldIndex) target -= 1;
+    target = target.clamp(0, photos.length - 1);
+    if (target == oldIndex) return;
+    final item = photos.removeAt(oldIndex);
+    photos.insert(target, item);
+    markDirty();
+  }
+
+  /// Move photo to index 0 — leftmost becomes cover for card & gallery.
+  void setCoverPhoto(int index) {
+    if (index <= 0 || index >= photos.length) return;
+    final item = photos[index];
+    if (item.error != null) return;
+    photos.removeAt(index);
+    photos.insert(0, item);
+    markDirty();
+  }
+
+  /// Cover = first valid photo in current order (leftmost valid).
+  int get coverIndex {
+    final i = photos.indexWhere((p) => p.error == null && p.assetPath.isNotEmpty);
+    return i < 0 ? 0 : i;
   }
 
   TGProduct toProduct({TGListingStatus status = TGListingStatus.draft}) {

@@ -84,35 +84,36 @@ class SpecialOrderDraft extends ChangeNotifier {
     return parts.join(' · ');
   }
 
+  /// Returns l10n keys (translate with `context.t` at display).
   List<String> errorsForStep(int s) {
     switch (s) {
       case 0:
         return [
-          if (projectTypes.isEmpty) 'Select at least one project type',
-          if (title.trim().length < 15 || title.trim().length > 80) 'Title must be 15–80 characters',
-          if (description.trim().length < 50 || description.trim().length > 3000) 'Description must be 50–3000 characters',
+          if (projectTypes.isEmpty) 'err_so_project_type',
+          if (title.trim().length < 15 || title.trim().length > 80) 'err_wizard_title_len',
+          if (description.trim().length < 50 || description.trim().length > 3000) 'err_so_description_len',
         ];
       case 1:
         return [
-          if (quantity < 1) 'Quantity must be at least 1',
+          if (quantity < 1) 'err_so_quantity',
           if (!budgetUnsure && (budgetMin == null || budgetMax == null || (budgetMin ?? 0) > (budgetMax ?? 0)))
-            'Enter a valid budget range or choose "I\'m not sure"',
-          if (city.trim().isEmpty) 'City is required',
+            'err_so_budget',
+          if (city.trim().isEmpty) 'err_resto_city_required',
         ];
       case 2:
         return [
-          if (files.length > 10) 'Maximum 10 files',
+          if (files.length > 10) 'err_so_max_files',
         ];
       case 3:
         return [
           if ((routingMode == TGSpecialRoutingMode.selected || routingMode == TGSpecialRoutingMode.both) && selectedSellerIds.isEmpty)
-            'Select at least one manufacturer',
-          if (selectedSellerIds.length > 5) 'You can select up to 5 manufacturers',
-          if (buyerName.trim().length < 2) 'Name is required',
-          if (nip.isNotEmpty && !isValidNip(nip)) 'Invalid NIP checksum',
-          if (phone.replaceAll(RegExp(r'\D'), '').length < 11) 'Phone is required',
-          if (!email.contains('@')) 'Valid email is required',
-          if (!consent) 'Consent is required',
+            'err_so_select_maker',
+          if (selectedSellerIds.length > 5) 'err_so_max_makers',
+          if (buyerName.trim().length < 2) 'err_resto_name',
+          if (nip.isNotEmpty && !isValidNip(nip)) 'err_so_nip',
+          if (phone.replaceAll(RegExp(r'\D'), '').length < 11) 'err_resto_phone_verify',
+          if (!email.contains('@')) 'err_resto_email',
+          if (!consent) 'err_so_consent',
         ];
       case 4:
         return [

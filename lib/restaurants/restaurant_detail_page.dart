@@ -90,11 +90,11 @@ class _RestoNotFound extends StatelessWidget {
           children: [
             Text('404', style: theme.headlineMedium.override(fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            const Text('This restaurant listing was not found.'),
+            Text(context.t('ui_resto_not_found')),
             const SizedBox(height: 16),
             TGButton(
               onPressed: () => context.go('/restaurants'),
-              label: 'Back to restaurants',
+              label: context.t('ui_back_to_restaurants'),
               height: 44,
               borderRadius: BorderRadius.circular(TGRadius.pill),
             ),
@@ -227,7 +227,7 @@ class _RestoBodyState extends State<_RestoBody> {
     await Clipboard.setData(ClipboardData(text: r.listingNo));
     TGAnalytics.track('listing_number_copied', {'listingNo': r.listingNo, 'kind': 'restaurant'});
     setState(() => _copiedNo = true);
-    showTGToast(context, 'Listing number copied');
+    showTGToast(context, context.t('ui_listing_no_copied'));
     _copyReset?.cancel();
     _copyReset = Timer(const Duration(milliseconds: 1500), () {
       if (mounted) setState(() => _copiedNo = false);
@@ -250,7 +250,7 @@ class _RestoBodyState extends State<_RestoBody> {
     _recordContact();
     await Clipboard.setData(ClipboardData(text: r.phone));
     setState(() => _copiedPhone = true);
-    showTGToast(context, 'Phone copied', icon: Icons.phone_rounded);
+    showTGToast(context, context.t('ui_phone_copied'), icon: Icons.phone_rounded);
     final dial = r.phone.replaceAll(RegExp(r'[^0-9+]'), '');
     if (dial.isNotEmpty) await launchUrl(Uri(scheme: 'tel', path: dial));
     _copyReset?.cancel();
@@ -265,7 +265,7 @@ class _RestoBodyState extends State<_RestoBody> {
     if (_contactOk) _recordContact();
     await Clipboard.setData(ClipboardData(text: r.phone));
     setState(() => _copiedPhone = true);
-    showTGToast(context, 'Phone copied', icon: Icons.phone_rounded);
+    showTGToast(context, context.t('ui_phone_copied'), icon: Icons.phone_rounded);
     _copyReset?.cancel();
     _copyReset = Timer(const Duration(milliseconds: 1500), () {
       if (mounted) setState(() => _copiedPhone = false);

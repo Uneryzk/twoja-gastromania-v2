@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_next_steps_sheet.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
@@ -112,7 +113,7 @@ class _RestaurantSuccessPageState extends State<RestaurantSuccessPage> with Sing
                       ? null
                       : () {
                           Clipboard.setData(ClipboardData(text: 'https://twojagastromania.pl${r.detailPath}'));
-                          showTGToast(context, 'Link copied');
+                          showTGToast(context, context.t('ui_link_copied'));
                         },
                   child: const Text('Copy link'),
                 ),

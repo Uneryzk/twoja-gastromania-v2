@@ -204,6 +204,23 @@ class _StoreCompletenessCardState extends State<StoreCompletenessCard> {
   }
 }
 
+/// Owner-only CTA between completeness and plan cards on the store profile.
+class StoreAddProductCard extends StatelessWidget {
+  const StoreAddProductCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return TGButton(
+      key: const Key('store-add-product'),
+      onPressed: () => TGNav.addProduct(context),
+      label: context.t('ui_add_product_plus'),
+      icon: Icons.add_rounded,
+      variant: TGButtonVariant.primary,
+      height: 48,
+    );
+  }
+}
+
 class StorePlanCard extends StatelessWidget {
   const StorePlanCard({super.key, required this.profile});
   final TGStoreProfile profile;

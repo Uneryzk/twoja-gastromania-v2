@@ -267,52 +267,62 @@ class _PriorityManufacturerSectionState extends State<_PriorityManufacturerSecti
     final bulk = cfg.flags.bulkBilling;
     final isEnterprise = profile?.plan == TGStorePlanKind.enterprise;
 
+    const featureKeys = [
+      'ui_plans_priority_feat_early',
+      'ui_plans_priority_feat_alerts',
+      'ui_plans_priority_feat_insight',
+      'ui_plans_priority_feat_analytics',
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       key: const ValueKey('priority'),
       children: [
-        Text('Priority Manufacturer', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_plans_priority_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         if (isEnterprise)
-          Text('Included with Enterprise', style: theme.titleMedium.override(fontWeight: FontWeight.w800))
+          Text(context.t('ui_plans_included_enterprise'), style: theme.titleMedium.override(fontWeight: FontWeight.w800))
         else if (founderWins && _billing == TGPriorityBillingPeriod.monthly)
           FounderPriceRow(sellerId: auth.userId, listPrice: monthlyList)
         else
           Text(
-            founderWins ? '$price PLN (Founder better than bulk)' : '$catalog PLN / period (brutto, VAT included)',
+            founderWins
+                ? context.t('ui_plans_priority_founder_better', {'n': '$price'})
+                : context.t('ui_plans_priority_price', {'n': '$catalog'}),
             style: theme.titleMedium.override(fontWeight: FontWeight.w800),
           ),
         const SizedBox(height: 8),
-        Text('Add-on for Pro Store. Included with Enterprise.', style: theme.bodySmall.override(color: theme.secondaryText)),
+        Text(context.t('ui_plans_priority_addon'), style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 12),
-        for (final line in const [
-          'Early access to Special Order requests in your category and region',
-          'Instant alerts (push/SMS)',
-          'Market insight on quotes (aggregated, anonymous)',
-          'Analytics: views, quotes, wins, loss reasons',
-        ])
+        for (final key in featureKeys)
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Row(children: [
               Icon(Icons.check, size: 16, color: theme.primary),
               const SizedBox(width: 8),
-              Expanded(child: Text(line)),
+              Expanded(child: Text(context.t(key))),
             ]),
           ),
         const SizedBox(height: 12),
-        Text('Monthly billing, cancel any time. We don\'t guarantee any number of requests.', style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.4)),
+        Text(context.t('ui_plans_priority_billing_note'), style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.4)),
         const SizedBox(height: 6),
         Text(
-          'If fewer than 3 requests matching your category and region arrive in a billing period, we extend your subscription by one month automatically. This is not a guarantee of request volume.',
+          context.t('ui_plans_priority_quiet_month'),
           style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.4),
         ),
         if (bulk && !isEnterprise) ...[
           const SizedBox(height: 16),
           SegmentedButton<TGPriorityBillingPeriod>(
             segments: [
-              const ButtonSegment(value: TGPriorityBillingPeriod.monthly, label: Text('Monthly')),
-              ButtonSegment(value: TGPriorityBillingPeriod.sixMonths, label: Text('6 months −10% (${TGPriorityService.instance.priceFor(TGPriorityBillingPeriod.sixMonths)} PLN)')),
-              ButtonSegment(value: TGPriorityBillingPeriod.yearly, label: Text('Yearly 2 months free (${TGPriorityService.instance.priceFor(TGPriorityBillingPeriod.yearly)} PLN)')),
+              ButtonSegment(value: TGPriorityBillingPeriod.monthly, label: Text(context.t('ui_plans_billing_monthly'))),
+              ButtonSegment(
+                value: TGPriorityBillingPeriod.sixMonths,
+                label: Text(context.t('ui_plans_billing_6m', {'n': '${TGPriorityService.instance.priceFor(TGPriorityBillingPeriod.sixMonths)}'})),
+              ),
+              ButtonSegment(
+                value: TGPriorityBillingPeriod.yearly,
+                label: Text(context.t('ui_plans_billing_yearly', {'n': '${TGPriorityService.instance.priceFor(TGPriorityBillingPeriod.yearly)}'})),
+              ),
             ],
             selected: {_billing},
             onSelectionChanged: (s) => setState(() => _billing = s.first),
@@ -320,19 +330,19 @@ class _PriorityManufacturerSectionState extends State<_PriorityManufacturerSecti
         ],
         const SizedBox(height: 16),
         if (isEnterprise)
-          Text('Priority is included in your Enterprise plan.', style: theme.bodyMedium.override(fontWeight: FontWeight.w800))
+          Text(context.t('ui_plans_priority_enterprise_inc'), style: theme.bodyMedium.override(fontWeight: FontWeight.w800))
         else if (!cfg.flags.priorityForSale || !gateOpen)
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Priority isn\'t open in your region and category yet. Join the waitlist.', style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
+              Text(context.t('ui_plans_priority_waitlist_msg'), style: theme.bodyMedium.override(fontWeight: FontWeight.w800)),
               const SizedBox(height: 10),
               TGButton(
                 onPressed: () {
                   TGPriorityService.instance.joinWaitlist(sellerId: auth.userId, specialty: specialty, region: region);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Joined waitlist')));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('ui_plans_joined_waitlist'))));
                 },
-                label: 'Join waitlist',
+                label: context.t('ui_plans_join_waitlist'),
                 height: 48,
               ),
             ],
@@ -341,15 +351,15 @@ class _PriorityManufacturerSectionState extends State<_PriorityManufacturerSecti
           TGButton(
             onPressed: () {
               TGPriorityService.instance.joinWaitlist(sellerId: auth.userId, specialty: specialty, region: region);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Joined waitlist')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('ui_plans_joined_waitlist'))));
             },
-            label: 'Join waitlist',
+            label: context.t('ui_plans_join_waitlist'),
             height: 48,
           )
         else
           TGButton(
             onPressed: () => _pay(context, auth.userId, specialty, region, price, catalog, founderWins),
-            label: 'Get Priority · $price PLN',
+            label: context.t('ui_plans_get_priority', {'n': '$price'}),
             height: 48,
           ),
         if (phone) const SizedBox(height: 8),
@@ -376,7 +386,7 @@ class _PriorityManufacturerSectionState extends State<_PriorityManufacturerSecti
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Priority Manufacturer', style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
+              Text(ctx.t('ui_plans_priority_title'), style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
               const SizedBox(height: 12),
               if (founderWins) FounderPriceRow(sellerId: sellerId, listPrice: catalog > price ? catalog : TGRevenueConfigService.instance.config.priority.priceMonthly),
               const SizedBox(height: 8),
@@ -400,7 +410,7 @@ class _PriorityManufacturerSectionState extends State<_PriorityManufacturerSecti
                     paymentMethod: 'mock',
                   );
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Priority activated')));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('ui_plans_priority_activated'))));
                 },
               ),
             ],
@@ -423,25 +433,25 @@ class _AuditAndSponsorCards extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (flags.auditProgram) ...[
-          Text('Audited Manufacturer', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_plans_audit_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
-          Text('We sell the audit, not the badge. One-time review of company records, workshop, insurance and references.', style: theme.bodyMedium),
+          Text(context.t('ui_plans_audit_desc'), style: theme.bodyMedium),
           const SizedBox(height: 10),
           TGButton(
             onPressed: () => context.go('/dashboard/manufacturer?tab=audit'),
-            label: 'Open Audit · ${TGAuditService.feePln} PLN',
+            label: context.t('ui_plans_open_audit', {'n': '${TGAuditService.feePln}'}),
             height: 48,
           ),
           const SizedBox(height: 28),
         ],
         if (flags.sponsorSlots) ...[
-          Text('Sponsor slots', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+          Text(context.t('ui_plans_sponsor_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
-          Text('Promote your workshop in one specialty × region for 30 days. Always labelled Sponsored. No request-volume promise.', style: theme.bodyMedium),
+          Text(context.t('ui_plans_sponsor_desc'), style: theme.bodyMedium),
           const SizedBox(height: 10),
           TGButton(
             onPressed: () => context.go('/dashboard/manufacturer?tab=sponsor'),
-            label: 'Open Sponsor slots · ${TGSponsorSlotService.pricePln} PLN',
+            label: context.t('ui_plans_open_sponsor', {'n': '${TGSponsorSlotService.pricePln}'}),
             height: 48,
             variant: TGButtonVariant.outline,
           ),

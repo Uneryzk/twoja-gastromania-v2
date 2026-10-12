@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/add_product/add_product_fields.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_form.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
@@ -111,12 +112,12 @@ class _RestoRenewBodyState extends State<_RestoRenewBody> {
             const SizedBox(height: 14),
             if (promoteMode) ...[
               Text(
-                'Shown at the top of Restaurants for Sale, in the homepage “Restaurants for Sale” strip, and labelled WYRÓŻNIONE.',
+                context.t('ui_wiz_promote_help', {'badge': context.t('ui_promoted_badge')}),
                 style: theme.bodySmall,
               ),
               const SizedBox(height: 8),
               Tooltip(
-                message: _allow(14) ? '' : 'Promote cannot exceed remaining listing days',
+                message: _allow(14) ? '' : context.t('err_promote_exceeds_days'),
                 child: Opacity(
                   opacity: _allow(14) ? 1 : 0.45,
                   child: WizardRadioCard(
@@ -130,7 +131,7 @@ class _RestoRenewBodyState extends State<_RestoRenewBody> {
               ),
               const SizedBox(height: 8),
               Tooltip(
-                message: _allow(30) ? '' : 'Promote cannot exceed remaining listing days',
+                message: _allow(30) ? '' : context.t('err_promote_exceeds_days'),
                 child: Opacity(
                   opacity: _allow(30) ? 1 : 0.45,
                   child: WizardRadioCard(
@@ -150,7 +151,7 @@ class _RestoRenewBodyState extends State<_RestoRenewBody> {
               ),
               const SizedBox(height: 8),
               Tooltip(
-                message: _allow(14) ? '' : 'Promote cannot exceed remaining listing days',
+                message: _allow(14) ? '' : context.t('err_promote_exceeds_days'),
                 child: Opacity(
                   opacity: _allow(14) ? 1 : 0.45,
                   child: WizardRadioCard(
@@ -164,7 +165,7 @@ class _RestoRenewBodyState extends State<_RestoRenewBody> {
               ),
               const SizedBox(height: 8),
               Tooltip(
-                message: _allow(30) ? '' : 'Promote cannot exceed remaining listing days',
+                message: _allow(30) ? '' : context.t('err_promote_exceeds_days'),
                 child: Opacity(
                   opacity: _allow(30) ? 1 : 0.45,
                   child: WizardRadioCard(

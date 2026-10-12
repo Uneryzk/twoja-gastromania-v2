@@ -743,7 +743,7 @@ class SoStepReview extends StatelessWidget {
           Text(context.t('ui_so_step_review'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           if (errs.isNotEmpty) ...[
-            for (final e in errs) WizardError(e),
+            for (final e in errs) WizardError(context.t(e)),
             const SizedBox(height: 8),
           ],
           _block(context, context.t('ui_so_step_project'), '${draft.title}\n${draft.projectTypes.map((s) => context.t('ui_so_spec_${s.name}')).join(', ')}', 0, onEdit),

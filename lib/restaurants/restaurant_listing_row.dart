@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_renew_sheet.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_transfer_sheet.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
@@ -248,7 +249,7 @@ Future<void> showTGAuthProofSheet(BuildContext context, RestaurantListing listin
                 'auth_proof_${DateTime.now().millisecondsSinceEpoch}.pdf',
               );
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Proof uploaded (mock) — awaiting review')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('ui_proof_uploaded_mock'))));
             },
             label: 'Upload document',
             height: 48,

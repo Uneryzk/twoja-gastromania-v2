@@ -278,7 +278,7 @@ class _StoreBody extends StatelessWidget {
                   ),
                 ),
               ),
-              if (isStore && mobile)
+              if (isStore && mobile) ...[
                 StoreEditableRegion(
                   section: TGStoreEditSection.cover,
                   editing: chrome.editing,
@@ -293,8 +293,21 @@ class _StoreBody extends StatelessWidget {
                           }
                         : null,
                   ),
-                )
-              else if (isStore)
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: StoreEditableRegion(
+                    section: TGStoreEditSection.description,
+                    editing: chrome.editing,
+                    onEdit: (s) => showStoreEditFlow(context, profile, section: s),
+                    child: _StoreAboutIntro(
+                      profile: profile,
+                      ownerUi: ownerUi,
+                      onEditDescription: () => showStoreEditFlow(context, profile, section: TGStoreEditSection.description),
+                    ),
+                  ),
+                ),
+              ] else if (isStore)
                 Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1280),
@@ -337,6 +350,8 @@ class _StoreBody extends StatelessWidget {
                   child: Column(
                     children: [
                       StoreCompletenessCard(profile: profile),
+                      const SizedBox(height: 12),
+                      const StoreAddProductCard(),
                       const SizedBox(height: 12),
                       StorePlanCard(profile: profile),
                     ],
@@ -399,7 +414,19 @@ class _StoreBody extends StatelessWidget {
                                     editing: chrome.editing,
                                     onEdit: (s) => showStoreEditFlow(context, profile, section: s),
                                   ),
-                                TGStoreTab.products => StoreProductsPanel(profile: profile, listings: listings, query: query, onQuery: onQuery, hideSeller: isStore),
+                                TGStoreTab.products => Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      StoreProductsPanel(profile: profile, listings: listings, query: query, onQuery: onQuery, hideSeller: isStore),
+                                      if (isStore) ...[
+                                        const SizedBox(height: 36),
+                                        StoreListingsReviewsSection(
+                                          profile: profile,
+                                          onSeeAll: () => selectTab(TGStoreTab.reviews),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 TGStoreTab.about => StoreAboutPanel(profile: profile, editing: chrome.editing, onEdit: (s) => showStoreEditFlow(context, profile, section: s)),
                                 TGStoreTab.reviews => StoreReviewsPanel(profile: profile),
                               },
@@ -491,17 +518,35 @@ class _CoverIdentity extends StatelessWidget {
               final stacked = c.maxWidth < TGBreakpoints.desktop;
               final identity = KeyedSubtree(
                 key: identityKey,
-                child: StoreEditableRegion(
-                  section: TGStoreEditSection.logo,
-                  editing: editing,
-                  onEdit: onEdit,
-                  child: Opacity(opacity: muted ? 0.7 : 1, child: _IdentityBlock(profile: profile)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    StoreEditableRegion(
+                      section: TGStoreEditSection.logo,
+                      editing: editing,
+                      onEdit: onEdit,
+                      child: Opacity(opacity: muted ? 0.7 : 1, child: _IdentityBlock(profile: profile)),
+                    ),
+                    const SizedBox(height: 20),
+                    StoreEditableRegion(
+                      section: TGStoreEditSection.description,
+                      editing: editing,
+                      onEdit: onEdit,
+                      child: _StoreAboutIntro(
+                        profile: profile,
+                        ownerUi: ownerUi,
+                        onEditDescription: () => onEdit(TGStoreEditSection.description),
+                      ),
+                    ),
+                  ],
                 ),
               );
               final contact = Column(
                 children: [
                   if (ownerUi) ...[
                     StoreCompletenessCard(profile: profile),
+                    const SizedBox(height: 12),
+                    const StoreAddProductCard(),
                     const SizedBox(height: 12),
                     StorePlanCard(profile: profile),
                     const SizedBox(height: 12),
@@ -674,6 +719,67 @@ class _IdentityBlock extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _StoreAboutIntro extends StatelessWidget {
+  const _StoreAboutIntro({
+    required this.profile,
+    required this.ownerUi,
+    required this.onEditDescription,
+  });
+
+  final TGStoreProfile profile;
+  final bool ownerUi;
+  final VoidCallback onEditDescription;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final desc = profile.description.trim();
+    if (desc.isEmpty && !ownerUi) return const SizedBox.shrink();
+
+    return Container(
+      key: const Key('store-about-intro'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: TGColors.surface,
+        borderRadius: BorderRadius.circular(TGRadius.card),
+        border: Border.all(color: TGColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(context.t('ui_about_us'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 10),
+          if (desc.isNotEmpty)
+            Text(
+              desc,
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+              style: theme.bodyMedium.override(color: theme.primaryText, lineHeight: 1.55),
+            )
+          else ...[
+            Text(
+              context.t('ui_about_us_empty'),
+              style: theme.bodyMedium.override(color: theme.secondaryText, lineHeight: 1.45),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TGButton(
+                key: const Key('store-about-intro-add'),
+                onPressed: onEditDescription,
+                label: context.t('ui_add_about_us'),
+                variant: TGButtonVariant.outline,
+                height: 40,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

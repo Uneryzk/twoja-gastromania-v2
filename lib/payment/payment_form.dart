@@ -101,11 +101,30 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
 
   String get _blikCode => _blik.map((c) => c.text).join();
 
+  bool get _invoiceReady {
+    if (!_faktura) return true;
+    return isValidNip(_nip.text) && _company.text.trim().isNotEmpty && _address.text.trim().isNotEmpty;
+  }
+
+  String? get _nipError {
+    if (!_faktura) return null;
+    final raw = _nip.text.trim();
+    if (raw.isEmpty || !isValidNip(raw)) return context.t('err_wizard_nip');
+    return null;
+  }
+
+  String? get _companyError {
+    if (!_faktura || _company.text.trim().isNotEmpty) return null;
+    return context.t('err_payment_company');
+  }
+
+  String? get _addressError {
+    if (!_faktura || _address.text.trim().isNotEmpty) return null;
+    return context.t('err_payment_address');
+  }
+
   bool get _canPay {
-    if (!_terms || _waiting) return false;
-    if (_faktura && (!isValidNip(_nip.text) || _company.text.trim().isEmpty || _address.text.trim().isEmpty)) {
-      return false;
-    }
+    if (!_terms || _waiting || !_invoiceReady) return false;
     return switch (_method) {
       TGPayMethod.blik => _blikCode.length == 6,
       TGPayMethod.przelewy24 => true,
@@ -339,6 +358,8 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
         ),
         if (_faktura) ...[
           const SizedBox(height: 8),
+          Text(context.t('ui_payment_invoice_hint'), style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.4)),
+          const SizedBox(height: 8),
           WizardLabel(context.t('ui_nip')),
           WizardField(
             key: const Key('payment-nip'),
@@ -346,14 +367,31 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
             hint: context.t('ui_nip'),
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+            error: _nipError,
+            errorId: 'payment-nip-error',
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 8),
           WizardLabel(context.t('ui_company_name')),
-          WizardField(key: const Key('payment-company'), controller: _company, hint: context.t('ui_company_name'), onChanged: (_) => setState(() {})),
+          WizardField(
+            key: const Key('payment-company'),
+            controller: _company,
+            hint: context.t('ui_company_name'),
+            error: _companyError,
+            errorId: 'payment-company-error',
+            onChanged: (_) => setState(() {}),
+          ),
           const SizedBox(height: 8),
           WizardLabel(context.t('ui_address')),
-          WizardField(key: const Key('payment-address'), controller: _address, hint: context.t('ui_address'), maxLines: 2, onChanged: (_) => setState(() {})),
+          WizardField(
+            key: const Key('payment-address'),
+            controller: _address,
+            hint: context.t('ui_address'),
+            maxLines: 2,
+            error: _addressError,
+            errorId: 'payment-address-error',
+            onChanged: (_) => setState(() {}),
+          ),
         ],
         const SizedBox(height: 8),
         _toggle(

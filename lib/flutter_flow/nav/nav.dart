@@ -180,13 +180,8 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
             resumeId: params.state.uri.queryParameters['resume'],
           ),
         ),
-        FFRoute(
-          name: RestaurantDetailPage.routeName,
-          path: RestaurantDetailPage.routePath,
-          builder: (context, params) => RestaurantDetailPage(
-            segment: params.state.pathParameters['segment'] ?? '',
-          ),
-        ),
+        // Static /restaurants/* paths MUST be registered before :segment,
+        // otherwise "success" / "checkout" match the detail route and show 404.
         FFRoute(
           name: RestaurantSuccessPage.routeName,
           path: RestaurantSuccessPage.routePath,
@@ -194,6 +189,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
             listingId: params.state.uri.queryParameters['id'],
             pending: params.state.uri.queryParameters['pending'] == '1',
           ),
+        ),
+        FFRoute(
+          name: 'RestaurantCheckout',
+          path: '/restaurants/checkout',
+          builder: (context, params) => const CheckoutPage(),
         ),
         FFRoute(
           name: RestaurantDetailsEditorPage.routeName,
@@ -204,9 +204,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           ),
         ),
         FFRoute(
-          name: 'RestaurantCheckout',
-          path: '/restaurants/checkout',
-          builder: (context, params) => const CheckoutPage(),
+          name: RestaurantDetailPage.routeName,
+          path: RestaurantDetailPage.routePath,
+          builder: (context, params) => RestaurantDetailPage(
+            segment: params.state.pathParameters['segment'] ?? '',
+          ),
         ),
         FFRoute(
           name: ListingsDashboardPage.routeName,

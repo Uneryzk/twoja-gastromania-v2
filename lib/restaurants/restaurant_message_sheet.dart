@@ -121,7 +121,7 @@ class _RestoMessageBodyState extends State<_RestoMessageBody> {
     TGAnalytics.track('resto_message_sent', {'listingNo': widget.listing.listingNo, 'len': t.length});
     if (!mounted) return;
     Navigator.pop(context);
-    showTGToast(context, 'Message sent');
+    showTGToast(context, context.t('ui_message_sent'));
   }
 
   @override

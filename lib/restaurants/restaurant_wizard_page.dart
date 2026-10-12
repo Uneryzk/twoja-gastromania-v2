@@ -443,7 +443,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     if (e == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 4),
-      child: Text(e, style: const TextStyle(color: TGColors.error, fontSize: 12, fontWeight: FontWeight.w700)),
+      child: Text(context.t(e), style: const TextStyle(color: TGColors.error, fontSize: 12, fontWeight: FontWeight.w700)),
     );
   }
 
@@ -515,23 +515,19 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
         ),
         _err('type'),
         const SizedBox(height: 12),
-        TextField(
-          decoration: InputDecoration(labelText: context.t('ui_wiz_title_label'), border: const OutlineInputBorder()),
-          controller: TextEditingController(text: draft.title)
-            ..selection = TextSelection.collapsed(offset: draft.title.length),
+        _RestoStableTextField(
+          label: context.t('ui_wiz_title_label'),
+          value: draft.title,
           onChanged: (v) {
             draft.title = v;
             draft.touch();
           },
-          maxLength: 80,
         ),
         _err('title'),
-        TextField(
-          decoration: InputDecoration(labelText: context.t('ui_wiz_desc_label'), border: const OutlineInputBorder()),
+        _RestoStableTextField(
+          label: context.t('ui_wiz_desc_label'),
+          value: draft.description,
           maxLines: 6,
-          maxLength: 4000,
-          controller: TextEditingController(text: draft.description)
-            ..selection = TextSelection.collapsed(offset: draft.description.length),
           onChanged: (v) {
             draft.description = v;
             draft.scanDescriptionSuggestions();
@@ -860,27 +856,32 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                         children: [
                           SizedBox(
                             width: phone ? double.infinity : 120,
-                            child: TextField(
-                              decoration: InputDecoration(labelText: context.t('ui_wiz_qty'), border: const OutlineInputBorder(), isDense: true),
+                            child: _RestoStableTextField(
+                              key: ValueKey('inv-qty-${item.id}'),
+                              label: context.t('ui_wiz_qty'),
+                              value: '${item.qty}',
+                              dense: true,
                               keyboardType: TextInputType.number,
-                              controller: TextEditingController(text: '${item.qty}')
-                                ..selection = TextSelection.collapsed(offset: '${item.qty}'.length),
                               onChanged: (v) => draft.updateInventoryItem(item.id, qty: int.tryParse(v) ?? 1),
                             ),
                           ),
                           SizedBox(
                             width: phone ? double.infinity : 160,
-                            child: TextField(
-                              decoration: InputDecoration(labelText: context.t('ui_brand'), border: const OutlineInputBorder(), isDense: true),
-                              controller: TextEditingController(text: item.brand ?? ''),
+                            child: _RestoStableTextField(
+                              key: ValueKey('inv-brand-${item.id}'),
+                              label: context.t('ui_brand'),
+                              value: item.brand ?? '',
+                              dense: true,
                               onChanged: (v) => draft.updateInventoryItem(item.id, brand: v),
                             ),
                           ),
                           SizedBox(
                             width: phone ? double.infinity : 160,
-                            child: TextField(
-                              decoration: InputDecoration(labelText: context.t('ui_wiz_model_opt'), border: const OutlineInputBorder(), isDense: true),
-                              controller: TextEditingController(text: item.model ?? ''),
+                            child: _RestoStableTextField(
+                              key: ValueKey('inv-model-${item.id}'),
+                              label: context.t('ui_wiz_model_opt'),
+                              value: item.model ?? '',
+                              dense: true,
                               onChanged: (v) => draft.updateInventoryItem(item.id, model: v),
                             ),
                           ),
@@ -923,7 +924,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                           OutlinedButton.icon(
                             onPressed: () {
                               draft.updateInventoryItem(item.id, photos: ['mock_item_${item.id}.jpg']);
-                              showTGToast(context, phone ? 'Photo attached (camera mock)' : 'Photo attached (gallery mock)');
+                              showTGToast(context, context.t(phone ? 'ui_photo_attached_camera' : 'ui_photo_attached_gallery'));
                             },
                             icon: Icon(phone ? Icons.photo_camera_outlined : Icons.photo_library_outlined, size: 16),
                             label: Text(phone ? context.t('ui_wiz_take_photo') : context.t('ui_wiz_choose_gallery')),
@@ -986,7 +987,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
               onPressed: () {
                 draft.floorPlanUrl = 'floorplan_mock.pdf';
                 draft.touch();
-                showTGToast(context, 'Floor plan attached (PDF/JPG mock)');
+                showTGToast(context, context.t('ui_floor_plan_attached'));
               },
               child: Text(draft.floorPlanUrl == null ? context.t('ui_wiz_upload_floor') : context.t('ui_wiz_floor_ok')),
             ),
@@ -1058,7 +1059,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                         bottom: 0,
                         child: IconButton(
                           icon: const Icon(Icons.rotate_right, size: 18, color: Colors.white),
-                          onPressed: () => showTGToast(context, 'Rotated (mock · EXIF stripped)'),
+                          onPressed: () => showTGToast(context, context.t('ui_photo_rotated_mock')),
                         ),
                       ),
                     ],
@@ -1151,8 +1152,14 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
               else
                 Text(draft.freeStartBlockReasonSafe(), style: theme.bodySmall),
               const SizedBox(height: 12),
-              Text(context.t('ui_wiz_promote'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
-              Text(context.t('ui_wiz_promote_help'), style: theme.bodySmall),
+              Text(
+                context.t('ui_wiz_promote', {'badge': context.t('ui_promoted_badge')}),
+                style: theme.bodySmall.override(fontWeight: FontWeight.w800),
+              ),
+              Text(
+                context.t('ui_wiz_promote_help', {'badge': context.t('ui_promoted_badge')}),
+                style: theme.bodySmall,
+              ),
               RadioListTile<int>(
                 value: 0,
                 groupValue: draft.promoteDays,
@@ -1196,11 +1203,11 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
+          _RestoStableTextField(
+            label: label,
+            value: value,
             enabled: enabled,
-            decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
             keyboardType: keyboard,
-            controller: TextEditingController(text: value)..selection = TextSelection.collapsed(offset: value.length),
             onChanged: (v) {
               onChanged(v);
               draft.touch();
@@ -1209,6 +1216,81 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
           if (err != null) _err(err),
         ],
       ),
+    );
+  }
+}
+
+/// Keeps a single [TextEditingController] so rebuilds after `notifyListeners`
+/// do not reset the caret (which reverses typed characters).
+class _RestoStableTextField extends StatefulWidget {
+  const _RestoStableTextField({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.dense = false,
+    this.enabled = true,
+    this.keyboardType,
+    this.maxLines = 1,
+    this.maxLength,
+  });
+
+  final String label;
+  final String value;
+  final ValueChanged<String> onChanged;
+  final bool dense;
+  final bool enabled;
+  final TextInputType? keyboardType;
+  final int maxLines;
+  final int? maxLength;
+
+  @override
+  State<_RestoStableTextField> createState() => _RestoStableTextFieldState();
+}
+
+class _RestoStableTextFieldState extends State<_RestoStableTextField> {
+  late final TextEditingController _c;
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _c = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(covariant _RestoStableTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_focus.hasFocus && _c.text != widget.value) {
+      _c.value = TextEditingValue(
+        text: widget.value,
+        selection: TextSelection.collapsed(offset: widget.value.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _c,
+      focusNode: _focus,
+      enabled: widget.enabled,
+      maxLines: widget.maxLines,
+      maxLength: widget.maxLength,
+      keyboardType: widget.keyboardType,
+      decoration: InputDecoration(
+        labelText: widget.label,
+        border: const OutlineInputBorder(),
+        isDense: widget.dense,
+      ),
+      onChanged: widget.onChanged,
     );
   }
 }
