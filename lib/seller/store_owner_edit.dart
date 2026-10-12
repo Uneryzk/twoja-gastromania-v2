@@ -707,6 +707,32 @@ class _SectionEditorState extends State<_SectionEditor> {
         ),
         const SizedBox(height: 8),
         Text(hint, style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            TGButton(
+              onPressed: _uploading ? null : () => _pickImage(square: square),
+              label: url == null ? context.t('ui_add_photo') : context.t('ui_change_photo'),
+              height: 40,
+              variant: TGButtonVariant.outline,
+            ),
+            if (url != null)
+              TGButton(
+                onPressed: _uploading
+                    ? null
+                    : () => setState(() {
+                          _draft = square
+                              ? _draft.copyWith(clearLogoUrl: true)
+                              : _draft.copyWith(clearCoverUrl: true);
+                        }),
+                label: context.t('ui_remove_photo'),
+                height: 40,
+                variant: TGButtonVariant.ghost,
+              ),
+          ],
+        ),
       ],
     );
   }

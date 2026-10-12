@@ -191,6 +191,7 @@ class _StoreBody extends StatelessWidget {
     final mobile = width < TGBreakpoints.desktop;
     final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
     final owner = storeIsOwner(auth, profile);
+    final adminCanEdit = auth.isAdmin;
     final ownerUi = owner && !chrome.previewVisitor;
     final contactLooksOn = profile.isLive && (!ownerUi || chrome.previewVisitor);
     final makerProjects = profile.isSpecialOrderManufacturer && profile.projects.isNotEmpty;
@@ -246,6 +247,22 @@ class _StoreBody extends StatelessWidget {
                 }
               },
             ),
+          )
+        else if (adminCanEdit)
+          SliverToBoxAdapter(
+            child: _AdminBar(
+              profile: profile,
+              editing: chrome.editing,
+              onToggleEdit: () {
+                if (mobile) {
+                  showStoreEditFlow(context, profile);
+                } else {
+                  final next = !chrome.editing;
+                  chrome.setEditing(next);
+                  showTGToast(context, context.t(next ? 'ui_admin_edit_mode_on' : 'ui_admin_edit_mode_off'));
+                }
+              },
+            ),
           ),
         SliverToBoxAdapter(
           child: Column(
@@ -259,7 +276,6 @@ class _StoreBody extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (auth.isAdmin) _AdminBar(profile: profile),
                         if (owner && profile.incompleteSetup) _OnboardingBanner(),
                         TGBreadcrumb(
                           items: [
@@ -1205,59 +1221,58 @@ class _TabList extends StatelessWidget {
 }
 
 class _AdminBar extends StatelessWidget {
-  const _AdminBar({required this.profile});
+  const _AdminBar({
+    required this.profile,
+    required this.editing,
+    required this.onToggleEdit,
+  });
   final TGStoreProfile profile;
+  final bool editing;
+  final VoidCallback onToggleEdit;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: const Key('seller-admin-bar'),
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(color: TGColors.adminBar, borderRadius: BorderRadius.circular(12), border: Border.all(color: TGColors.border)),
-      child: Wrap(
-        spacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          TextButton(onPressed: () => _edit(context), child: Text(context.t('ui_edit_seller_admin'))),
-          TextButton(
-            onPressed: () {
-              context.read<FakeAuthState>().actAsSeller(profile.sellerKey);
-              showTGToast(context, context.t('ui_act_as_seller'));
-            },
-            child: Text(context.t('ui_act_as_seller')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _edit(BuildContext context) async {
-    final desc = TextEditingController(text: profile.description);
-    final nip = TextEditingController(text: profile.nip ?? '');
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.t('ui_edit_seller_admin')),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    return Material(
+      color: TGColors.adminBar,
+      child: SafeArea(
+        bottom: false,
+        child: Container(
+          key: const Key('seller-admin-bar'),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: TGColors.border))),
+          child: Row(
             children: [
-              TextField(controller: desc, maxLines: 4, decoration: const InputDecoration(labelText: 'Description')),
-              TextField(controller: nip, decoration: const InputDecoration(labelText: 'NIP')),
+              Expanded(
+                child: Text(
+                  context.t('ui_edit_seller_admin'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              TextButton.icon(
+                key: const Key('admin-page-edit'),
+                onPressed: onToggleEdit,
+                icon: Icon(editing ? Icons.check : Icons.edit_outlined, size: 16, color: TGColors.cta),
+                label: Text(
+                  editing ? context.t('ui_done') : context.t('ui_admin_edit_page'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.cta),
+                ),
+              ),
+              TextButton(
+                onPressed: () => showStoreEditFlow(context, profile),
+                child: Text(context.t('ui_edit_store')),
+              ),
+              TextButton(
+                onPressed: () {
+                  context.read<FakeAuthState>().actAsSeller(profile.sellerKey);
+                  showTGToast(context, context.t('ui_act_as_seller'));
+                },
+                child: Text(context.t('ui_act_as_seller')),
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              TGSellerProfileService.instance.patch(profile.publicId, (p) => p.copyWith(description: desc.text, nip: nip.text));
-              Navigator.pop(ctx);
-            },
-            child: Text(context.t('ui_save_template').contains('template') ? 'Save' : 'Save'),
-          ),
-        ],
       ),
     );
   }

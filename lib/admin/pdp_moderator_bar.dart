@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/admin/admin_modals.dart';
+import 'package:twoja_gastromania/admin/admin_page_edit.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/admin_locale_state.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
@@ -17,10 +18,10 @@ class PdpModeratorBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<FakeAuthState>();
     if (!auth.canModerate) return const SizedBox.shrink();
-    return AdminL10nScope(child: Builder(builder: (context) => _bar(context, product)));
+    return AdminL10nScope(child: Builder(builder: (context) => _bar(context, product, auth.isAdmin)));
   }
 
-  Widget _bar(BuildContext context, TGProduct product) {
+  Widget _bar(BuildContext context, TGProduct product, bool isAdmin) {
     final no = product.listingNo ?? product.id;
     return Material(
       color: TGColors.adminBar,
@@ -31,11 +32,18 @@ class PdpModeratorBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Text(
-                '${context.t('ui_moderator_view')} · ${context.t('ui_listing_no', {'n': no})}',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+              Expanded(
+                child: Text(
+                  '${context.t('ui_moderator_view')} · ${context.t('ui_listing_no', {'n': no})}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
+              if (isAdmin)
+                AdminPageEditButton(
+                  compact: true,
+                  onPressed: () => showAdminProductContentEdit(context, product),
+                ),
               TextButton(
                 onPressed: () => context.go(TGAdminNav.casePath(no)),
                 child: Text(context.t('ui_open_case')),

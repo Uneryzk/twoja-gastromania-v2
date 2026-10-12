@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/admin/admin_page_edit.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
@@ -210,7 +211,8 @@ class _RestoBodyState extends State<_RestoBody> {
     return auth.isLoggedIn && auth.userId == r.ownerId;
   }
 
-  bool get _isStaff => context.read<FakeAuthState>().role.isStaff;
+  bool get _isStaff => context.watch<FakeAuthState>().role.isStaff;
+  bool get _isAdmin => context.watch<FakeAuthState>().isAdmin;
 
   bool get _contactOk => r.allowsPublicContact && !_isOwner;
 
@@ -378,8 +380,23 @@ class _RestoBodyState extends State<_RestoBody> {
             child: SizedBox(
               width: double.infinity,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text('Moderator view · No. ${r.listingNo} · ${r.status.key}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${context.t('ui_moderator_view')} · No. ${r.listingNo} · ${r.status.key}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (_isAdmin)
+                      AdminPageEditButton(
+                        compact: true,
+                        onPressed: () => showAdminRestaurantContentEdit(context, r),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
