@@ -311,7 +311,35 @@ class TGListingImages {
         _ => listingPool,
       };
 
+  /// Best single asset for a listing title (krajalnica → prep, mikser → mixer, …).
+  static String bestForTitle(String? title, {TGCategory? category}) {
+    final specific = _titleAsset(title);
+    if (specific != null) return specific;
+    if (category != null) return _assetFor(category: category, title: title);
+    return mutfakEquip;
+  }
+
+  static String? _titleAsset(String? title) {
+    if (title == null || title.trim().isEmpty) return null;
+    final t = _fold(title);
+    if (_any(t, const ['mikser', 'mixer', 'planetarn'])) return mixer;
+    if (_any(t, const ['bemar', 'bain-marie', 'bain marie', 'wanna bemar'])) return bainMarie;
+    if (_any(t, const ['krajalnic', 'slicer', 'dilim'])) return foodPrep;
+    if (_any(t, const ['zmywarka', 'dishwasher', 'bulasik', 'bulaşık', 'warewash'])) return warewashing;
+    if (_any(t, const ['stol', 'stół', 'table', 'tezgah', 'roboczy'])) return stainless;
+    if (_any(t, const ['szafa chlod', 'szafa chłod', 'fridge', 'chlodnic', 'chłodnic', 'freezer', 'dondur'])) {
+      return fridge700;
+    }
+    if (_any(t, const ['piec', 'oven', 'combi', 'firin', 'fırın', 'rational'])) return combiOven;
+    if (_any(t, const ['espresso', 'coffee', 'kahve', 'kawa'])) return coffeeEspresso;
+    if (_any(t, const ['vacuum', 'pakowarka', 'prozniow', 'próżniow'])) return vacuum;
+    if (_any(t, const ['mikrodalga', 'microwave', 'mikrofal'])) return microwave;
+    return null;
+  }
+
   static String _assetFor({required TGCategory category, String? title}) {
+    final specific = _titleAsset(title);
+    if (specific != null) return specific;
     final theme = _themeForCategory(category, title);
     return _poolForTheme(theme).first;
   }

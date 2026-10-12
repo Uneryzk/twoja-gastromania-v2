@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
+import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/translation_service.dart';
 
 /// Listing copy stays in the original language until the buyer taps Translate.
@@ -13,6 +14,7 @@ class PdpTranslateBlock extends StatefulWidget {
     required this.bodyStyle,
     required this.descOpen,
     required this.onToggleDesc,
+    this.onAdminEdit,
   });
 
   final String title;
@@ -20,6 +22,7 @@ class PdpTranslateBlock extends StatefulWidget {
   final TextStyle bodyStyle;
   final bool descOpen;
   final VoidCallback onToggleDesc;
+  final VoidCallback? onAdminEdit;
 
   @override
   State<PdpTranslateBlock> createState() => _PdpTranslateBlockState();
@@ -49,6 +52,9 @@ class _PdpTranslateBlockState extends State<PdpTranslateBlock> {
       if (src != 'en') {
         buttons.add(_link(context, context.t('ui_translate_to_en'), () => _go('en'), key: const Key('pdp-translate')));
       }
+      if (src != 'pl') {
+        buttons.add(_link(context, context.t('ui_translate_to_pl'), () => _go('pl'), key: const Key('pdp-translate-pl')));
+      }
       if (src != 'tr') {
         buttons.add(_link(context, context.t('ui_translate_to_tr'), () => _go('tr'), key: const Key('pdp-translate-tr')));
       }
@@ -60,6 +66,11 @@ class _PdpTranslateBlockState extends State<PdpTranslateBlock> {
         Row(
           children: [
             Expanded(child: Text(context.t('ui_description'), style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
+            if (widget.onAdminEdit != null)
+              TextButton(
+                onPressed: widget.onAdminEdit,
+                child: Text(context.t('ui_admin_edit_page'), style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.cta)),
+              ),
             if (buttons.isNotEmpty) Wrap(spacing: 8, children: buttons),
           ],
         ),

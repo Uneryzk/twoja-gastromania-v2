@@ -180,7 +180,7 @@ class _GridBody extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _ProductImage(imageUrl: product.imageUrl),
+              _ProductImage(imageUrl: product.displayImageUrl),
               Positioned(top: 10, left: 10, child: _ConditionPill(condition: product.condition, animateIn: animateNowy)),
               Positioned(top: 10, right: 10, child: favorite),
               if (product.isPromoted) const Positioned(left: 10, bottom: 10, child: _PromotedPill()),
@@ -252,7 +252,7 @@ class _WideListBody extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    _ProductImage(imageUrl: product.imageUrl),
+                    _ProductImage(imageUrl: product.displayImageUrl),
                     Positioned(top: 10, left: 10, child: _ConditionPill(condition: product.condition, animateIn: animateNowy)),
                     Positioned(top: 10, right: 10, child: favorite),
                     if (product.isPromoted) const Positioned(left: 10, bottom: 10, child: _PromotedPill()),
@@ -345,7 +345,7 @@ class _CompactListBody extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        _ProductImage(imageUrl: product.imageUrl),
+                        _ProductImage(imageUrl: product.displayImageUrl),
                         Positioned(top: 8, left: 8, child: _ConditionPill(condition: product.condition, compact: true, animateIn: animateNowy)),
                         if (product.isPromoted) const Positioned(left: 6, bottom: 6, child: _PromotedPill(compact: true)),
                         if (product.status == TGListingStatus.expired)

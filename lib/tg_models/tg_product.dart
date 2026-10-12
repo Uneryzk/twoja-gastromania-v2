@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 
 enum TGPriceUnit { oneTime, month }
 enum TGPriceBasis { brutto, netto }
@@ -244,11 +245,25 @@ class TGProduct {
     return d >= 0 && d <= 5;
   }
 
-  /// Photos shown in the PDP gallery (falls back to [imageUrl]).
+  /// Cover used in cards / thumbnails — never empty when a title-matched asset exists.
+  String get displayImageUrl {
+    final u = imageUrl.trim();
+    if (u.isNotEmpty) return u;
+    if (imageUrls.isNotEmpty) {
+      final first = imageUrls.firstWhere((e) => e.trim().isNotEmpty, orElse: () => '');
+      if (first.isNotEmpty) return first;
+    }
+    return TGListingImages.bestForTitle(title, category: category);
+  }
+
+  /// Photos shown in the PDP gallery (falls back to [imageUrl], then title-matched asset).
   List<String> get gallery {
-    if (imageUrls.isNotEmpty) return List<String>.unmodifiable(imageUrls);
-    if (imageUrl.isEmpty) return const [];
-    return [imageUrl];
+    if (imageUrls.isNotEmpty) {
+      final cleaned = [for (final u in imageUrls) u.trim()].where((u) => u.isNotEmpty).toList();
+      if (cleaned.isNotEmpty) return List<String>.unmodifiable(cleaned);
+    }
+    if (imageUrl.trim().isNotEmpty) return [imageUrl.trim()];
+    return [TGListingImages.bestForTitle(title, category: category)];
   }
 
   TGProduct copyWith({

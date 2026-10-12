@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:twoja_gastromania/admin/admin_page_edit.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
@@ -25,6 +24,7 @@ import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_components/tg_special_order_band.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_robots.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
@@ -131,7 +131,11 @@ class _RestoBodyState extends State<_RestoBody> {
   bool _copiedNo = false;
   Timer? _copyReset;
   bool _viewRecorded = false;
+  bool _editing = false;
   List<TGProduct> _catalogue = const [];
+  late TextEditingController _titleCtrl;
+  late TextEditingController _descCtrl;
+  late List<String> _editPhotos;
 
   RestaurantListing get r {
     return RestaurantService.instance.byId(widget.listing.id) ?? widget.listing;
@@ -139,8 +143,10 @@ class _RestoBodyState extends State<_RestoBody> {
 
   bool get _desktop => MediaQuery.sizeOf(context).width >= TGBreakpoints.desktop;
   bool get _keyboardOpen => MediaQuery.viewInsetsOf(context).bottom > 80;
+  bool get _canEdit => _isAdmin || _isOwner;
 
   List<String> get _photos {
+    if (_editing) return _editPhotos.isEmpty ? const [''] : _editPhotos;
     final base = r.images.isEmpty ? <String>[] : List<String>.of(r.images);
     final equip = <String>[];
     for (final item in r.inventory) {
@@ -162,7 +168,72 @@ class _RestoBodyState extends State<_RestoBody> {
   @override
   void initState() {
     super.initState();
+    _titleCtrl = TextEditingController(text: widget.listing.title);
+    _descCtrl = TextEditingController(text: widget.listing.description);
+    _editPhotos = List.of(widget.listing.images);
     WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
+  }
+
+  void _startEdit() {
+    setState(() {
+      _titleCtrl.text = r.title;
+      _descCtrl.text = r.description;
+      _editPhotos = List.of(r.images);
+      _galleryTab = 0;
+      _editing = true;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() => _editing = false);
+  }
+
+  void _saveEdit() {
+    final title = _titleCtrl.text.trim().isEmpty ? r.title : _titleCtrl.text.trim();
+    final next = r.copyWith(
+      title: title,
+      description: _descCtrl.text.trim(),
+      images: _editPhotos,
+    );
+    RestaurantService.instance.replace(next);
+    setState(() => _editing = false);
+    showTGToast(context, context.t('ui_admin_content_saved'));
+  }
+
+  void _addPhoto() {
+    final pool = TGListingImages.listingPool;
+    final next = pool[_editPhotos.length % pool.length];
+    setState(() {
+      if (!_editPhotos.contains(next)) {
+        _editPhotos = [..._editPhotos, next];
+      } else {
+        _editPhotos = [..._editPhotos, pool[(_editPhotos.length + 1) % pool.length]];
+      }
+      _index = _editPhotos.length - 1;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_galleryController.hasClients) _galleryController.jumpToPage(_index);
+    });
+  }
+
+  void _removePhoto(int i) {
+    if (_editPhotos.isEmpty) return;
+    setState(() {
+      _editPhotos = [..._editPhotos]..removeAt(i);
+      if (_index >= _editPhotos.length) _index = (_editPhotos.length - 1).clamp(0, 99);
+    });
+  }
+
+  void _setCover(int i) {
+    if (i <= 0 || i >= _editPhotos.length) return;
+    setState(() {
+      final photo = _editPhotos[i];
+      _editPhotos = [photo, ..._editPhotos.where((p) => p != photo)];
+      _index = 0;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_galleryController.hasClients) _galleryController.jumpToPage(0);
+    });
   }
 
   Future<void> _bootstrap() async {
@@ -203,6 +274,8 @@ class _RestoBodyState extends State<_RestoBody> {
     _copyReset?.cancel();
     _galleryController.dispose();
     _scroll.dispose();
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
     super.dispose();
   }
 
@@ -390,11 +463,25 @@ class _RestoBodyState extends State<_RestoBody> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (_isAdmin)
-                      AdminPageEditButton(
-                        compact: true,
-                        onPressed: () => showAdminRestaurantContentEdit(context, r),
-                      ),
+                    if (_isAdmin) ...[
+                      if (_editing) ...[
+                        TextButton(
+                          key: const Key('resto-admin-save'),
+                          onPressed: _saveEdit,
+                          child: Text(context.t('ui_save'), style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.cta)),
+                        ),
+                        TextButton(
+                          onPressed: _cancelEdit,
+                          child: Text(context.t('ui_cancel'), style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white70)),
+                        ),
+                      ] else
+                        TextButton.icon(
+                          key: const Key('admin-page-edit'),
+                          onPressed: _startEdit,
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: TGColors.cta),
+                          label: Text(context.t('ui_admin_edit_page'), style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.cta)),
+                        ),
+                    ],
                   ],
                 ),
               ),
@@ -444,16 +531,20 @@ class _RestoBodyState extends State<_RestoBody> {
                                       child: _StickyPanel(
                                         scroll: _scroll,
                                         topInset: 88,
-                                        child: owner
+                                        child: _canEdit
                                               ? _OwnerPanel(
                                                   listing: r,
+                                                  editing: _editing,
+                                                  adminOnly: _isAdmin && !owner,
                                                   onTransfer: () => showRestaurantTransferFlow(context, r),
                                                   onRenew: () => showRestaurantRenewSheet(
                                                     context,
                                                     r,
                                                     early: RestaurantLifecycleService.instance.isRenewEarly(r),
                                                   ),
-                                                  onEdit: () => context.go('/restaurants/new?resume=${r.id}'),
+                                                  onEdit: _startEdit,
+                                                  onSave: _saveEdit,
+                                                  onCancel: _cancelEdit,
                                                   onPromote: () => showRestaurantRenewSheet(context, r, promoteOnly: true),
                                                 )
                                             : r.allowsPublicContact
@@ -494,17 +585,21 @@ class _RestoBodyState extends State<_RestoBody> {
                                 ],
                                 const SizedBox(height: 16),
                                 _leftColumn(theme, canReport, similar, more, mobile: true),
-                                if (owner) ...[
+                                if (_canEdit) ...[
                                   const SizedBox(height: 16),
                                   _OwnerPanel(
                                     listing: r,
+                                    editing: _editing,
+                                    adminOnly: _isAdmin && !owner,
                                     onTransfer: () => showRestaurantTransferFlow(context, r),
                                     onRenew: () => showRestaurantRenewSheet(
                                       context,
                                       r,
                                       early: RestaurantLifecycleService.instance.isRenewEarly(r),
                                     ),
-                                    onEdit: () => context.go('/restaurants/new?resume=${r.id}'),
+                                    onEdit: _startEdit,
+                                    onSave: _saveEdit,
+                                    onCancel: _cancelEdit,
                                     onPromote: () => showRestaurantRenewSheet(context, r, promoteOnly: true),
                                   ),
                                 ],
@@ -633,7 +728,15 @@ class _RestoBodyState extends State<_RestoBody> {
         const SizedBox(height: 20),
         RestoKeyFigures(listing: r, money: _money),
         const SizedBox(height: 20),
-        RestoDescription(listing: r, open: _descOpen, maxLines: mobile ? 4 : 6, onToggle: () => setState(() => _descOpen = !_descOpen)),
+        RestoDescription(
+          listing: r,
+          open: _descOpen,
+          maxLines: mobile ? 4 : 6,
+          onToggle: () => setState(() => _descOpen = !_descOpen),
+          editing: _editing,
+          descCtrl: _descCtrl,
+          onAdminEdit: _canEdit && !_editing ? _startEdit : null,
+        ),
         const SizedBox(height: 20),
         KeyedSubtree(
           key: _equipKey,
@@ -752,14 +855,25 @@ class _RestoBodyState extends State<_RestoBody> {
           ],
         ),
         const SizedBox(height: 10),
-        Text(
-          restoLocalizedTitle(context, r),
-          style: theme.headlineMedium.override(
-            fontSize: mobile ? 22 : 32,
-            lineHeight: mobile ? 1.27 : 1.25,
-            fontWeight: FontWeight.w900,
+        if (_editing)
+          TextField(
+            controller: _titleCtrl,
+            style: theme.headlineMedium.override(
+              fontSize: mobile ? 22 : 32,
+              lineHeight: mobile ? 1.27 : 1.25,
+              fontWeight: FontWeight.w900,
+            ),
+            decoration: InputDecoration(labelText: context.t('ui_title')),
+          )
+        else
+          Text(
+            restoLocalizedTitle(context, r),
+            style: theme.headlineMedium.override(
+              fontSize: mobile ? 22 : 32,
+              lineHeight: mobile ? 1.27 : 1.25,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
         if (r.venueName != null && r.venueName!.trim().isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(
@@ -845,6 +959,7 @@ class _RestoBodyState extends State<_RestoBody> {
     final imgs = _galleryImages;
     final h = mobile ? MediaQuery.sizeOf(context).width * 0.66 : 563.0;
     final w = mobile ? MediaQuery.sizeOf(context).width : 845.0;
+    final editPhotos = _editing && _galleryTab == 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -852,24 +967,47 @@ class _RestoBodyState extends State<_RestoBody> {
           children: [
             _tab(context.t('ui_photos'), 0),
             const SizedBox(width: 12),
-            if (r.floorPlanUrl != null) _tab(context.t('ui_floor_plan'), 1),
+            if (r.floorPlanUrl != null && !editPhotos) _tab(context.t('ui_floor_plan'), 1),
             const Spacer(),
-            if (canReport && mobile)
-              PopupMenuButton<String>(
-                onSelected: (v) {
-                  if (v == 'report') _report();
-                },
-                itemBuilder: (_) => [PopupMenuItem(value: 'report', child: Text(context.t('ui_report')))],
-                child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.more_horiz)),
+            if (editPhotos) ...[
+              IconButton(
+                key: const Key('resto-gallery-add'),
+                tooltip: context.t('ui_add_photo'),
+                onPressed: _addPhoto,
+                icon: const Icon(Icons.add_a_photo_outlined, color: TGColors.cta),
               ),
-            IconButton(onPressed: _toggleFavorite, icon: Icon(_favorite ? Icons.favorite : Icons.favorite_border, color: _favorite ? TGColors.accent : null)),
+              if (imgs.isNotEmpty && imgs.first.isNotEmpty)
+                IconButton(
+                  key: const Key('resto-gallery-remove'),
+                  tooltip: context.t('ui_remove_photo'),
+                  onPressed: () => _removePhoto(_index),
+                  icon: const Icon(Icons.delete_outline, color: TGColors.cta),
+                ),
+              if (_index > 0)
+                IconButton(
+                  key: const Key('resto-gallery-cover'),
+                  tooltip: context.t('ui_set_as_cover'),
+                  onPressed: () => _setCover(_index),
+                  icon: const Icon(Icons.photo_library_outlined, color: TGColors.cta),
+                ),
+            ] else ...[
+              if (canReport && mobile)
+                PopupMenuButton<String>(
+                  onSelected: (v) {
+                    if (v == 'report') _report();
+                  },
+                  itemBuilder: (_) => [PopupMenuItem(value: 'report', child: Text(context.t('ui_report')))],
+                  child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.more_horiz)),
+                ),
+              IconButton(onPressed: _toggleFavorite, icon: Icon(_favorite ? Icons.favorite : Icons.favorite_border, color: _favorite ? TGColors.accent : null)),
+            ],
           ],
         ),
         const SizedBox(height: 8),
         Semantics(
           label: 'Photo gallery, image ${_index + 1} of ${imgs.length}',
           child: GestureDetector(
-            onTap: () => _openLightbox(_index),
+            onTap: editPhotos ? null : () => _openLightbox(_index),
             child: Container(
               width: w,
               height: h,
@@ -904,7 +1042,23 @@ class _RestoBodyState extends State<_RestoBody> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: TGSmartImage(url: imgs[i], fit: BoxFit.cover),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      TGSmartImage(url: imgs[i], fit: BoxFit.cover),
+                      if (editPhotos && i == 0)
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: ColoredBox(
+                            color: const Color(0x99000000),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              child: Text(context.t('ui_cover'), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1141,14 +1295,22 @@ class _OwnerPanel extends StatelessWidget {
     required this.onTransfer,
     required this.onRenew,
     required this.onEdit,
+    required this.onSave,
+    required this.onCancel,
     required this.onPromote,
+    this.editing = false,
+    this.adminOnly = false,
   });
 
   final RestaurantListing listing;
   final VoidCallback onTransfer;
   final VoidCallback onRenew;
   final VoidCallback onEdit;
+  final VoidCallback onSave;
+  final VoidCallback onCancel;
   final VoidCallback onPromote;
+  final bool editing;
+  final bool adminOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -1161,10 +1323,10 @@ class _OwnerPanel extends StatelessWidget {
     final total = r.source == RestaurantListingSource.paid ? 90 : 30;
     final progress = expired ? 0.0 : (daysLeft / total).clamp(0.0, 1.0);
     final phase = r.source == RestaurantListingSource.freeIntro && !r.freeExtensionGranted
-        ? 'Free period · $daysLeft days left'
+        ? context.t('ui_days_left_n', {'n': '$daysLeft'})
         : expired
-            ? 'Expired ${(-days).clamp(0, 999)} days ago'
-            : 'Live · $daysLeft days left';
+            ? context.t('ui_expired_ago', {'n': '${(-days).clamp(0, 999)}'})
+            : context.t('ui_days_left_n', {'n': '$daysLeft'});
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1176,59 +1338,79 @@ class _OwnerPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('This is your listing', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          Text(phase, style: theme.bodySmall.override(color: expired || expiring ? TGColors.rating : theme.secondaryText)),
-          if (!expired) ...[
+          Text(
+            adminOnly ? context.t('ui_admin_edit_page') : context.t('ui_your_listing'),
+            style: theme.titleSmall.override(fontWeight: FontWeight.w900),
+          ),
+          if (!adminOnly) ...[
             const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(value: progress, minHeight: 6, color: TGColors.cta, backgroundColor: theme.alternate),
+            Text(phase, style: theme.bodySmall.override(color: expired || expiring ? TGColors.rating : theme.secondaryText)),
+            if (!expired) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(value: progress, minHeight: 6, color: TGColors.cta, backgroundColor: theme.alternate),
+              ),
+            ],
+            const SizedBox(height: 10),
+            Text(
+              'Views ${r.engagement.views} · Contacts ${r.engagement.uniqueContacts} · Favorites ${r.engagement.uniqueFavorites}',
+              style: theme.bodySmall.override(fontWeight: FontWeight.w700),
             ),
           ],
-          const SizedBox(height: 10),
-          Text(
-            'Views ${r.engagement.views} · Contacts ${r.engagement.uniqueContacts} · Favorites ${r.engagement.uniqueFavorites}',
-            style: theme.bodySmall.override(fontWeight: FontWeight.w700),
-          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              OutlinedButton(onPressed: onEdit, child: const Text('Edit')),
-              PopupMenuButton<String>(
-                tooltip: 'Promote',
-                onSelected: (v) {
-                  if (v == 'promote') onPromote();
-                  if (v == 'banner') {
-                    context.go('/dashboard/advertising?target=${Uri.encodeComponent(listing.detailPath)}');
-                  }
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'promote', child: Text('Promote listing')),
-                  if (AdSlotService.instance.purchaseVisible)
-                    const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
-                ],
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.primary),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text('Promote', style: TextStyle(color: theme.primary, fontWeight: FontWeight.w700)),
+              if (editing) ...[
+                TGButton(
+                  key: const Key('resto-owner-save'),
+                  onPressed: onSave,
+                  label: context.t('ui_save'),
+                  height: 40,
+                  borderRadius: BorderRadius.circular(TGRadius.pill),
                 ),
-              ),
-              if (!expired)
-                OutlinedButton(onPressed: onTransfer, child: const Text('Mark as transferred')),
-              if (expiring && !expired) OutlinedButton(onPressed: onRenew, child: const Text('Renew early')),
+                OutlinedButton(onPressed: onCancel, child: Text(context.t('ui_cancel'))),
+              ] else
+                OutlinedButton(
+                  key: const Key('resto-owner-edit'),
+                  onPressed: onEdit,
+                  child: Text(context.t('ui_edit')),
+                ),
+              if (!adminOnly && !r.isPromoted)
+                PopupMenuButton<String>(
+                  tooltip: context.t('ui_promote'),
+                  onSelected: (v) {
+                    if (v == 'promote') onPromote();
+                    if (v == 'banner') {
+                      context.go('/dashboard/advertising?target=${Uri.encodeComponent(listing.detailPath)}');
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(value: 'promote', child: Text(context.t('ui_promote'))),
+                    if (AdSlotService.instance.purchaseVisible)
+                      PopupMenuItem(value: 'banner', child: Text(context.t('ui_admin_nav_ads'))),
+                  ],
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.primary),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(context.t('ui_promote'), style: TextStyle(color: theme.primary, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              if (!adminOnly && !expired)
+                OutlinedButton(onPressed: onTransfer, child: Text(context.t('ui_mark_transferred'))),
+              if (!adminOnly && expiring && !expired) OutlinedButton(onPressed: onRenew, child: Text(context.t('ui_renew_early'))),
             ],
           ),
-          if (expired) ...[
+          if (!adminOnly && expired) ...[
             const SizedBox(height: 12),
             TGButton(
               onPressed: onRenew,
-              label: 'Renew · 149 PLN',
+              label: context.t('ui_renew_pln', {'fee': '149'}),
               height: 48,
               borderRadius: BorderRadius.circular(TGRadius.pill),
             ),

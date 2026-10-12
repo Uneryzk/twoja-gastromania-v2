@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_form.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
@@ -11,9 +12,9 @@ import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_components/tg_top_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
-import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_models/tg_ad_slot.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
@@ -81,7 +82,10 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
             const TGTopNav(),
             Expanded(
               child: Center(
-                child: TextButton(onPressed: () => context.go('/dashboard/listings'), child: const Text('Back to listings')),
+                child: TextButton(
+                  onPressed: () => context.go('/dashboard/listings'),
+                  child: Text(context.t('ui_ads_back_listings')),
+                ),
               ),
             ),
           ],
@@ -132,10 +136,10 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('Advertising', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+                        Text(context.t('ui_ads_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
                         const SizedBox(height: 6),
                         Text(
-                          'Reach depends on homepage traffic. We show real impressions and clicks.',
+                          context.t('ui_ads_reach_note'),
                           style: theme.bodyMedium.override(color: theme.secondaryText),
                         ),
                         if (phone) ...[
@@ -183,18 +187,18 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Banner ad · content', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_ads_banner_content'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        Text('Image 1920×600 recommended. Title ≤ 60 characters.', style: theme.bodySmall),
+        Text(context.t('ui_ads_image_hint'), style: theme.bodySmall),
         const SizedBox(height: 14),
         TextField(
           controller: _title,
           maxLength: 60,
-          decoration: const InputDecoration(labelText: 'Title'),
+          decoration: InputDecoration(labelText: context.t('ui_ads_title_field')),
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 8),
-        Text('Image', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_ads_image'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
         const SizedBox(height: 6),
         Wrap(
           spacing: 8,
@@ -217,7 +221,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
           ],
         ),
         const SizedBox(height: 14),
-        Text('Target listing / store', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+        Text(context.t('ui_ads_target'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
         const SizedBox(height: 6),
         _TargetPicker(
           ownerId: auth.userId,
@@ -230,7 +234,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
         const SizedBox(height: 14),
         ListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Start date'),
+          title: Text(context.t('ui_ads_start_date')),
           subtitle: Text(DateFormat('d MMM yyyy').format(_startsAt)),
           trailing: TextButton(
             onPressed: () async {
@@ -242,14 +246,14 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
               );
               if (d != null) setState(() => _startsAt = d);
             },
-            child: const Text('Change'),
+            child: Text(context.t('ui_ads_change')),
           ),
         ),
         if (ads.canUseEnterpriseEntitlement(auth.userId) || entitlementLeft > 0)
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text('Use Enterprise included banner ($entitlementLeft left this month)'),
-            subtitle: const Text('No fee when entitlement is used.'),
+            title: Text(context.t('ui_ads_use_entitlement', {'n': '$entitlementLeft'})),
+            subtitle: Text(context.t('ui_ads_entitlement_sub')),
             value: _useEntitlement && ads.canUseEnterpriseEntitlement(auth.userId),
             onChanged: (v) => setState(() => _useEntitlement = v),
           ),
@@ -257,16 +261,16 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
         TGButton(
           onPressed: () {
             if (_title.text.trim().isEmpty) {
-              showTGToast(context, 'Title is required');
+              showTGToast(context, context.t('ui_ads_title_required'));
               return;
             }
             if (_targetUrl == null) {
-              showTGToast(context, 'Pick a target');
+              showTGToast(context, context.t('ui_ads_pick_target'));
               return;
             }
             setState(() => _step = 1);
           },
-          label: 'Preview',
+          label: context.t('ui_ads_preview'),
           height: 48,
           borderRadius: BorderRadius.circular(TGRadius.pill),
         ),
@@ -278,7 +282,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Preview', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_ads_preview'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 12),
         AspectRatio(
           aspectRatio: phone ? 16 / 10 : 1920 / 600,
@@ -306,7 +310,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
                       borderRadius: BorderRadius.circular(TGRadius.pill),
                       border: Border.all(color: Colors.white70),
                     ),
-                    child: const Text('Sponsored', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
+                    child: Text(context.t('ui_sponsored'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
                   ),
                 ),
                 Positioned(
@@ -325,16 +329,19 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
           ),
         ),
         const SizedBox(height: 8),
-        Text('Target: $_targetUrl', style: theme.bodySmall),
-        Text('14 days · ends ${DateFormat('d MMM yyyy').format(_startsAt.add(const Duration(days: 14)))}', style: theme.bodySmall),
+        Text(context.t('ui_ads_target_label', {'url': _targetUrl ?? ''}), style: theme.bodySmall),
+        Text(
+          context.t('ui_ads_duration', {'date': DateFormat('d MMM yyyy').format(_startsAt.add(const Duration(days: 14)))}),
+          style: theme.bodySmall,
+        ),
         const SizedBox(height: 16),
         Row(
           children: [
-            TextButton(onPressed: () => setState(() => _step = 0), child: const Text('Back')),
+            TextButton(onPressed: () => setState(() => _step = 0), child: Text(context.t('ui_ads_back'))),
             const Spacer(),
             TGButton(
               onPressed: () => setState(() => _step = 2),
-              label: 'Continue to payment',
+              label: context.t('ui_ads_continue_payment'),
               height: 44,
               borderRadius: BorderRadius.circular(TGRadius.pill),
             ),
@@ -349,17 +356,20 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(free ? 'Confirm (Enterprise entitlement)' : 'Payment · $price PLN · 14 days', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(
+          free ? context.t('ui_ads_confirm_entitlement') : context.t('ui_ads_payment', {'price': '$price'}),
+          style: theme.titleMedium.override(fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 8),
         Text(
-          'Reach depends on homepage traffic. We show real impressions and clicks.',
+          context.t('ui_ads_reach_note'),
           style: theme.bodySmall.override(color: theme.secondaryText),
         ),
         const SizedBox(height: 16),
         if (free)
           TGButton(
             onPressed: () => _submit(auth),
-            label: 'Submit for review',
+            label: context.t('ui_ads_submit_review'),
             height: 48,
             borderRadius: BorderRadius.circular(TGRadius.pill),
           )
@@ -371,7 +381,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
             onPaid: () => _submit(auth),
           ),
         if (_paying) const SizedBox(height: 8),
-        TextButton(onPressed: _paying ? null : () => setState(() => _step = 1), child: const Text('Back')),
+        TextButton(onPressed: _paying ? null : () => setState(() => _step = 1), child: Text(context.t('ui_ads_back'))),
       ],
     );
   }
@@ -400,16 +410,16 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Submitted for review', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_ads_submitted'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         Text(
-          'Payment is complete. Content goes live after approval. ${_submitted?.id ?? ''}',
+          context.t('ui_ads_submitted_body', {'id': _submitted?.id ?? ''}),
           style: theme.bodyMedium,
         ),
         const SizedBox(height: 16),
         TGButton(
           onPressed: () => context.go('/dashboard/listings'),
-          label: 'Back to listings',
+          label: context.t('ui_ads_back_listings'),
           height: 48,
           borderRadius: BorderRadius.circular(TGRadius.pill),
         ),
@@ -426,15 +436,15 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Your banner ads', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+            Text(context.t('ui_ads_your_banners'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
             const SizedBox(height: 6),
             Text(
-              'Reach depends on homepage traffic. We show real impressions and clicks.',
+              context.t('ui_ads_reach_note'),
               style: theme.bodySmall.override(color: theme.secondaryText),
             ),
             const SizedBox(height: 12),
             if (owned.isEmpty)
-              Text('No banner ads yet.', style: theme.bodySmall)
+              Text(context.t('ui_ads_none'), style: theme.bodySmall)
             else
               for (final s in owned)
                 Padding(
@@ -444,7 +454,11 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
                     children: [
                       Text(s.title, style: const TextStyle(fontWeight: FontWeight.w800)),
                       Text(
-                        '${s.status.name} · ${s.impressions} impressions · ${s.clicks} clicks',
+                        context.t('ui_ads_stats', {
+                          'status': s.status.name,
+                          'impressions': '${s.impressions}',
+                          'clicks': '${s.clicks}',
+                        }),
                         style: theme.bodySmall,
                       ),
                     ],
@@ -483,7 +497,7 @@ class _TargetPicker extends StatelessWidget {
                 value: r.detailPath,
                 groupValue: selected,
                 title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text('Restaurant · No. ${r.listingNo}'),
+                subtitle: Text(context.t('ui_ads_restaurant', {'no': r.listingNo})),
                 onChanged: (_) => onPicked(r.detailPath, TGAdSlotKind.restaurantListing),
               ),
             for (final p in products)
@@ -492,7 +506,7 @@ class _TargetPicker extends StatelessWidget {
                 value: p.detailPath,
                 groupValue: selected,
                 title: Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text('Listing · No. ${p.listingNo ?? p.id}'),
+                subtitle: Text(context.t('ui_ads_listing', {'no': '${p.listingNo ?? p.id}'})),
                 onChanged: (_) => onPicked(p.detailPath, TGAdSlotKind.custom),
               ),
             if (store != null)
@@ -501,11 +515,11 @@ class _TargetPicker extends StatelessWidget {
                 value: store.path,
                 groupValue: selected,
                 title: Text(store.name),
-                subtitle: const Text('Store page'),
+                subtitle: Text(context.t('ui_ads_store_page')),
                 onChanged: (_) => onPicked(store.path, TGAdSlotKind.store),
               ),
             if (restos.isEmpty && products.isEmpty && store == null)
-              const Text('No eligible targets. Publish a listing first.'),
+              Text(context.t('ui_ads_no_targets')),
           ],
         );
       },

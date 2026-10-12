@@ -147,11 +147,23 @@ class RestoKeyFigures extends StatelessWidget {
 }
 
 class RestoDescription extends StatelessWidget {
-  const RestoDescription({super.key, required this.listing, required this.open, required this.maxLines, required this.onToggle});
+  const RestoDescription({
+    super.key,
+    required this.listing,
+    required this.open,
+    required this.maxLines,
+    required this.onToggle,
+    this.editing = false,
+    this.descCtrl,
+    this.onAdminEdit,
+  });
   final RestaurantListing listing;
   final bool open;
   final int maxLines;
   final VoidCallback onToggle;
+  final bool editing;
+  final TextEditingController? descCtrl;
+  final VoidCallback? onAdminEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -159,16 +171,33 @@ class RestoDescription extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(context.t('ui_description'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
-        const SizedBox(height: 8),
-        Text(listing.description, maxLines: open ? 999 : maxLines, overflow: TextOverflow.ellipsis),
-        TextButton(
-          onPressed: onToggle,
-          child: Text(
-            open ? context.t('ui_show_less') : context.t('ui_show_more'),
-            style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800),
-          ),
+        Row(
+          children: [
+            Expanded(child: Text(context.t('ui_description'), style: theme.titleMedium.override(fontWeight: FontWeight.w900))),
+            if (onAdminEdit != null)
+              TextButton(
+                onPressed: onAdminEdit,
+                child: Text(context.t('ui_admin_edit_page'), style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.cta)),
+              ),
+          ],
         ),
+        const SizedBox(height: 8),
+        if (editing && descCtrl != null)
+          TextField(
+            controller: descCtrl,
+            maxLines: 8,
+            decoration: InputDecoration(hintText: context.t('ui_description')),
+          )
+        else ...[
+          Text(listing.description, maxLines: open ? 999 : maxLines, overflow: TextOverflow.ellipsis),
+          TextButton(
+            onPressed: onToggle,
+            child: Text(
+              open ? context.t('ui_show_less') : context.t('ui_show_more'),
+              style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
       ],
     );
   }

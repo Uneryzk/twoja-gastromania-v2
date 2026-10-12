@@ -29,6 +29,7 @@ import 'package:twoja_gastromania/tg_components/tg_special_order_band.dart';
 import 'package:twoja_gastromania/tg_components/tg_listing_no_line.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_contact.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_robots.dart';
@@ -128,13 +129,133 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
   bool _specsOpen = false;
   bool _safetyOpen = false;
   bool _copied = false;
+  bool _editing = false;
   Timer? _copiedReset;
+  late TGProduct _product;
+  late List<String> _editPhotos;
+  late TextEditingController _titleCtrl;
+  late TextEditingController _descCtrl;
+  late TextEditingController _cityCtrl;
+  late bool _editDelivery;
+  late bool _editPickup;
   late final AnimationController _favPop = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
 
-  TGProduct get product => widget.product;
+  TGProduct get product => _product;
   List<String> get images {
+    if (_editing) return _editPhotos.isEmpty ? const [''] : _editPhotos;
     final g = product.gallery;
     return g.isEmpty ? const [''] : g;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _product = widget.product;
+    _editPhotos = List.of(_product.gallery);
+    _titleCtrl = TextEditingController(text: _product.title);
+    _descCtrl = TextEditingController(text: _product.description ?? '');
+    _cityCtrl = TextEditingController(text: _product.city);
+    _editDelivery = _product.delivery;
+    _editPickup = _product.pickup;
+  }
+
+  @override
+  void didUpdateWidget(covariant _PdpBody old) {
+    super.didUpdateWidget(old);
+    if (old.product.id != widget.product.id) {
+      _product = widget.product;
+      _editing = false;
+      _editPhotos = List.of(_product.gallery);
+      _titleCtrl.text = _product.title;
+      _descCtrl.text = _product.description ?? '';
+      _cityCtrl.text = _product.city;
+      _editDelivery = _product.delivery;
+      _editPickup = _product.pickup;
+    }
+  }
+
+  void _startEdit() {
+    setState(() {
+      _editPhotos = List.of(_product.gallery);
+      _titleCtrl.text = _product.title;
+      _descCtrl.text = _product.description ?? '';
+      _cityCtrl.text = _product.city;
+      _editDelivery = _product.delivery;
+      _editPickup = _product.pickup;
+      _editing = true;
+    });
+  }
+
+  Future<void> _saveEdit() async {
+    final cover = _editPhotos.isNotEmpty ? _editPhotos.first : '';
+    final next = _product.copyWith(
+      title: _titleCtrl.text.trim().isEmpty ? _product.title : _titleCtrl.text.trim(),
+      description: _descCtrl.text.trim(),
+      city: _cityCtrl.text.trim().isEmpty ? _product.city : _cityCtrl.text.trim(),
+      delivery: _editDelivery,
+      pickup: _editPickup,
+      imageUrl: cover,
+      imageUrls: _editPhotos,
+      photoCount: _editPhotos.length,
+    );
+    await TGProductService.instance.upsert(next);
+    if (!mounted) return;
+    final auth = context.read<FakeAuthState>();
+    if (auth.ownedListings.any((e) => e.id == next.id)) {
+      auth.upsertOwned(next);
+    }
+    setState(() {
+      _product = next;
+      _editing = false;
+    });
+    showTGToast(context, context.t('ui_admin_content_saved'));
+  }
+
+  void _cancelEdit() {
+    setState(() => _editing = false);
+  }
+
+  void _addPhoto() {
+    final pool = TGListingImages.listingPool;
+    final next = pool[_editPhotos.length % pool.length];
+    setState(() {
+      if (!_editPhotos.contains(next)) {
+        _editPhotos = [..._editPhotos, next];
+      } else {
+        _editPhotos = [..._editPhotos, pool[(_editPhotos.length + 1) % pool.length]];
+      }
+      _index = _editPhotos.length - 1;
+    });
+  }
+
+  void _removePhoto(int i) {
+    if (_editPhotos.isEmpty) return;
+    setState(() {
+      _editPhotos = [..._editPhotos]..removeAt(i);
+      if (_index >= _editPhotos.length) _index = (_editPhotos.length - 1).clamp(0, 99);
+    });
+  }
+
+  void _setCover(int i) {
+    if (i <= 0 || i >= _editPhotos.length) return;
+    setState(() {
+      final photo = _editPhotos[i];
+      _editPhotos = [photo, ..._editPhotos.where((p) => p != photo)];
+      _index = 0;
+    });
+  }
+
+  void _movePhoto(int i, int delta) {
+    final j = i + delta;
+    if (j < 0 || j >= _editPhotos.length) return;
+    setState(() {
+      final list = [..._editPhotos];
+      final t = list[i];
+      list[i] = list[j];
+      list[j] = t;
+      _editPhotos = list;
+      _index = j;
+    });
   }
 
   @override
@@ -142,6 +263,9 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
     _copiedReset?.cancel();
     _scroll.dispose();
     _favPop.dispose();
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _cityCtrl.dispose();
     super.dispose();
   }
 
@@ -222,8 +346,6 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
     showPdpMessageSheet(context, product);
   }
 
-  void _comingSoon() => showTGToast(context, context.t('ui_coming_soon'), icon: Icons.schedule_rounded);
-
   void _renew() {
     TGAnalytics.track('renew_click', TGAnalytics.listingProps(product));
     showRenewSheet(context, product, early: product.isExpiringSoon && product.status != TGListingStatus.expired);
@@ -248,6 +370,7 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
     final more = widget.catalogue.where((p) => p.id != product.id && p.seller.id == product.seller.id && p.isPubliclyVisible).take(8).toList();
     final safeBottom = MediaQuery.paddingOf(context).bottom;
 
+    final canEdit = auth.isAdmin || owner;
     final gallery = PdpGallery(
       product: product,
       images: images,
@@ -261,6 +384,11 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
       },
       showThumbnails: _desktop,
       onReport: canReport ? _reportListing : null,
+      editing: _editing && canEdit,
+      onAddPhoto: _addPhoto,
+      onRemovePhoto: _removePhoto,
+      onSetCover: _setCover,
+      onMovePhoto: _movePhoto,
     );
 
     final info = _InfoColumn(
@@ -275,6 +403,16 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
       onToggleSpecs: () => setState(() => _specsOpen = !_specsOpen),
       onToggleSafety: () => setState(() => _safetyOpen = !_safetyOpen),
       onReport: _reportListing,
+      editing: _editing && canEdit,
+      isAdmin: auth.isAdmin,
+      titleCtrl: _titleCtrl,
+      descCtrl: _descCtrl,
+      cityCtrl: _cityCtrl,
+      delivery: _editDelivery,
+      pickup: _editPickup,
+      onDelivery: (v) => setState(() => _editDelivery = v),
+      onPickup: (v) => setState(() => _editPickup = v),
+      onAdminSectionEdit: canEdit ? _startEdit : null,
     );
 
     return Column(
@@ -345,8 +483,17 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
                                         final shadow = _scroll.hasClients && _scroll.offset > 8;
                                         return _StickyPanel(
                                           elevated: shadow,
-                                          child: owner
-                                              ? _OwnerBar(product: product, daysLeft: _daysLeft(), onAction: _comingSoon, onRenew: _renew)
+                                          child: canEdit
+                                              ? _OwnerBar(
+                                                  product: product,
+                                                  daysLeft: _daysLeft(),
+                                                  editing: _editing,
+                                                  onEdit: _startEdit,
+                                                  onSave: _saveEdit,
+                                                  onCancel: _cancelEdit,
+                                                  onRenew: _renew,
+                                                  adminOnly: auth.isAdmin && !owner,
+                                                )
                                               : product.allowsPublicContact
                                                   ? _ContactPanel(
                                                       product: product,
@@ -372,9 +519,18 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
                           ),
                           const SizedBox(height: 16),
                           info,
-                          if (owner) ...[
+                          if (canEdit) ...[
                             const SizedBox(height: 16),
-                            _OwnerBar(product: product, daysLeft: _daysLeft(), onAction: _comingSoon, onRenew: _renew),
+                            _OwnerBar(
+                              product: product,
+                              daysLeft: _daysLeft(),
+                              editing: _editing,
+                              onEdit: _startEdit,
+                              onSave: _saveEdit,
+                              onCancel: _cancelEdit,
+                              onRenew: _renew,
+                              adminOnly: auth.isAdmin && !owner,
+                            ),
                           ],
                         ],
                         if (similar.isNotEmpty) ...[
@@ -434,6 +590,16 @@ class _InfoColumn extends StatelessWidget {
     required this.onToggleSpecs,
     required this.onToggleSafety,
     required this.onReport,
+    this.editing = false,
+    this.isAdmin = false,
+    this.titleCtrl,
+    this.descCtrl,
+    this.cityCtrl,
+    this.delivery = false,
+    this.pickup = false,
+    this.onDelivery,
+    this.onPickup,
+    this.onAdminSectionEdit,
   });
 
   final TGProduct product;
@@ -447,6 +613,30 @@ class _InfoColumn extends StatelessWidget {
   final VoidCallback onToggleSpecs;
   final VoidCallback onToggleSafety;
   final VoidCallback onReport;
+  final bool editing;
+  final bool isAdmin;
+  final TextEditingController? titleCtrl;
+  final TextEditingController? descCtrl;
+  final TextEditingController? cityCtrl;
+  final bool delivery;
+  final bool pickup;
+  final ValueChanged<bool>? onDelivery;
+  final ValueChanged<bool>? onPickup;
+  final VoidCallback? onAdminSectionEdit;
+
+  Widget _sectionHead(BuildContext context, String title) {
+    return Row(
+      children: [
+        Expanded(child: Text(title, style: FlutterFlowTheme.of(context).titleSmall.override(fontWeight: FontWeight.w900))),
+        if (isAdmin && onAdminSectionEdit != null && !editing)
+          TextButton(
+            key: Key('admin-section-edit-$title'),
+            onPressed: onAdminSectionEdit,
+            child: Text(context.t('ui_admin_edit_page'), style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.cta)),
+          ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -467,10 +657,17 @@ class _InfoColumn extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        Text(
-          product.title,
-          style: theme.headlineSmall.override(fontSize: 22, lineHeight: 28 / 22, fontWeight: FontWeight.w800),
-        ),
+        if (editing && titleCtrl != null)
+          TextField(
+            controller: titleCtrl,
+            style: theme.headlineSmall.override(fontSize: 22, lineHeight: 28 / 22, fontWeight: FontWeight.w800),
+            decoration: InputDecoration(labelText: context.t('ui_title')),
+          )
+        else
+          Text(
+            product.title,
+            style: theme.headlineSmall.override(fontSize: 22, lineHeight: 28 / 22, fontWeight: FontWeight.w800),
+          ),
         const SizedBox(height: 6),
         TGListingNoLine(product: product),
         const SizedBox(height: 12),
@@ -485,17 +682,51 @@ class _InfoColumn extends StatelessWidget {
         const SizedBox(height: 18),
         _FeaturedSpecs(product: product),
         const SizedBox(height: 20),
-        PdpTranslateBlock(
-          title: product.title,
-          description: product.description ?? '',
-          bodyStyle: theme.bodyMedium.override(color: theme.secondaryText, lineHeight: 1.6),
-          descOpen: descOpen,
-          onToggleDesc: onToggleDesc,
-        ),
+        if (editing && descCtrl != null) ...[
+          _sectionHead(context, context.t('ui_description')),
+          const SizedBox(height: 6),
+          TextField(
+            controller: descCtrl,
+            maxLines: 8,
+            decoration: InputDecoration(labelText: context.t('ui_description'), alignLabelWithHint: true),
+          ),
+        ] else
+          PdpTranslateBlock(
+            title: product.title,
+            description: product.description ?? '',
+            bodyStyle: theme.bodyMedium.override(color: theme.secondaryText, lineHeight: 1.6),
+            descOpen: descOpen,
+            onToggleDesc: onToggleDesc,
+            onAdminEdit: isAdmin ? onAdminSectionEdit : null,
+          ),
         const SizedBox(height: 8),
-        _SpecTable(product: product, expanded: specsOpen, onToggle: onToggleSpecs),
+        if (editing) ...[
+          _sectionHead(context, context.t('ui_specifications')),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.t('ui_delivery')),
+            value: delivery,
+            onChanged: onDelivery,
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.t('ui_pickup')),
+            value: pickup,
+            onChanged: onPickup,
+          ),
+        ] else
+          _SpecTable(
+            product: product,
+            expanded: specsOpen,
+            onToggle: onToggleSpecs,
+            onAdminEdit: isAdmin ? onAdminSectionEdit : null,
+          ),
         const SizedBox(height: 16),
-        _LocationDelivery(product: product),
+        if (editing && cityCtrl != null) ...[
+          _sectionHead(context, context.t('ui_location_delivery')),
+          TextField(controller: cityCtrl, decoration: InputDecoration(labelText: context.t('ui_city'))),
+        ] else
+          _LocationDelivery(product: product, onAdminEdit: isAdmin ? onAdminSectionEdit : null),
         const SizedBox(height: 12),
         _Accordion(
           title: context.t('ui_safety_tips'),
@@ -728,10 +959,11 @@ class _FeaturedSpecs extends StatelessWidget {
 }
 
 class _SpecTable extends StatelessWidget {
-  const _SpecTable({required this.product, required this.expanded, required this.onToggle});
+  const _SpecTable({required this.product, required this.expanded, required this.onToggle, this.onAdminEdit});
   final TGProduct product;
   final bool expanded;
   final VoidCallback onToggle;
+  final VoidCallback? onAdminEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -753,7 +985,13 @@ class _SpecTable extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(context.t('ui_specifications'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Row(
+          children: [
+            Expanded(child: Text(context.t('ui_specifications'), style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
+            if (onAdminEdit != null)
+              TextButton(onPressed: onAdminEdit, child: Text(context.t('ui_admin_edit_page'), style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.cta))),
+          ],
+        ),
         const SizedBox(height: 8),
         AnimatedSize(
           duration: tgAnim(context, const Duration(milliseconds: 200)),
@@ -794,8 +1032,9 @@ class _SpecTable extends StatelessWidget {
 }
 
 class _LocationDelivery extends StatelessWidget {
-  const _LocationDelivery({required this.product});
+  const _LocationDelivery({required this.product, this.onAdminEdit});
   final TGProduct product;
+  final VoidCallback? onAdminEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -811,7 +1050,13 @@ class _LocationDelivery extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(context.t('ui_location_delivery'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+          Row(
+            children: [
+              Expanded(child: Text(context.t('ui_location_delivery'), style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
+              if (onAdminEdit != null)
+                TextButton(onPressed: onAdminEdit, child: Text(context.t('ui_admin_edit_page'), style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.cta))),
+            ],
+          ),
           const SizedBox(height: 8),
           Text('${product.city}, ${product.voivodeship}', style: theme.bodyMedium.override(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
@@ -992,11 +1237,24 @@ class _ContactPanel extends StatelessWidget {
 }
 
 class _OwnerBar extends StatelessWidget {
-  const _OwnerBar({required this.product, required this.daysLeft, required this.onAction, required this.onRenew});
+  const _OwnerBar({
+    required this.product,
+    required this.daysLeft,
+    required this.editing,
+    required this.onEdit,
+    required this.onSave,
+    required this.onCancel,
+    required this.onRenew,
+    this.adminOnly = false,
+  });
   final TGProduct product;
   final int daysLeft;
-  final VoidCallback onAction;
+  final bool editing;
+  final VoidCallback onEdit;
+  final VoidCallback onSave;
+  final VoidCallback onCancel;
   final VoidCallback onRenew;
+  final bool adminOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -1017,28 +1275,33 @@ class _OwnerBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(context.t('ui_your_listing'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
           Text(
-            expired
-                ? context.t('ui_expired_ago', {'n': '${product.daysSinceExpiry().clamp(0, 999)}'})
-                : context.t('ui_days_left_n', {'n': '$daysLeft'}),
-            style: theme.bodySmall.override(color: expired || expiring ? TGColors.rating : theme.secondaryText),
+            adminOnly ? context.t('ui_admin_edit_page') : context.t('ui_your_listing'),
+            style: theme.titleSmall.override(fontWeight: FontWeight.w900),
           ),
-          if (!expired) ...[
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 6,
-                backgroundColor: theme.tertiary,
-                valueColor: AlwaysStoppedAnimation(expiring ? TGColors.rating : theme.primary),
-              ),
+          if (!adminOnly) ...[
+            const SizedBox(height: 4),
+            Text(
+              expired
+                  ? context.t('ui_expired_ago', {'n': '${product.daysSinceExpiry().clamp(0, 999)}'})
+                  : context.t('ui_days_left_n', {'n': '$daysLeft'}),
+              style: theme.bodySmall.override(color: expired || expiring ? TGColors.rating : theme.secondaryText),
             ),
+            if (!expired) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: theme.tertiary,
+                  valueColor: AlwaysStoppedAnimation(expiring ? TGColors.rating : theme.primary),
+                ),
+              ),
+            ],
           ],
           const SizedBox(height: 12),
-          if (expired)
+          if (!adminOnly && expired)
             TGButton(
               onPressed: onRenew,
               label: context.t('ui_renew_pln', {'fee': '${TGPricing.listingFeePln}'}),
@@ -1050,58 +1313,77 @@ class _OwnerBar extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                TGButton(
-                  onPressed: onAction,
-                  label: context.t('ui_edit'),
-                  height: 44,
-                  borderRadius: BorderRadius.circular(TGRadius.pill),
-                ),
-                PopupMenuButton<String>(
-                  tooltip: context.t('ui_promote'),
-                  onSelected: (v) {
-                    if (v == 'promote') onAction();
-                    if (v == 'banner') {
-                      context.go('/dashboard/advertising?target=${Uri.encodeComponent(product.detailPath)}');
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem(value: 'promote', child: Text(context.t('ui_promote'))),
-                    if (AdSlotService.instance.purchaseVisible)
-                      const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
-                  ],
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: theme.primary),
-                      borderRadius: BorderRadius.circular(TGRadius.pill),
-                    ),
-                    child: Text(context.t('ui_promote'), style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: theme.primary)),
-                  ),
-                ),
-                if (expiring)
+                if (editing) ...[
                   TGButton(
-                    onPressed: onAction,
+                    key: const Key('pdp-owner-save'),
+                    onPressed: onSave,
+                    label: context.t('ui_save'),
+                    height: 44,
+                    borderRadius: BorderRadius.circular(TGRadius.pill),
+                  ),
+                  TGButton(
+                    onPressed: onCancel,
+                    label: context.t('ui_cancel'),
+                    variant: TGButtonVariant.outline,
+                    height: 44,
+                    borderRadius: BorderRadius.circular(TGRadius.pill),
+                  ),
+                ] else
+                  TGButton(
+                    key: const Key('pdp-owner-edit'),
+                    onPressed: onEdit,
+                    label: context.t('ui_edit'),
+                    height: 44,
+                    borderRadius: BorderRadius.circular(TGRadius.pill),
+                  ),
+                if (!adminOnly && !product.isPromoted)
+                  PopupMenuButton<String>(
+                    tooltip: context.t('ui_promote'),
+                    onSelected: (v) {
+                      if (v == 'banner') {
+                        context.go('/dashboard/advertising?target=${Uri.encodeComponent(product.detailPath)}');
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      PopupMenuItem(value: 'promote', child: Text(context.t('ui_promote'))),
+                      if (AdSlotService.instance.purchaseVisible)
+                        PopupMenuItem(value: 'banner', child: Text(context.t('ui_admin_nav_ads'))),
+                    ],
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.primary),
+                        borderRadius: BorderRadius.circular(TGRadius.pill),
+                      ),
+                      child: Text(context.t('ui_promote'), style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: theme.primary)),
+                    ),
+                  ),
+                if (!adminOnly && expiring)
+                  TGButton(
+                    onPressed: onRenew,
                     label: context.t('ui_renew_early'),
                     variant: TGButtonVariant.outline,
                     height: 44,
                     borderRadius: BorderRadius.circular(TGRadius.pill),
                   ),
-                TGButton(
-                  onPressed: () => showSoldFlow(context, product, mode: SoldFlowMode.markSold),
-                  label: context.t('ui_mark_sold'),
-                  variant: TGButtonVariant.outline,
-                  height: 44,
-                  borderRadius: BorderRadius.circular(TGRadius.pill),
-                ),
-                TGButton(
-                  onPressed: () => showSoldFlow(context, product, mode: SoldFlowMode.removeListing),
-                  label: context.t('ui_remove_listing'),
-                  variant: TGButtonVariant.ghost,
-                  height: 44,
-                  borderRadius: BorderRadius.circular(TGRadius.pill),
-                ),
+                if (!adminOnly) ...[
+                  TGButton(
+                    onPressed: () => showSoldFlow(context, product, mode: SoldFlowMode.markSold),
+                    label: context.t('ui_mark_sold'),
+                    variant: TGButtonVariant.outline,
+                    height: 44,
+                    borderRadius: BorderRadius.circular(TGRadius.pill),
+                  ),
+                  TGButton(
+                    onPressed: () => showSoldFlow(context, product, mode: SoldFlowMode.removeListing),
+                    label: context.t('ui_remove_listing'),
+                    variant: TGButtonVariant.ghost,
+                    height: 44,
+                    borderRadius: BorderRadius.circular(TGRadius.pill),
+                  ),
+                ],
               ],
             ),
         ],

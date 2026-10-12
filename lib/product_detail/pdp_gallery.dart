@@ -23,6 +23,11 @@ class PdpGallery extends StatefulWidget {
     required this.onLightbox,
     this.showThumbnails = false,
     this.onReport,
+    this.editing = false,
+    this.onAddPhoto,
+    this.onRemovePhoto,
+    this.onSetCover,
+    this.onMovePhoto,
   });
 
   final TGProduct product;
@@ -34,6 +39,11 @@ class PdpGallery extends StatefulWidget {
   final ValueChanged<int> onLightbox;
   final bool showThumbnails;
   final VoidCallback? onReport;
+  final bool editing;
+  final VoidCallback? onAddPhoto;
+  final ValueChanged<int>? onRemovePhoto;
+  final ValueChanged<int>? onSetCover;
+  final void Function(int index, int delta)? onMovePhoto;
 
   @override
   State<PdpGallery> createState() => _PdpGalleryState();
@@ -131,36 +141,80 @@ class _PdpGalleryState extends State<PdpGallery> {
                       right: 8,
                       child: Row(
                         children: [
-                          _RoundIcon(
-                            icon: widget.favorite ? Icons.favorite : Icons.favorite_border,
-                            color: widget.favorite ? TGColors.accent : null,
-                            tooltip: widget.favorite ? context.t('ui_saved') : context.t('ui_saved'),
-                            onPressed: widget.onFavorite,
-                          ),
-                          const SizedBox(width: 8),
-                          _RoundIcon(
-                            icon: Icons.ios_share_rounded,
-                            tooltip: context.t('ui_share'),
-                            onPressed: () => showPdpShareMenu(context, widget.product),
-                          ),
-                          if (!widget.showThumbnails && widget.onReport != null) ...[
-                            const SizedBox(width: 8),
-                            PopupMenuButton<String>(
-                              key: const Key('pdp-report-overflow'),
-                              tooltip: context.t('ui_report_listing'),
-                              color: theme.secondaryBackground,
-                              onSelected: (v) {
-                                if (v == 'report') widget.onReport!();
-                              },
-                              itemBuilder: (ctx) => [
-                                PopupMenuItem(value: 'report', child: Text(ctx.t('ui_report_listing'))),
-                              ],
-                              child: const Material(
-                                color: Color(0x73000000),
-                                shape: CircleBorder(),
-                                child: SizedBox(width: 44, height: 44, child: Icon(Icons.more_horiz, color: Colors.white, size: 22)),
+                          if (widget.editing) ...[
+                            if (widget.onAddPhoto != null)
+                              _RoundIcon(
+                                key: const Key('pdp-gallery-add'),
+                                icon: Icons.add_a_photo_outlined,
+                                tooltip: context.t('ui_add_photo'),
+                                onPressed: widget.onAddPhoto!,
                               ),
+                            if (widget.onRemovePhoto != null && images.isNotEmpty && images.first.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              _RoundIcon(
+                                key: const Key('pdp-gallery-remove'),
+                                icon: Icons.delete_outline,
+                                tooltip: context.t('ui_remove_photo'),
+                                onPressed: () => widget.onRemovePhoto!(idx),
+                              ),
+                            ],
+                            if (widget.onSetCover != null && idx > 0) ...[
+                              const SizedBox(width: 8),
+                              _RoundIcon(
+                                key: const Key('pdp-gallery-cover'),
+                                icon: Icons.photo_library_outlined,
+                                tooltip: context.t('ui_set_as_cover'),
+                                onPressed: () => widget.onSetCover!(idx),
+                              ),
+                            ],
+                            if (widget.onMovePhoto != null && idx > 0) ...[
+                              const SizedBox(width: 8),
+                              _RoundIcon(
+                                icon: Icons.chevron_left,
+                                tooltip: context.t('ui_move_left'),
+                                onPressed: () => widget.onMovePhoto!(idx, -1),
+                              ),
+                            ],
+                            if (widget.onMovePhoto != null && idx < n - 1) ...[
+                              const SizedBox(width: 8),
+                              _RoundIcon(
+                                icon: Icons.chevron_right,
+                                tooltip: context.t('ui_move_right'),
+                                onPressed: () => widget.onMovePhoto!(idx, 1),
+                              ),
+                            ],
+                          ] else ...[
+                            _RoundIcon(
+                              icon: widget.favorite ? Icons.favorite : Icons.favorite_border,
+                              color: widget.favorite ? TGColors.accent : null,
+                              tooltip: widget.favorite ? context.t('ui_saved') : context.t('ui_saved'),
+                              onPressed: widget.onFavorite,
                             ),
+                            const SizedBox(width: 8),
+                            _RoundIcon(
+                              icon: Icons.ios_share_rounded,
+                              tooltip: context.t('ui_share'),
+                              onPressed: () => showPdpShareMenu(context, widget.product),
+                            ),
+                            if (!widget.showThumbnails && widget.onReport != null) ...[
+                              const SizedBox(width: 8),
+                              PopupMenuButton<String>(
+                                key: const Key('pdp-report-overflow'),
+                                tooltip: context.t('ui_report_listing'),
+                                color: theme.secondaryBackground,
+                                onSelected: (v) {
+                                  if (v == 'report') widget.onReport!();
+                                },
+                                itemBuilder: (ctx) => [
+                                  PopupMenuItem(value: 'report', child: Text(ctx.t('ui_report_listing'))),
+                                ],
+                                child: const Material(
+                                  color: Color(0x73000000),
+                                  shape: CircleBorder(),
+                                  child: SizedBox(width: 44, height: 44, child: Icon(Icons.more_horiz, color: Colors.white, size: 22)),
+                                ),
+                              ),
+                            ],
                           ],
                         ],
                       ),
@@ -303,7 +357,7 @@ class _Pill extends StatelessWidget {
 }
 
 class _RoundIcon extends StatefulWidget {
-  const _RoundIcon({required this.icon, required this.onPressed, this.tooltip, this.color});
+  const _RoundIcon({super.key, required this.icon, required this.onPressed, this.tooltip, this.color});
   final IconData icon;
   final VoidCallback onPressed;
   final String? tooltip;
