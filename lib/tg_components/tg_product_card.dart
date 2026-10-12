@@ -14,7 +14,10 @@ import 'package:twoja_gastromania/tg_core/tg_contact.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 
 export 'package:twoja_gastromania/tg_models/tg_product.dart' show TGProductCardLayout;
@@ -56,12 +59,24 @@ class TGProductCard extends StatefulWidget {
     this.layout = TGProductCardLayout.grid,
     this.onFavoriteChanged,
     this.showSeller = true,
+    this.promotionTier,
+    this.forceFeaturedBadge = false,
+    this.isPromoRepeat = false,
   });
 
   final TGProduct product;
   final TGProductCardLayout layout;
   final ValueChanged<bool>? onFavoriteChanged;
   final bool showSeller;
+
+  /// When null, resolved from [PromotionService] / legacy [TGProduct.isPromoted].
+  final PromotionTier? promotionTier;
+
+  /// Homepage featured strip: always show ÖNE ÇIKAN even if tier lookup is glow/spotlight.
+  final bool forceFeaturedBadge;
+
+  /// Spotlight repeat slot — exposed to screen readers.
+  final bool isPromoRepeat;
 
   /// Total height of a grid card that is [cardWidth] wide.
   ///
@@ -127,30 +142,81 @@ class _TGProductCardState extends State<TGProductCard> with SingleTickerProvider
     );
   }
 
+  PromotionTier? get _tier {
+    if (widget.promotionTier != null) return widget.promotionTier;
+    return PromotionService.instance.effectiveListingPromo(widget.product)?.tier;
+  }
+
+  bool get _titleBold {
+    final t = _tier;
+    return t == PromotionTier.bold || t == PromotionTier.spotlight;
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
     final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final animateNowy =
         !reduceMotion && product.condition == TGCondition.newItem && _NowyRibbonSession.shouldAnimate(product.id);
+    final tier = _tier;
+    final showFeatured = widget.forceFeaturedBadge || tier == PromotionTier.glow || tier == PromotionTier.spotlight;
+    final showSponsored = tier == PromotionTier.bold && PromotionService.instance.config.labelBold;
 
     final fav = _FavoriteButton(active: _favorite, controller: _favController, onPressed: _toggleFavorite);
 
     Widget body;
     if (widget.layout == TGProductCardLayout.grid) {
-      body = _GridBody(product: product, favorite: fav, animateNowy: animateNowy, showSeller: widget.showSeller);
+      body = _GridBody(
+        product: product,
+        favorite: fav,
+        animateNowy: animateNowy,
+        showSeller: widget.showSeller,
+        titleBold: _titleBold,
+        showFeaturedBadge: showFeatured,
+        showSponsoredChip: showSponsored,
+      );
     } else {
       body = LayoutBuilder(
         builder: (context, c) => c.maxWidth >= kTGListWideMinWidth
-            ? _WideListBody(product: product, favorite: fav, animateNowy: animateNowy, onOpen: _open, showSeller: widget.showSeller)
-            : _CompactListBody(product: product, favorite: fav, animateNowy: animateNowy, showSeller: widget.showSeller),
+            ? _WideListBody(
+                product: product,
+                favorite: fav,
+                animateNowy: animateNowy,
+                onOpen: _open,
+                showSeller: widget.showSeller,
+                titleBold: _titleBold,
+                showFeaturedBadge: showFeatured,
+                showSponsoredChip: showSponsored,
+              )
+            : _CompactListBody(
+                product: product,
+                favorite: fav,
+                animateNowy: animateNowy,
+                showSeller: widget.showSeller,
+                titleBold: _titleBold,
+                showFeaturedBadge: showFeatured,
+                showSponsoredChip: showSponsored,
+              ),
       );
     }
+
+    final label = [
+      if (widget.isPromoRepeat) context.t('ui_promo_repeat_a11y'),
+      if (showFeatured) context.t('ui_promoted_badge'),
+      if (showSponsored) context.t('ui_sponsored'),
+      product.title,
+    ].join('. ');
 
     return MediaQuery.withClampedTextScaling(
       minScaleFactor: 1,
       maxScaleFactor: _kMaxCardTextScale,
-      child: TGHoverCard(gradientBorder: product.isPromoted, onTap: _open, semanticLabel: product.title, child: body),
+      child: TGHoverCard(
+        gradientBorder: product.isPromoted && tier == null,
+        tier: tier,
+        onTap: _open,
+        semanticLabel: label,
+        child: body,
+      ),
     );
   }
 }
@@ -160,17 +226,29 @@ class _TGProductCardState extends State<TGProductCard> with SingleTickerProvider
 // ---------------------------------------------------------------------------
 
 class _GridBody extends StatelessWidget {
-  const _GridBody({required this.product, required this.favorite, required this.animateNowy, this.showSeller = true});
+  const _GridBody({
+    required this.product,
+    required this.favorite,
+    required this.animateNowy,
+    this.showSeller = true,
+    this.titleBold = false,
+    this.showFeaturedBadge = false,
+    this.showSponsoredChip = false,
+  });
 
   final TGProduct product;
   final Widget favorite;
   final bool animateNowy;
   final bool showSeller;
+  final bool titleBold;
+  final bool showFeaturedBadge;
+  final bool showSponsoredChip;
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final scale = _cardScale(MediaQuery.textScalerOf(context));
+    final badgeBottom = showFeaturedBadge || showSponsoredChip;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -183,9 +261,10 @@ class _GridBody extends StatelessWidget {
               _ProductImage(imageUrl: product.displayImageUrl),
               Positioned(top: 10, left: 10, child: _ConditionPill(condition: product.condition, animateIn: animateNowy)),
               Positioned(top: 10, right: 10, child: favorite),
-              if (product.isPromoted) const Positioned(left: 10, bottom: 10, child: _PromotedPill()),
+              if (showFeaturedBadge) const Positioned(left: 10, bottom: 10, child: _PromotedPill()),
+              if (showSponsoredChip && !showFeaturedBadge) const Positioned(left: 10, bottom: 10, child: _SponsoredChip()),
               if (product.status == TGListingStatus.expired)
-                Positioned(left: 10, bottom: product.isPromoted ? 42 : 10, child: const _InactivePill()),
+                Positioned(left: 10, bottom: badgeBottom ? 42 : 10, child: const _InactivePill()),
               Positioned(right: 10, bottom: 10, child: _PhotoCountPill(count: product.photoCount)),
             ],
           ),
@@ -201,7 +280,11 @@ class _GridBody extends StatelessWidget {
                   product.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.titleMedium.override(fontSize: 16, fontWeight: FontWeight.w600, lineHeight: 1.3),
+                  style: theme.titleMedium.override(
+                    fontSize: 16,
+                    fontWeight: titleBold ? FontWeight.w700 : FontWeight.w500,
+                    lineHeight: 1.3,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 _PriceRow(product: product),
@@ -227,17 +310,30 @@ class _GridBody extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _WideListBody extends StatelessWidget {
-  const _WideListBody({required this.product, required this.favorite, required this.animateNowy, required this.onOpen, this.showSeller = true});
+  const _WideListBody({
+    required this.product,
+    required this.favorite,
+    required this.animateNowy,
+    required this.onOpen,
+    this.showSeller = true,
+    this.titleBold = false,
+    this.showFeaturedBadge = false,
+    this.showSponsoredChip = false,
+  });
 
   final TGProduct product;
   final Widget favorite;
   final bool animateNowy;
   final VoidCallback onOpen;
   final bool showSeller;
+  final bool titleBold;
+  final bool showFeaturedBadge;
+  final bool showSponsoredChip;
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
+    final badgeBottom = showFeaturedBadge || showSponsoredChip;
     return SizedBox(
       height: kTGListWideHeight,
       child: Padding(
@@ -255,9 +351,10 @@ class _WideListBody extends StatelessWidget {
                     _ProductImage(imageUrl: product.displayImageUrl),
                     Positioned(top: 10, left: 10, child: _ConditionPill(condition: product.condition, animateIn: animateNowy)),
                     Positioned(top: 10, right: 10, child: favorite),
-                    if (product.isPromoted) const Positioned(left: 10, bottom: 10, child: _PromotedPill()),
+                    if (showFeaturedBadge) const Positioned(left: 10, bottom: 10, child: _PromotedPill()),
+                    if (showSponsoredChip && !showFeaturedBadge) const Positioned(left: 10, bottom: 10, child: _SponsoredChip()),
                     if (product.status == TGListingStatus.expired)
-                      Positioned(left: 10, bottom: product.isPromoted ? 42 : 10, child: const _InactivePill()),
+                      Positioned(left: 10, bottom: badgeBottom ? 42 : 10, child: const _InactivePill()),
                     Positioned(right: 10, bottom: 10, child: _PhotoCountPill(count: product.photoCount)),
                   ],
                 ),
@@ -272,7 +369,10 @@ class _WideListBody extends StatelessWidget {
                     product.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.titleLarge.override(fontWeight: FontWeight.w700, lineHeight: 1.2),
+                    style: theme.titleLarge.override(
+                      fontWeight: titleBold ? FontWeight.w700 : FontWeight.w500,
+                      lineHeight: 1.2,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   TGListingNoPlain(product: product),
@@ -318,12 +418,23 @@ class _WideListBody extends StatelessWidget {
 }
 
 class _CompactListBody extends StatelessWidget {
-  const _CompactListBody({required this.product, required this.favorite, required this.animateNowy, this.showSeller = true});
+  const _CompactListBody({
+    required this.product,
+    required this.favorite,
+    required this.animateNowy,
+    this.showSeller = true,
+    this.titleBold = false,
+    this.showFeaturedBadge = false,
+    this.showSponsoredChip = false,
+  });
 
   final TGProduct product;
   final Widget favorite;
   final bool animateNowy;
   final bool showSeller;
+  final bool titleBold;
+  final bool showFeaturedBadge;
+  final bool showSponsoredChip;
 
   @override
   Widget build(BuildContext context) {
@@ -347,7 +458,8 @@ class _CompactListBody extends StatelessWidget {
                       children: [
                         _ProductImage(imageUrl: product.displayImageUrl),
                         Positioned(top: 8, left: 8, child: _ConditionPill(condition: product.condition, compact: true, animateIn: animateNowy)),
-                        if (product.isPromoted) const Positioned(left: 6, bottom: 6, child: _PromotedPill(compact: true)),
+                        if (showFeaturedBadge) const Positioned(left: 6, bottom: 6, child: _PromotedPill(compact: true)),
+                        if (showSponsoredChip && !showFeaturedBadge) const Positioned(left: 6, bottom: 6, child: _SponsoredChip(compact: true)),
                         if (product.status == TGListingStatus.expired)
                           const Positioned(left: 6, bottom: 6, child: _InactivePill(compact: true)),
                       ],
@@ -365,7 +477,10 @@ class _CompactListBody extends StatelessWidget {
                           product.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.titleSmall.override(fontWeight: FontWeight.w700, lineHeight: 1.2),
+                          style: theme.titleSmall.override(
+                            fontWeight: titleBold ? FontWeight.w700 : FontWeight.w500,
+                            lineHeight: 1.2,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -514,7 +629,7 @@ class _InactivePill extends StatelessWidget {
   }
 }
 
-/// Pink "promoted" badge (design token: accent).
+/// Pink "ÖNE ÇIKAN / FEATURED" badge — dark text for contrast (VITRIN-1).
 class _PromotedPill extends StatelessWidget {
   const _PromotedPill({this.compact = false});
   final bool compact;
@@ -522,16 +637,50 @@ class _PromotedPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 10, vertical: compact ? 4 : 6),
-      decoration: BoxDecoration(color: theme.secondary, borderRadius: BorderRadius.circular(TGRadius.pill)),
-      child: Text(
-        context.t('ui_promoted_badge'),
-        style: theme.labelSmall.override(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-          letterSpacing: compact ? 0.1 : 0.4,
-          fontSize: compact ? 9 : 11,
+    return Semantics(
+      label: context.t('ui_promoted_badge'),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 10, vertical: compact ? 4 : 6),
+        decoration: BoxDecoration(color: theme.secondary, borderRadius: BorderRadius.circular(TGRadius.pill)),
+        child: Text(
+          context.t('ui_promoted_badge'),
+          style: theme.labelSmall.override(
+            color: theme.primaryText,
+            fontWeight: FontWeight.w800,
+            letterSpacing: compact ? 0.1 : 0.4,
+            fontSize: compact ? 9 : 11,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Outline "SPONSORLU" chip for Bold tier when labelBold is on.
+class _SponsoredChip extends StatelessWidget {
+  const _SponsoredChip({this.compact = false});
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    return Semantics(
+      label: context.t('ui_sponsored'),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: compact ? 3 : 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(TGRadius.pill),
+          border: Border.all(color: theme.secondaryText.withValues(alpha: 0.7)),
+          color: theme.secondaryBackground.withValues(alpha: 0.85),
+        ),
+        child: Text(
+          context.t('ui_sponsored'),
+          style: theme.labelSmall.override(
+            color: theme.primaryText,
+            fontWeight: FontWeight.w700,
+            fontSize: compact ? 8 : 10,
+            letterSpacing: 0.2,
+          ),
         ),
       ),
     );
@@ -760,9 +909,9 @@ class _SellerLine extends StatelessWidget {
       onTap: () => context.push(TGSellerProfileService.instance.pathForSellerId(seller.id)),
       child: Row(
         children: [
-          if (seller.verified) ...[
+          if (tgShowsVerifiedSellerBadge(seller)) ...[
             Tooltip(
-              message: 'Verified seller',
+              message: context.t('ui_verified_seller'),
               child: Icon(Icons.verified_user, size: 16, color: theme.success),
             ),
             const SizedBox(width: 6),

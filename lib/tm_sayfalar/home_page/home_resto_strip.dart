@@ -5,15 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_card.dart';
-import 'package:twoja_gastromania/restaurants/restaurant_logic.dart';
 import 'package:twoja_gastromania/tm_sayfalar/home_page/home_sections.dart';
+import 'package:twoja_gastromania/tg_core/promotion_engine.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
-/// Homepage "Restaurants for Sale" — promoted first, up to 8, horizontal scroll.
+/// Homepage "Restaurants for Sale" — Spotlight → Glow, max homeRestaurantMax (RESTO-5 / VITRIN-1).
 class HomeRestaurantsStrip extends StatefulWidget {
   const HomeRestaurantsStrip({super.key});
 
@@ -22,7 +23,6 @@ class HomeRestaurantsStrip extends StatefulWidget {
 }
 
 class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
-  static const int _limit = 8;
   static const Duration _autoEvery = Duration(seconds: 3);
 
   final ScrollController _scroll = ScrollController();
@@ -34,11 +34,17 @@ class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
   static const double _gap = 14;
 
   List<RestaurantListing> _pick() {
+    PromotionService.instance.ensureSeeded();
     final now = TGClock.now();
     final seed = now.day * 17 + now.month;
     final public = RestaurantService.instance.publicListings;
-    // Hide the whole strip when there are no active promoted listings.
-    return pickPromotedRestaurants(public.where((r) => r.isPromoted), seed: seed, limit: _limit);
+    final slots = PromotionEngine.composeHomeRestaurant<RestaurantListing>(
+      candidates: public,
+      idOf: (r) => r.id,
+      promoOf: (r) => PromotionService.instance.effectiveRestaurantPromo(r),
+      sessionSeed: seed,
+    );
+    return [for (final s in slots) s.item];
   }
 
   @override

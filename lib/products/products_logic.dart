@@ -2,11 +2,15 @@ import 'dart:math';
 
 import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/products/tg_geo.dart';
+import 'package:twoja_gastromania/tg_core/promotion_engine.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 
-/// How many promoted listings are pinned above the organic results.
-const int kPromotedSlots = 3;
+/// Legacy constant — catalogue pinned capacity now comes from [PromotionConfig].
+@Deprecated('Use PromotionConfig.pinnedMaxOnSort / composeCatalogue')
+const int kPromotedSlots = 6;
 
 // ---------------------------------------------------------------------------
 // Price helpers. Filters always compare on a *net* basis so a brutto and a
@@ -159,21 +163,27 @@ List<TGProduct> sortProducts(Iterable<TGProduct> input, TGProductsQueryState q) 
 // Promoted listings
 // ---------------------------------------------------------------------------
 
-/// Picks up to [limit] promoted listings out of [filtered].
-///
-/// Promoted listings obey the active filters (a promoted fridge never shows up
-/// in a "Rent" search) but are NEVER re-ordered by the sort option – they are
-/// rotated with a per-session [seed] so every promoted seller gets exposure.
-List<TGProduct> pickPromoted(Iterable<TGProduct> filtered, {required int seed, int limit = kPromotedSlots}) {
-  final promoted = filtered.where((p) => p.isPromoted).toList()..sort((a, b) => a.id.compareTo(b.id));
-  if (promoted.isEmpty) return const [];
-  promoted.shuffle(Random(seed));
-  return promoted.take(limit).toList(growable: false);
+/// Picks promoted listings (legacy helper). Prefer [computeResults] / engine.
+List<TGProduct> pickPromoted(Iterable<TGProduct> filtered, {required int seed, int limit = 40}) {
+  PromotionService.instance.ensureSeeded();
+  final list = filtered.toList();
+  final slots = PromotionEngine.composeCatalogue<TGProduct>(
+    filteredOrganic: list,
+    idOf: (p) => p.id,
+    promoOf: (p) => PromotionService.instance.effectiveListingPromo(p),
+    context: PromotionComposeContext(
+      surface: PromotionSurface.products,
+      sort: PromotionSortMode.recommended,
+      page: 1,
+      sessionSeed: seed,
+    ),
+  ).pinned;
+  return [for (final s in slots.take(limit)) s.item];
 }
 
 /// Filtered results split into the sticky promoted block and the sorted rest.
 class TGProductResults {
-  const TGProductResults({required this.promoted, required this.organic});
+  const TGProductResults({required this.promoted, required this.organic, this.promoById = const {}});
 
   static const empty = TGProductResults(promoted: [], organic: []);
 
@@ -183,6 +193,9 @@ class TGProductResults {
   /// Everything else, in the requested sort order.
   final List<TGProduct> organic;
 
+  /// Tier lookup for card chrome.
+  final Map<String, PromotionTier?> promoById;
+
   /// Total number of matching listings (promoted + organic).
   int get total => promoted.length + organic.length;
 }
@@ -191,12 +204,32 @@ TGProductResults computeResults(
   Iterable<TGProduct> all,
   TGProductsQueryState q, {
   required int promotedSeed,
+  int page = 1,
 }) {
+  PromotionService.instance.ensureSeeded();
   final filtered = applyFilters(all, q);
-  final promoted = pickPromoted(filtered, seed: promotedSeed);
-  final promotedIds = promoted.map((p) => p.id).toSet();
-  final organic = sortProducts(filtered.where((p) => !promotedIds.contains(p.id)), q);
-  return TGProductResults(promoted: promoted, organic: organic);
+  final sortMode = q.sort == TGProductsSort.recommended ? PromotionSortMode.recommended : PromotionSortMode.other;
+  final sortedOrganic = sortProducts(filtered, q);
+  final composed = PromotionEngine.composeCatalogue<TGProduct>(
+    filteredOrganic: sortedOrganic,
+    idOf: (p) => p.id,
+    promoOf: (p) => PromotionService.instance.effectiveListingPromo(p),
+    context: PromotionComposeContext(
+      surface: PromotionSurface.products,
+      sort: sortMode,
+      page: page,
+      sessionSeed: promotedSeed,
+    ),
+  );
+  final promoById = <String, PromotionTier?>{
+    for (final s in [...composed.pinned, ...composed.feed])
+      if (s.promotion != null) s.item.id: s.promotion!.tier,
+  };
+  return TGProductResults(
+    promoted: [for (final s in composed.pinned) s.item],
+    organic: [for (final s in composed.feed) s.item],
+    promoById: promoById,
+  );
 }
 
 /// Total number of results [q] would show – used for the live counter in the

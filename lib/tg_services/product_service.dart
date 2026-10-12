@@ -16,6 +16,9 @@ class TGProductService {
 
   List<TGProduct>? _cache;
 
+  /// Sync snapshot when catalogue already loaded (homepage / promo seed).
+  List<TGProduct> get cachedAll => List.unmodifiable(_cache ?? const []);
+
   TGProduct? cachedByNo(String no) => _cache?.where((p) => p.listingNo == no).firstOrNull;
 
   static const Duration _prefsTimeout = Duration(seconds: 2);

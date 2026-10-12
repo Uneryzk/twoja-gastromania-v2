@@ -35,6 +35,7 @@ import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_robots.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/admin/pdp_moderator_bar.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
@@ -649,7 +650,7 @@ class _InfoColumn extends StatelessWidget {
           runSpacing: 8,
           children: [
             if (product.isPromoted) const TGPromotedBadge(),
-            if (product.seller.verified) const TGVerifiedSellerBadge(),
+            if (tgShowsVerifiedSellerBadge(product.seller)) const TGVerifiedSellerBadge(),
             if (product.negotiable)
               const _MiniChip(label: 'do negocjacji'),
             if (product.listingType == TGListingType.rent)
@@ -865,7 +866,7 @@ class _SellerStrip extends StatelessWidget {
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          if (s.verified) const TGVerifiedSellerBadge(),
+                          if (tgShowsVerifiedSellerBadge(s)) const TGVerifiedSellerBadge(),
                           TGRatingStars(rating: s.rating, size: 14),
                         ],
                       ),

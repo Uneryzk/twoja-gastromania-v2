@@ -15,6 +15,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_models/tg_ad_slot.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
@@ -610,13 +611,14 @@ class _CategoryCard extends StatelessWidget {
 // Promoted / featured listings (private-seller first catalogue strip)
 // ---------------------------------------------------------------------------
 
-/// Homepage featured products:
-/// - desktop: 5 cards wide
-/// - ≤5: static row · 6–10: two rows · >10: auto-scroll (2s) + manual
+/// Homepage featured products (VITRIN-1):
+/// Spotlight → Glow only; every card shows ÖNE ÇIKAN; no auto-advance.
+/// Desktop: 5 cards wide · ≤5 static · 6–10 two rows · >10 manual carousel.
 class HomePromotedSection extends StatefulWidget {
-  const HomePromotedSection({super.key, required this.products});
+  const HomePromotedSection({super.key, required this.products, this.tiers = const {}});
 
   final List<TGProduct> products;
+  final Map<String, PromotionTier?> tiers;
 
   @override
   State<HomePromotedSection> createState() => _HomePromotedSectionState();
@@ -624,48 +626,14 @@ class HomePromotedSection extends StatefulWidget {
 
 class _HomePromotedSectionState extends State<HomePromotedSection> {
   static const int _desktopVisible = 5;
-  static const Duration _autoEvery = Duration(seconds: 2);
 
   final ScrollController _scroll = ScrollController();
-  Timer? _timer;
-  bool _paused = false;
-  bool _timerArmed = false;
   double _cardStep = 0;
 
   @override
-  void didUpdateWidget(covariant HomePromotedSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.products.length != widget.products.length) {
-      _timerArmed = false;
-      _timer?.cancel();
-    }
-  }
-
-  @override
   void dispose() {
-    _timer?.cancel();
     _scroll.dispose();
     super.dispose();
-  }
-
-  void _armTimer(bool reduce) {
-    if (_timerArmed) return;
-    _timerArmed = true;
-    _timer?.cancel();
-    if (reduce || widget.products.length <= 10) {
-      _timer = null;
-      return;
-    }
-    _timer = Timer.periodic(_autoEvery, (_) => _advance());
-  }
-
-  void _advance() {
-    if (_paused || !mounted || !_scroll.hasClients || _cardStep <= 0) return;
-    final max = _scroll.position.maxScrollExtent;
-    if (max <= 0) return;
-    var next = _scroll.offset + _cardStep;
-    if (next > max + 1) next = 0;
-    _scroll.animateTo(next.clamp(0.0, max), duration: const Duration(milliseconds: 420), curve: Curves.easeOutCubic);
   }
 
   void _nudge(double dir) {
@@ -675,12 +643,19 @@ class _HomePromotedSectionState extends State<HomePromotedSection> {
     _scroll.animateTo(next, duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
   }
 
+  Widget _card(TGProduct p) {
+    return TGProductCard(
+      product: p,
+      promotionTier: widget.tiers[p.id],
+      forceFeaturedBadge: true,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final products = widget.products;
     if (products.isEmpty) return const SizedBox.shrink();
     final theme = FlutterFlowTheme.of(context);
-    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -715,13 +690,12 @@ class _HomePromotedSectionState extends State<HomePromotedSection> {
                   padding: const EdgeInsets.only(top: 8, bottom: 16),
                   itemCount: products.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 14),
-                  itemBuilder: (_, i) => SizedBox(width: cardW, child: TGProductCard(product: products[i])),
+                  itemBuilder: (_, i) => SizedBox(width: cardW, child: _card(products[i])),
                 ),
               );
             }
 
             final n = products.length;
-            // 6–10 → two static rows of up to 5.
             if (n <= 10) {
               final row1 = products.take(_desktopVisible).toList();
               final row2 = n > _desktopVisible ? products.skip(_desktopVisible).take(_desktopVisible).toList() : const <TGProduct>[];
@@ -732,7 +706,7 @@ class _HomePromotedSectionState extends State<HomePromotedSection> {
                     children: [
                       for (var i = 0; i < items.length; i++) ...[
                         if (i > 0) const SizedBox(width: kTGGridGutter),
-                        SizedBox(width: cardW, height: h, child: TGProductCard(product: items[i])),
+                        SizedBox(width: cardW, height: h, child: _card(items[i])),
                       ],
                     ],
                   );
@@ -745,56 +719,32 @@ class _HomePromotedSectionState extends State<HomePromotedSection> {
               );
             }
 
-            // >10 → horizontal carousel, 5 visible, auto 2s + manual.
+            // >10 → manual carousel only (no auto-advance). Arrows outside card text.
             final cardW = (c.maxWidth - kTGGridGutter * (_desktopVisible - 1)) / _desktopVisible;
             _cardStep = cardW + kTGGridGutter;
             final h = TGProductCard.gridExtent(cardW, scaler);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) _armTimer(reduce);
-            });
-            return MouseRegion(
-              onEnter: (_) => _paused = true,
-              onExit: (_) => _paused = false,
-              child: Stack(
-                children: [
-                  SizedBox(
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _ArrowButton(icon: Icons.chevron_left_rounded, label: 'Previous', onTap: () => _nudge(-1)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
                     height: h + 16,
                     child: ListView.separated(
                       controller: _scroll,
                       scrollDirection: Axis.horizontal,
                       clipBehavior: Clip.hardEdge,
-                      padding: const EdgeInsets.only(top: 4, bottom: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                       itemCount: products.length,
                       separatorBuilder: (_, __) => const SizedBox(width: kTGGridGutter),
-                      itemBuilder: (_, i) => SizedBox(width: cardW, height: h, child: TGProductCard(product: products[i])),
+                      itemBuilder: (_, i) => SizedBox(width: cardW, height: h, child: _card(products[i])),
                     ),
                   ),
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    bottom: 12,
-                    child: Center(
-                      child: _ArrowButton(
-                        icon: Icons.chevron_left_rounded,
-                        label: 'Previous',
-                        onTap: () => _nudge(-1),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 12,
-                    child: Center(
-                      child: _ArrowButton(
-                        icon: Icons.chevron_right_rounded,
-                        label: 'Next',
-                        onTap: () => _nudge(1),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                _ArrowButton(icon: Icons.chevron_right_rounded, label: 'Next', onTap: () => _nudge(1)),
+              ],
             );
           },
         ),

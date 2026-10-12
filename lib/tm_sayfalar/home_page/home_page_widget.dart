@@ -8,8 +8,11 @@ import 'package:twoja_gastromania/tg_components/tg_search_field.dart';
 import 'package:twoja_gastromania/tg_components/tg_top_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_core/promotion_engine.dart';
+import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'home_page_model.dart';
 import 'home_resto_strip.dart';
 import 'home_sections.dart';
@@ -62,17 +65,19 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final pad = phone ? 16.0 : 24.0;
 
-    // Promoted first, then active listings (private sellers preferred). Cap 20 for homepage.
+    // VITRIN-1: homepage featured = Spotlight → Glow only (no Bold, no organic fillers).
+    PromotionService.instance.ensureSeeded();
     final active = _all.where((p) => p.isActive && p.isPubliclyVisible).toList();
-    final featured = [
-      ...active.where((p) => p.isPromoted),
-      ...active.where((p) => !p.isPromoted).toList()
-        ..sort((a, b) {
-          final ap = a.seller.type == TGSellerType.private ? 0 : 1;
-          final bp = b.seller.type == TGSellerType.private ? 0 : 1;
-          return ap.compareTo(bp);
-        }),
-    ].take(20).toList();
+    final now = TGClock.now();
+    final sessionSeed = now.day * 17 + now.month * 3;
+    final featuredSlots = PromotionEngine.composeHomeFeatured<TGProduct>(
+      candidates: active,
+      idOf: (p) => p.id,
+      promoOf: (p) => PromotionService.instance.effectiveListingPromo(p),
+      sessionSeed: sessionSeed,
+    );
+    // Production mode: never fill with unpaid mock/organic cards.
+    final featured = featuredSlots.map((s) => s.item).toList();
     final counts = {for (final c in TGCategory.values) c: _all.where((p) => p.isPubliclyVisible && p.category == c).length};
 
     Widget section(Widget child, {double top = 56}) => Center(
@@ -114,7 +119,13 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   top: 12,
                 ),
                 section(HomeCategorySection(listingCounts: counts)),
-                if (featured.isNotEmpty) section(HomePromotedSection(products: featured)),
+                if (featured.isNotEmpty)
+                  section(HomePromotedSection(
+                    products: featured,
+                    tiers: {
+                      for (final s in featuredSlots) s.item.id: s.promotion?.tier,
+                    },
+                  )),
                 section(const HomeRestaurantsStrip()),
                 section(const HomeBestSellers()),
                 section(const HomeStatsSection()),
