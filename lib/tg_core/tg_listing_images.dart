@@ -10,8 +10,9 @@ class TGListingImages {
   TGListingImages._();
 
   /// When true, theme/title auto-matching returns empty (or primary-only).
+  /// Off: seed / empty listings get a local asset matched by title + category.
   /// Category covers and hero slides stay available as a fixed asset library.
-  static const bool kDisableDynamicListingImages = true;
+  static const bool kDisableDynamicListingImages = false;
 
   // ---------------------------------------------------------------------------
   // Category → local asset
@@ -281,16 +282,16 @@ class TGListingImages {
     required int count,
     String? primary,
   }) {
+    if (pool.isEmpty) return primary != null && primary.isNotEmpty ? [primary] : const [];
     final n = count.clamp(1, 12);
-    final out = <String>[if (primary != null) primary else pool.first];
+    final out = <String>[];
+    if (primary != null && primary.isNotEmpty) out.add(primary);
     final start = id.hashCode.abs();
     for (var i = 0; i < pool.length && out.length < n; i++) {
       final next = pool[(start + i) % pool.length];
       if (!out.contains(next)) out.add(next);
     }
-    while (out.length < n) {
-      out.add(out.first);
-    }
+    if (out.isEmpty) out.add(pool.first);
     return out;
   }
 
