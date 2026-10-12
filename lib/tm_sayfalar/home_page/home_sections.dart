@@ -17,6 +17,7 @@ import 'package:twoja_gastromania/tg_models/tg_ad_slot.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
 /// Section heading used on the home page.
@@ -102,6 +103,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
   Timer? _timer;
   int _index = 0;
   bool _paused = false;
+  bool _focusPaused = false;
   final Set<String> _impressed = {};
 
   List<_HeroSlide> _organic() => [
@@ -115,17 +117,18 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
   List<_HeroSlide> _compose() {
     final organic = _organic();
     final ads = AdSlotService.instance.liveSlides;
+    final maxAds = AdSlotService.instance.maxPerDay;
     if (ads.isEmpty) return organic;
     final out = <_HeroSlide>[];
     var si = 0;
     for (var i = 0; i < organic.length; i++) {
       out.add(organic[i]);
-      if (si < ads.length && si < 3) {
+      if (si < ads.length && si < maxAds) {
         final a = ads[si++];
         out.add(_HeroSlide.sponsored(ad: a, image: a.imageUrl, title: a.title, targetUrl: a.targetUrl));
       }
     }
-    while (si < ads.length && si < 3) {
+    while (si < ads.length && si < maxAds) {
       final a = ads[si++];
       out.add(_HeroSlide.sponsored(ad: a, image: a.imageUrl, title: a.title, targetUrl: a.targetUrl));
     }
@@ -160,7 +163,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
   }
 
   void _advance() {
-    if (_paused || !mounted || !_controller.hasClients) return;
+    if (_paused || _focusPaused || !mounted || !_controller.hasClients) return;
     final n = _compose().length;
     if (n == 0) return;
     _goTo((_index + 1) % n);
@@ -208,7 +211,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
         final phone = c.maxWidth < TGBreakpoints.phone;
         final height = (c.maxWidth * (phone ? 0.78 : 0.36)).clamp(280.0, 440.0);
         return Semantics(
-          label: 'Homepage hero carousel',
+          label: context.t('ui_hero_carousel_sem'),
           child: MouseRegion(
             onEnter: (_) => _paused = true,
             onExit: (_) => _paused = false,
@@ -240,8 +243,9 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                         } else {
                           title = l10n.getText(s.titleKey!);
                         }
-                        final label = s.sponsored ? '${l10n.getText('ui_sponsored')}. $title' : title;
+                        final label = s.sponsored ? '${context.t('badge.sponsored')}. $title' : title;
                         return Focus(
+                          onFocusChange: (f) => _focusPaused = f,
                           child: Builder(
                             builder: (ctx) {
                               final focused = Focus.of(ctx).hasFocus;
@@ -271,15 +275,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                               errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate),
                                             ),
                                           if (s.sponsored)
-                                            const DecoratedBox(
-                                              decoration: BoxDecoration(
-                                                gradient: LinearGradient(
-                                                  begin: Alignment.centerLeft,
-                                                  end: Alignment.centerRight,
-                                                  colors: [Color(0xE0121212), Color(0x00000000)],
-                                                ),
-                                              ),
-                                            )
+                                            const DecoratedBox(decoration: BoxDecoration(gradient: tgBannerScrim))
                                           else
                                             DecoratedBox(
                                               decoration: BoxDecoration(
@@ -302,7 +298,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                                   border: Border.all(color: Colors.white70),
                                                 ),
                                                 child: Text(
-                                                  l10n.getText('ui_sponsored'),
+                                                  context.t('badge.sponsored'),
                                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11),
                                                 ),
                                               ),
@@ -376,8 +372,8 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                       },
                     ),
                     if (!phone) ...[
-                      Positioned(left: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_left_rounded, label: 'Previous slide', onTap: () => _goTo((_index - 1 + slides.length) % slides.length)))),
-                      Positioned(right: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_right_rounded, label: 'Next slide', onTap: () => _goTo((_index + 1) % slides.length)))),
+                      Positioned(left: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_left_rounded, label: context.t('ui_hero_prev_sem'), onTap: () => _goTo((_index - 1 + slides.length) % slides.length)))),
+                      Positioned(right: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_right_rounded, label: context.t('ui_hero_next_sem'), onTap: () => _goTo((_index + 1) % slides.length)))),
                     ],
                     Positioned(
                       left: 0,
@@ -390,7 +386,9 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                             Semantics(
                               button: true,
                               selected: i == _index,
-                              label: 'Slide ${i + 1}${slides[i].sponsored ? ', Sponsored' : ''}',
+                              label: slides[i].sponsored
+                                  ? context.t('ui_hero_slide_sponsored_sem', {'n': '${i + 1}'})
+                                  : context.t('ui_hero_slide_sem', {'n': '${i + 1}'}),
                               child: GestureDetector(
                                 onTap: () => _goTo(i),
                                 child: Padding(
@@ -644,9 +642,11 @@ class _HomePromotedSectionState extends State<HomePromotedSection> {
   }
 
   Widget _card(TGProduct p) {
+    final promo = PromotionService.instance.effectiveListingPromo(p);
     return TGProductCard(
       product: p,
-      promotionTier: widget.tiers[p.id],
+      promotionTier: widget.tiers[p.id] ?? promo?.tier,
+      promotionId: promo?.id,
       forceFeaturedBadge: true,
     );
   }

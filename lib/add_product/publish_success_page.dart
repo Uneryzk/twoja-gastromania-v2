@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_components/tg_listing_no_line.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
+import 'package:twoja_gastromania/tg_components/tg_showcase_section.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
@@ -118,12 +119,15 @@ class _PublishSuccessPageState extends State<PublishSuccessPage> with TickerProv
           ),
         ),
         const SizedBox(height: 16),
-        if (product != null)
+        if (product != null) ...[
           SizedBox(
             height: TGProductCard.gridExtent(280, MediaQuery.textScalerOf(context)),
             width: 280,
             child: TGProductCard(product: product, layout: TGProductCardLayout.grid),
           ),
+          const SizedBox(height: 28),
+          TGShowcaseSection(product: product),
+        ],
         const SizedBox(height: 16),
         if (auth.listingPlan == TGListingPlan.free)
           Text(context.t('ui_free_left_n', {'n': '${auth.freeListingsLeft}'}), style: theme.titleSmall.override(fontWeight: FontWeight.w800)),

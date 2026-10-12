@@ -2,11 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/products/tg_geo.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
-import 'package:twoja_gastromania/tg_services/founder_service.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 
 enum AddProductFulfillment { pickupOnly, shipping, buyerChoice }
 
+/// @Deprecated VITRIN-2 — promote moved to post-publish Showcase.
 enum AddProductPromote { none, days14, days30 }
 
 class AddProductPhoto {
@@ -89,8 +91,9 @@ class AddProductDraft extends ChangeNotifier {
   String hoursToCall = '';
   String notifyEmail = '';
 
-  // 5
+  // 5 — duration only (promote via Showcase after publish).
   AddProductPromote promote = AddProductPromote.none;
+  ListingDurationKey listingDuration = ListingDurationKey.d30;
   int reviewTab = 0;
 
   /// RESTO-4: separate sale link back to restaurant inventory.
@@ -174,30 +177,24 @@ class AddProductDraft extends ChangeNotifier {
     return TGPricing.netFromGross(p).round();
   }
 
-  int get promoteListFeePln => switch (promote) {
-        AddProductPromote.none => 0,
-        AddProductPromote.days14 => TGPricing.promote14Pln,
-        AddProductPromote.days30 => TGPricing.promote30Pln,
-      };
+  PricingConfig get pricing => PricingConfigService.instance.config;
 
-  double get founderPromoteRate =>
-      promoteListFeePln <= 0 ? 0 : TGFounderService.instance.activeDiscountRate(auth.userId);
+  /// VITRIN-2: promote is purchased on Showcase, not in the wizard.
+  int get promoteListFeePln => 0;
+  double get founderPromoteRate => 0;
+  int get promoteFeePln => 0;
+  int get promoteDays => 0;
 
-  int get promoteFeePln {
-    final list = promoteListFeePln;
-    if (list <= 0) return 0;
-    return TGFounderService.instance.discountedPrice(auth.userId, list);
-  }
+  int get listingPeriodDays =>
+      auth.listingPlan == TGListingPlan.paid ? listingDuration.days : pricing.freeListingDays;
 
-  int get promoteDays => switch (promote) {
-        AddProductPromote.none => 0,
-        AddProductPromote.days14 => 14,
-        AddProductPromote.days30 => 30,
-      };
+  int get listingFeePln =>
+      auth.listingPlan == TGListingPlan.paid ? pricing.listingFeePln(listingDuration) : 0;
 
-  int get listingFeePln => auth.listingPlan == TGListingPlan.paid ? TGPricing.listingFeePln : 0;
+  int get totalPln => listingFeePln;
 
-  int get totalPln => listingFeePln + promoteFeePln;
+  String get listingPerDayLabel =>
+      listingFeePln <= 0 ? '' : pricing.perDayLabel(listingFeePln, listingPeriodDays);
 
   bool get goesToCheckout => totalPln > 0;
 

@@ -395,7 +395,12 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (phone && results.promoted.isNotEmpty) ...[
-            RestaurantCard(listing: results.promoted.first, variant: RestaurantCardVariant.grid),
+            RestaurantCard(
+              listing: results.promoted.first,
+              variant: RestaurantCardVariant.grid,
+              promotionTier: results.promoById[results.promoted.first.id],
+              promotionId: results.promoIdByTarget[results.promoted.first.id],
+            ),
             const SizedBox(height: 16),
           ],
           if (!phone && results.promoted.isNotEmpty && query.page == 1) ...[
@@ -414,6 +419,8 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
                         child: RestaurantCard(
                           listing: r,
                           variant: query.view == TGProductCardLayout.list ? RestaurantCardVariant.list : RestaurantCardVariant.grid,
+                          promotionTier: results.promoById[r.id],
+                          promotionId: results.promoIdByTarget[r.id],
                         ),
                       ),
                   ],
@@ -432,14 +439,17 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
               final w = cols == 1 ? c.maxWidth : (c.maxWidth - _gap * (cols - 1)) / cols;
               final children = <Widget>[];
               for (var i = 0; i < cards.length; i++) {
+                final listing = cards[i];
                 children.add(
                   SizedBox(
                     width: w,
                     child: RestaurantCard(
-                      listing: cards[i],
+                      listing: listing,
                       variant: useCompact
                           ? RestaurantCardVariant.compact
                           : (query.view == TGProductCardLayout.list ? RestaurantCardVariant.list : RestaurantCardVariant.grid),
+                      promotionTier: results.promoById[listing.id],
+                      promotionId: results.promoIdByTarget[listing.id],
                     ),
                   ),
                 );

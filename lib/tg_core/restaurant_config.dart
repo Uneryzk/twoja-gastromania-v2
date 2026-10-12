@@ -37,7 +37,6 @@ class RestaurantConfig {
     required this.dailyListingCap,
     required this.lowViewsHint,
     required this.soldItemReviewBusinessDays,
-    required this.adSlotPln14,
   });
 
   final int freeDays;
@@ -51,21 +50,21 @@ class RestaurantConfig {
   final int dailyListingCap;
   final int lowViewsHint;
   final int soldItemReviewBusinessDays;
-  final int adSlotPln14;
 
+  /// Defaults align with [PricingConfig.defaults] (VITRIN-2). Prefer PricingConfig for new UI.
   static const RestaurantConfig defaults = RestaurantConfig(
     freeDays: 30,
     freeExtensionDays: 30,
     paidPricePln: 149,
     paidDays: 90,
     renewEarlyDays: 14,
-    promote: RestaurantPromotePrices(pln14: 39, pln30: 69),
+    // Legacy 14/30 promote maps to Glow 2w / 1m (PromotionConfig).
+    promote: RestaurantPromotePrices(pln14: 49, pln30: 79),
     freeStartCapPer12m: 3,
     perPremisesMax: 3,
     dailyListingCap: 3,
     lowViewsHint: 30,
     soldItemReviewBusinessDays: 5,
-    adSlotPln14: 249,
   );
 
   /// CTA label for hub / banners (config-driven free period).
@@ -85,7 +84,6 @@ class RestaurantConfig {
     int? dailyListingCap,
     int? lowViewsHint,
     int? soldItemReviewBusinessDays,
-    int? adSlotPln14,
   }) =>
       RestaurantConfig(
         freeDays: freeDays ?? this.freeDays,
@@ -99,7 +97,6 @@ class RestaurantConfig {
         dailyListingCap: dailyListingCap ?? this.dailyListingCap,
         lowViewsHint: lowViewsHint ?? this.lowViewsHint,
         soldItemReviewBusinessDays: soldItemReviewBusinessDays ?? this.soldItemReviewBusinessDays,
-        adSlotPln14: adSlotPln14 ?? this.adSlotPln14,
       );
 
   Map<String, dynamic> toJson() => {
@@ -114,7 +111,6 @@ class RestaurantConfig {
         'dailyListingCap': dailyListingCap,
         'lowViewsHint': lowViewsHint,
         'soldItemReviewBusinessDays': soldItemReviewBusinessDays,
-        'adSlotPln14': adSlotPln14,
       };
 
   static RestaurantConfig fromJson(Map<String, dynamic> json) => RestaurantConfig(
@@ -132,7 +128,6 @@ class RestaurantConfig {
         lowViewsHint: (json['lowViewsHint'] as num?)?.toInt() ?? defaults.lowViewsHint,
         soldItemReviewBusinessDays:
             (json['soldItemReviewBusinessDays'] as num?)?.toInt() ?? defaults.soldItemReviewBusinessDays,
-        adSlotPln14: (json['adSlotPln14'] as num?)?.toInt() ?? defaults.adSlotPln14,
       );
 }
 

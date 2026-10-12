@@ -3,8 +3,10 @@ import 'package:twoja_gastromania/tg_core/restaurant_config.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart' show TGSeller;
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 
 /// In-memory wizard draft (no Listing No. until publish).
@@ -53,12 +55,13 @@ class RestaurantWizardDraft extends ChangeNotifier {
   String? floorPlanUrl;
   List<String> suggestedEquipment = [];
 
-  // Step 5
+  // Step 5 — duration only; promote via Showcase after publish (VITRIN-2).
   String phone = '+48 ';
   bool phoneVerified = false;
   String contactName = '';
   String email = '';
   int promoteDays = 0;
+  RestaurantDurationKey paidDuration = RestaurantDurationKey.d90;
 
   final Map<String, String> errors = {};
 
@@ -97,14 +100,12 @@ class RestaurantWizardDraft extends ChangeNotifier {
       );
 
   RestaurantConfig get cfg => RestaurantConfigService.instance.config;
+  PricingConfig get pricing => PricingConfigService.instance.config;
 
-  int get listingFeePln => canUseFree ? 0 : cfg.paidPricePln;
-  int get promoteFeePln => promoteDays == 14
-      ? cfg.promote.pln14
-      : promoteDays == 30
-          ? cfg.promote.pln30
-          : 0;
-  int get totalPln => listingFeePln + promoteFeePln;
+  int get listingPeriodDays => canUseFree ? cfg.freeDays : paidDuration.days;
+  int get listingFeePln => canUseFree ? 0 : pricing.restaurantFeePln(paidDuration);
+  int get promoteFeePln => 0;
+  int get totalPln => listingFeePln;
   bool get goesToCheckout => totalPln > 0;
 
   void touch() {

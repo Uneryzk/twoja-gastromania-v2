@@ -21,14 +21,13 @@ void main() {
     expect(c.paidPricePln, 149);
     expect(c.paidDays, 90);
     expect(c.renewEarlyDays, 14);
-    expect(c.promote.pln14, 39);
-    expect(c.promote.pln30, 69);
+    expect(c.promote.pln14, 49);
+    expect(c.promote.pln30, 79);
     expect(c.freeStartCapPer12m, 3);
     expect(c.perPremisesMax, 3);
     expect(c.dailyListingCap, 3);
     expect(c.lowViewsHint, 30);
     expect(c.soldItemReviewBusinessDays, 5);
-    expect(c.adSlotPln14, 249);
   });
 
   test('seed has 14 listings and public hub only active visible', () {

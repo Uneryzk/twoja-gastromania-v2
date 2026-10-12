@@ -1312,7 +1312,7 @@ class ModerationService extends ChangeNotifier {
       city: 'Katowice',
       voivodeship: 'Śląskie',
       phone: '+48 (532) 784-074',
-      imageUrl: TGListingImages.cover(
+      imageUrl: TGListingImages.seedCover(
         id: 'own_mod_review',
         category: TGCategory.foodPreparation,
         title: 'Mikser planetarny 40L – under review',
@@ -1334,7 +1334,7 @@ class ModerationService extends ChangeNotifier {
       title: 'Witryna chłodnicza 2-drzwiowa – hidden',
       listingNo: '49120384',
       category: TGCategory.refrigerationEquipment,
-      imageUrl: TGListingImages.cover(
+      imageUrl: TGListingImages.seedCover(
         id: 'own_mod_hidden',
         category: TGCategory.refrigerationEquipment,
         title: 'Witryna chłodnicza 2-drzwiowa – hidden',
@@ -1348,7 +1348,7 @@ class ModerationService extends ChangeNotifier {
       listingNo: '50231495',
       status: TGListingStatus.removed,
       isHidden: true,
-      imageUrl: TGListingImages.cover(
+      imageUrl: TGListingImages.seedCover(
         id: 'own_mod_removed',
         category: TGCategory.foodPreparation,
         title: 'Krajalnica chleba – removed',

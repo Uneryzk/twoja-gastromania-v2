@@ -7,6 +7,7 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_next_steps_sheet.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
+import 'package:twoja_gastromania/tg_components/tg_restaurant_showcase.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -27,17 +28,16 @@ class RestaurantSuccessPage extends StatefulWidget {
 class _RestaurantSuccessPageState extends State<RestaurantSuccessPage> with SingleTickerProviderStateMixin {
   late final AnimationController _tick = AnimationController(vsync: this, duration: const Duration(milliseconds: 400))..forward();
   late final AnimationController _bar = AnimationController(vsync: this, duration: const Duration(milliseconds: 400))..forward();
+  bool _showcaseDone = false;
 
-  @override
-  void initState() {
-    super.initState();
+  void _openNextSteps() {
+    if (!mounted || widget.pending || _showcaseDone) return;
+    _showcaseDone = true;
+    final r = widget.listingId == null ? null : RestaurantService.instance.byId(widget.listingId!);
+    if (r == null) return;
+    // After Showcase dismiss/purchase — never stack modals.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future<void>.delayed(const Duration(milliseconds: 600), () {
-        if (!mounted || widget.pending) return;
-        final r = widget.listingId == null ? null : RestaurantService.instance.byId(widget.listingId!);
-        if (r == null) return;
-        showRestaurantNextSteps(context, r);
-      });
+      if (mounted) showRestaurantNextSteps(context, r);
     });
   }
 
@@ -93,6 +93,14 @@ class _RestaurantSuccessPageState extends State<RestaurantSuccessPage> with Sing
                   ),
                 ),
                 const SizedBox(height: 24),
+                if (r != null && !widget.pending) ...[
+                  TGRestaurantShowcaseSection(
+                    listing: r,
+                    onDismissed: _openNextSteps,
+                    onPurchased: (_) => _openNextSteps(),
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 TGButton(
                   onPressed: r == null ? null : () => context.go(r.detailPath),
                   label: 'View listing',

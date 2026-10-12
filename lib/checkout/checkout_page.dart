@@ -174,7 +174,11 @@ Future<void> completeCheckout(BuildContext context, {TGInvoiceBuyer? buyer}) asy
     case TGCheckoutKind.listing:
       final pending = auth.ownedListings.where((p) => p.id == cart.listingId).firstOrNull;
       if (pending != null) {
-        final published = auth.publishOwned(pending, promoteDays: cart.promoteDays);
+        final published = auth.publishOwned(
+          pending,
+          promoteDays: cart.promoteDays,
+          periodDays: cart.listingDays,
+        );
         await TGProductService.instance.upsert(published);
         auth.clearCheckout();
         if (context.mounted) context.go('/add-product/success?id=${published.id}');
@@ -182,14 +186,19 @@ Future<void> completeCheckout(BuildContext context, {TGInvoiceBuyer? buyer}) asy
     case TGCheckoutKind.renew:
       final id = cart.listingId;
       if (id != null) {
-        final published = auth.renewOwned(id, promoteDays: cart.promoteDays, early: cart.early);
+        final published = auth.renewOwned(
+          id,
+          promoteDays: cart.promoteDays,
+          early: cart.early,
+          periodDays: cart.listingDays,
+        );
         await TGProductService.instance.upsert(published);
         auth.clearCheckout();
         if (context.mounted) context.go('/dashboard/listings?renewed=$id');
       }
     case TGCheckoutKind.renewBulk:
       for (final id in cart.listingIds) {
-        final published = auth.renewOwned(id);
+        final published = auth.renewOwned(id, periodDays: cart.listingDays);
         await TGProductService.instance.upsert(published);
       }
       auth.clearCheckout();
@@ -206,6 +215,7 @@ Future<void> completeCheckout(BuildContext context, {TGInvoiceBuyer? buyer}) asy
           listing: pending,
           useFreeIntro: cart.useFreeIntro,
           promoteDays: cart.promoteDays,
+          periodDays: cart.listingDays,
         );
         auth.clearCheckout();
         TGAnalytics.track('payment_success', {'kind': 'restaurant_listing', 'listingNo': live.listingNo});
@@ -214,7 +224,12 @@ Future<void> completeCheckout(BuildContext context, {TGInvoiceBuyer? buyer}) asy
     case TGCheckoutKind.restaurantRenew:
       final id = cart.listingId;
       if (id != null) {
-        RestaurantLifecycleService.instance.renew(listingId: id, promoteDays: cart.promoteDays, early: cart.early);
+        RestaurantLifecycleService.instance.renew(
+          listingId: id,
+          promoteDays: cart.promoteDays,
+          early: cart.early,
+          periodDays: cart.listingDays,
+        );
         auth.clearCheckout();
         TGAnalytics.track('payment_success', {'kind': 'restaurant_renew', 'listingId': id});
         if (context.mounted) context.go('/dashboard/listings?renewed=$id');

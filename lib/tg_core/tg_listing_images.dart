@@ -12,7 +12,7 @@ class TGListingImages {
   /// When true, theme/title auto-matching returns empty (or primary-only).
   /// Off: seed / empty listings get a local asset matched by title + category.
   /// Category covers and hero slides stay available as a fixed asset library.
-  static const bool kDisableDynamicListingImages = false;
+  static const bool kDisableDynamicListingImages = true;
 
   // ---------------------------------------------------------------------------
   // Category → local asset (ASCII filenames only — missing/Unicode paths broke Image.asset)
@@ -306,6 +306,19 @@ class TGListingImages {
     if (g.isEmpty) return '';
     return g[index.clamp(0, g.length - 1)];
   }
+
+  // Fixed fixture photos for bundled mock / seed records (stand-ins for photos an
+  // admin or seller uploads). Not gated by [kDisableDynamicListingImages]; never
+  // use for user-created listings.
+
+  static String seedCover({required String id, required TGCategory category, String? title}) =>
+      _assetFor(category: category, title: title);
+
+  static List<String> seedGallery({required String id, required TGCategory category, String? title, int count = 4}) =>
+      _galleryFromPool(id: id, pool: _poolForTheme(_themeForCategory(category, title)), count: count);
+
+  static List<String> seedGalleryForTheme({required String id, required String theme, String? title, int count = 4}) =>
+      _galleryFromPool(id: id, pool: _poolForTheme(_normalizeTheme(theme, title)), count: count);
 
   static String categoryCover(TGCategory category, {int width = 1200, int height = 800}) =>
       categoryCoverUrls[category] ?? cooking;

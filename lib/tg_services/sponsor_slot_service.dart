@@ -223,7 +223,7 @@ class TGSponsorSlotService extends ChangeNotifier {
         status: TGSponsorSlotStatus.active,
         sellerId: 'seller_gastropl',
         title: 'Custom extraction hoods for kitchens',
-        imageUrl: TGListingImages.cover(
+        imageUrl: TGListingImages.seedCover(
           id: 'SLOT-seed-1',
           category: TGCategory.stainlessSteelFurniture,
           title: 'Custom extraction hoods for kitchens',
@@ -240,7 +240,7 @@ class TGSponsorSlotService extends ChangeNotifier {
         status: TGSponsorSlotStatus.contentPending,
         sellerId: 'seller_inoxline',
         title: 'Stainless worktops — fast lead times',
-        imageUrl: TGListingImages.cover(
+        imageUrl: TGListingImages.seedCover(
           id: 'SLOT-seed-2',
           category: TGCategory.stainlessSteelFurniture,
           title: 'Stainless worktops — fast lead times',

@@ -1,11 +1,67 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 
-/// VITRIN-1 promotions + daily stats. Legacy `promotedUntil` maps to glow.
+/// Unpaid capacity hold — released after [PricingConfig.reservationHoldHours].
+@immutable
+class PromotionReservation {
+  const PromotionReservation({
+    required this.id,
+    required this.tier,
+    required this.startsAt,
+    required this.createdAt,
+    required this.ownerId,
+  });
+
+  final String id;
+  final PromotionTier tier;
+  final DateTime startsAt;
+  final DateTime createdAt;
+  final String ownerId;
+
+  bool isExpired(DateTime now, int holdHours) =>
+      now.isAfter(createdAt.add(Duration(hours: holdHours)));
+}
+
+/// Pro Store Glow 1-month credit (does not roll over across billing periods).
+@immutable
+class PromotionCredit {
+  const PromotionCredit({
+    required this.id,
+    required this.ownerId,
+    required this.tier,
+    required this.durationKey,
+    required this.periodKey,
+    this.used = false,
+  });
+
+  final String id;
+  final String ownerId;
+  /// Always Glow for Pro; Founder free credit = Glow 2 weeks.
+  final PromotionTier tier;
+  final PromotionDurationKey durationKey;
+  final String periodKey;
+  final bool used;
+
+  PromotionCredit copyWith({bool? used}) => PromotionCredit(
+        id: id,
+        ownerId: ownerId,
+        tier: tier,
+        durationKey: durationKey,
+        periodKey: periodKey,
+        used: used ?? this.used,
+      );
+}
+
+/// VITRIN-1 display + VITRIN-2 purchase / upgrade / credits / capacity.
 class PromotionService extends ChangeNotifier {
   PromotionService._();
   static final PromotionService instance = PromotionService._();
@@ -13,10 +69,15 @@ class PromotionService extends ChangeNotifier {
   PromotionConfig _config = PromotionConfig.defaults;
   final List<Promotion> _items = [];
   final Map<String, PromotionStat> _stats = {};
+  final List<PromotionReservation> _reservations = [];
+  final List<PromotionCredit> _credits = [];
   bool _seeded = false;
 
   PromotionConfig get config => _config;
   List<Promotion> get all => List.unmodifiable(_items);
+  List<PromotionCredit> get credits => List.unmodifiable(_credits);
+
+  PricingConfig get pricing => PricingConfigService.instance.config;
 
   void setConfig(PromotionConfig next) {
     _config = next;
@@ -33,10 +94,26 @@ class PromotionService extends ChangeNotifier {
 
   List<Promotion> active({PromotionTargetKind? kind, DateTime? now}) {
     ensureSeeded();
+    _releaseExpiredReservations();
+    final t = now ?? TGClock.now();
+    final hideMocks = TGRevenueConfigService.instance.productionMode;
+    return [
+      for (final p in _items)
+        if (p.isActiveAt(t) && (kind == null || p.targetKind == kind))
+          if (!(hideMocks && p.id.startsWith('promo-'))) p,
+    ];
+  }
+
+  List<Promotion> forOwner(String ownerId, {DateTime? now}) {
+    ensureSeeded();
     final t = now ?? TGClock.now();
     return [
       for (final p in _items)
-        if (p.isActiveAt(t) && (kind == null || p.targetKind == kind)) p,
+        if (p.ownerId == ownerId &&
+            (p.status == PromotionStatus.active ||
+                p.status == PromotionStatus.scheduled ||
+                p.status == PromotionStatus.ended))
+          if (p.status != PromotionStatus.active || p.isActiveAt(t) || p.status == PromotionStatus.ended) p,
     ];
   }
 
@@ -48,12 +125,21 @@ class PromotionService extends ChangeNotifier {
     return null;
   }
 
+  Promotion? byId(String id) {
+    ensureSeeded();
+    for (final p in _items) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
   /// Effective paid promotion for a product (new model or legacy isPromoted → glow).
   Promotion? effectiveListingPromo(TGProduct product, {DateTime? now}) {
     ensureSeeded();
     final t = now ?? TGClock.now();
     final live = activeFor(kind: PromotionTargetKind.listing, targetRef: product.id, now: t);
     if (live != null) return live;
+    // Also surface scheduled for owner chrome? No — display only active.
     if (!product.isPromoted) return null;
     final end = product.promotedUntil ?? t.add(const Duration(days: 14));
     if (!t.isBefore(end)) return null;
@@ -95,6 +181,322 @@ class PromotionService extends ChangeNotifier {
     );
   }
 
+  int countOccupying(PromotionTier tier, {DateTime? now}) {
+    ensureSeeded();
+    _releaseExpiredReservations();
+    final t = now ?? TGClock.now();
+    var n = 0;
+    for (final p in _items) {
+      if (p.tier != tier) continue;
+      if (p.status == PromotionStatus.active && p.isActiveAt(t)) n++;
+      if (p.status == PromotionStatus.scheduled && !t.isAfter(p.startsAt)) n++;
+    }
+    for (final r in _reservations) {
+      if (r.tier == tier && !r.isExpired(t, pricing.reservationHoldHours)) n++;
+    }
+    return n;
+  }
+
+  bool isAtCapacity(PromotionTier tier, {DateTime? now}) =>
+      countOccupying(tier, now: now) >= _config.maxActive(tier);
+
+  /// Earliest start date when a slot frees (today if capacity available).
+  DateTime nextAvailableStart(PromotionTier tier, {DateTime? now}) {
+    ensureSeeded();
+    _releaseExpiredReservations();
+    final t = now ?? TGClock.now();
+    if (!isAtCapacity(tier, now: t)) return DateTime(t.year, t.month, t.day);
+
+    final ends = <DateTime>[];
+    for (final p in _items) {
+      if (p.tier != tier) continue;
+      if (p.status == PromotionStatus.active || p.status == PromotionStatus.scheduled) {
+        ends.add(p.endsAt);
+      }
+    }
+    if (ends.isEmpty) return DateTime(t.year, t.month, t.day);
+    ends.sort();
+    // When one ends, a slot frees.
+    final free = ends.first;
+    return DateTime(free.year, free.month, free.day);
+  }
+
+  /// Whether [promoDays] fits within listing remaining life from [listingEndsAt].
+  bool promoFitsListing({
+    required DateTime listingEndsAt,
+    required int promoDays,
+    DateTime? startAt,
+  }) {
+    final start = startAt ?? TGClock.now();
+    final promoEnd = start.add(Duration(days: promoDays));
+    return !promoEnd.isAfter(listingEndsAt.add(const Duration(hours: 1)));
+  }
+
+  int unusedCredits(String ownerId) {
+    ensureSeeded();
+    return _credits.where((c) => c.ownerId == ownerId && !c.used).length;
+  }
+
+  List<PromotionCredit> unusedCreditList(String ownerId) {
+    ensureSeeded();
+    return [for (final c in _credits) if (c.ownerId == ownerId && !c.used) c];
+  }
+
+  /// Grant Pro period credits (Glow, 1 month). Does not roll over — replaces unused for period.
+  void grantProCredits(String ownerId, {String? periodKey, int? count}) {
+    ensureSeeded();
+    final key = periodKey ?? _periodKey(TGClock.now());
+    final n = count ?? pricing.proCreditsPerPeriod;
+    _credits.removeWhere((c) => c.ownerId == ownerId && c.periodKey != key);
+    final existing = _credits.where((c) => c.ownerId == ownerId && c.periodKey == key).length;
+    for (var i = existing; i < n; i++) {
+      _credits.add(PromotionCredit(
+        id: 'cred-$ownerId-$key-$i',
+        ownerId: ownerId,
+        tier: PromotionTier.glow,
+        durationKey: PromotionDurationKey.month1,
+        periodKey: key,
+      ));
+    }
+    notifyListeners();
+  }
+
+  /// Founder free promotion credit = Glow 2 weeks.
+  void grantFounderCredit(String ownerId) {
+    ensureSeeded();
+    _credits.add(PromotionCredit(
+      id: 'cred-founder-$ownerId-${TGClock.now().millisecondsSinceEpoch}',
+      ownerId: ownerId,
+      tier: PromotionTier.glow,
+      durationKey: PromotionDurationKey.week2,
+      periodKey: 'founder',
+    ));
+    notifyListeners();
+  }
+
+  PromotionReservation? reserveSlot({
+    required String ownerId,
+    required PromotionTier tier,
+    DateTime? startsAt,
+  }) {
+    ensureSeeded();
+    _releaseExpiredReservations();
+    final start = startsAt ?? nextAvailableStart(tier);
+    if (isAtCapacity(tier) && start.isBefore(TGClock.now().add(const Duration(days: 1)))) {
+      // Still full for immediate start.
+    }
+    final r = PromotionReservation(
+      id: 'resv-${TGClock.now().millisecondsSinceEpoch}',
+      tier: tier,
+      startsAt: start,
+      createdAt: TGClock.now(),
+      ownerId: ownerId,
+    );
+    _reservations.add(r);
+    notifyListeners();
+    return r;
+  }
+
+  void releaseReservation(String id) {
+    _reservations.removeWhere((r) => r.id == id);
+    notifyListeners();
+  }
+
+  /// Purchase (or schedule) a promotion. Returns the created record.
+  Promotion purchase({
+    required String ownerId,
+    required PromotionTargetKind kind,
+    required String targetRef,
+    required PromotionTier tier,
+    required PromotionDurationKey durationKey,
+    required int pricePln,
+    required PromotionSource source,
+    DateTime? listingEndsAt,
+    DateTime? startsAt,
+    String? paymentId,
+    String? creditId,
+    String? reservationId,
+    bool applyFounderDiscount = false,
+  }) {
+    ensureSeeded();
+    _releaseExpiredReservations();
+    final now = TGClock.now();
+    var start = startsAt ?? now;
+    if (isAtCapacity(tier, now: now) && (startsAt == null || !start.isAfter(now))) {
+      start = nextAvailableStart(tier, now: now);
+    }
+    if (listingEndsAt != null &&
+        !promoFitsListing(listingEndsAt: listingEndsAt, promoDays: durationKey.days, startAt: start)) {
+      throw StateError('Promotion would outlast listing; renew first.');
+    }
+
+    if (creditId != null) {
+      final idx = _credits.indexWhere((c) => c.id == creditId && c.ownerId == ownerId && !c.used);
+      if (idx < 0) throw StateError('Credit unavailable');
+      // Credit and Founder discount never combine.
+      _credits[idx] = _credits[idx].copyWith(used: true);
+    }
+
+    if (reservationId != null) {
+      _reservations.removeWhere((r) => r.id == reservationId);
+    }
+
+    final status = start.isAfter(now.add(const Duration(minutes: 1)))
+        ? PromotionStatus.scheduled
+        : PromotionStatus.active;
+    final promo = Promotion(
+      id: 'promo-buy-${now.millisecondsSinceEpoch}-${Random().nextInt(9999)}',
+      ownerId: ownerId,
+      targetKind: kind,
+      targetRef: targetRef,
+      tier: tier,
+      durationKey: durationKey,
+      startsAt: start,
+      endsAt: start.add(Duration(days: durationKey.days)),
+      status: status,
+      pricePln: pricePln,
+      source: source,
+      paymentId: paymentId,
+    );
+    _items.add(promo);
+    TGAnalytics.track('promo_purchase', {
+      'promotionId': promo.id,
+      'tier': tier.name,
+      'duration': durationKey.key,
+      'pricePln': pricePln,
+      'source': source.name,
+      'scheduled': status == PromotionStatus.scheduled,
+    });
+    if (creditId != null) {
+      TGAnalytics.track('promo_credit_use', {'creditId': creditId, 'promotionId': promo.id});
+    }
+    notifyListeners();
+    return promo;
+  }
+
+  /// Bold→Glow→Spotlight; end date unchanged; cost from [PricingConfig.upgradeCostPln].
+  Promotion upgrade({
+    required String promotionId,
+    required PromotionTier toTier,
+    required int paidPln,
+    String? paymentId,
+  }) {
+    ensureSeeded();
+    final i = _items.indexWhere((p) => p.id == promotionId);
+    if (i < 0) throw StateError('Promotion not found');
+    final cur = _items[i];
+    if (cur.status != PromotionStatus.active) throw StateError('Only active promotions upgrade');
+    if (PricingConfig.tierRank(toTier) <= PricingConfig.tierRank(cur.tier)) {
+      throw StateError('No downgrade');
+    }
+    final now = TGClock.now();
+    final total = cur.endsAt.difference(cur.startsAt).inDays.clamp(1, 3650);
+    final remaining = cur.endsAt.difference(now).inDays.clamp(0, total);
+    final expected = pricing.upgradeCostPln(
+      from: cur.tier,
+      to: toTier,
+      duration: cur.durationKey,
+      remainingDays: remaining,
+      totalDays: total,
+    );
+    if (paidPln < expected) throw StateError('Underpaid upgrade');
+
+    final upgraded = Promotion(
+      id: cur.id,
+      ownerId: cur.ownerId,
+      targetKind: cur.targetKind,
+      targetRef: cur.targetRef,
+      tier: toTier,
+      durationKey: cur.durationKey,
+      startsAt: cur.startsAt,
+      endsAt: cur.endsAt,
+      status: cur.status,
+      pricePln: cur.pricePln + paidPln,
+      source: cur.source,
+      paymentId: paymentId ?? cur.paymentId,
+      upgradedFrom: cur.id,
+    );
+    _items[i] = upgraded;
+    TGAnalytics.track('promo_upgrade', {
+      'promotionId': cur.id,
+      'from': cur.tier.name,
+      'to': toTier.name,
+      'paidPln': paidPln,
+    });
+    notifyListeners();
+    return upgraded;
+  }
+
+  /// New period starts at current end (no gap).
+  Promotion extend({
+    required String promotionId,
+    required PromotionDurationKey durationKey,
+    required int pricePln,
+    String? paymentId,
+  }) {
+    ensureSeeded();
+    final i = _items.indexWhere((p) => p.id == promotionId);
+    if (i < 0) throw StateError('Promotion not found');
+    final cur = _items[i];
+    if (cur.status != PromotionStatus.active && cur.status != PromotionStatus.scheduled) {
+      throw StateError('Cannot extend');
+    }
+    final newEnd = cur.endsAt.add(Duration(days: durationKey.days));
+    final extended = Promotion(
+      id: cur.id,
+      ownerId: cur.ownerId,
+      targetKind: cur.targetKind,
+      targetRef: cur.targetRef,
+      tier: cur.tier,
+      durationKey: durationKey,
+      startsAt: cur.startsAt,
+      endsAt: newEnd,
+      status: cur.status,
+      pricePln: cur.pricePln + pricePln,
+      source: PromotionSource.paid,
+      paymentId: paymentId ?? cur.paymentId,
+      upgradedFrom: cur.upgradedFrom,
+    );
+    _items[i] = extended;
+    TGAnalytics.track('promo_extend', {
+      'promotionId': cur.id,
+      'duration': durationKey.key,
+      'pricePln': pricePln,
+    });
+    notifyListeners();
+    return extended;
+  }
+
+  /// Full refund only if scheduled (not yet started).
+  Promotion cancelScheduled(String promotionId, {required bool refund}) {
+    ensureSeeded();
+    final i = _items.indexWhere((p) => p.id == promotionId);
+    if (i < 0) throw StateError('Promotion not found');
+    final cur = _items[i];
+    final now = TGClock.now();
+    if (cur.status != PromotionStatus.scheduled || !now.isBefore(cur.startsAt)) {
+      throw StateError('Only not-yet-started promotions cancel with refund');
+    }
+    final next = Promotion(
+      id: cur.id,
+      ownerId: cur.ownerId,
+      targetKind: cur.targetKind,
+      targetRef: cur.targetRef,
+      tier: cur.tier,
+      durationKey: cur.durationKey,
+      startsAt: cur.startsAt,
+      endsAt: cur.endsAt,
+      status: refund ? PromotionStatus.refunded : PromotionStatus.cancelled,
+      pricePln: cur.pricePln,
+      source: cur.source,
+      paymentId: cur.paymentId,
+      upgradedFrom: cur.upgradedFrom,
+    );
+    _items[i] = next;
+    notifyListeners();
+    return next;
+  }
+
   void recordImpression(String promotionId, {required bool count}) {
     if (!count || promotionId.isEmpty) return;
     final key = _statKey(promotionId);
@@ -111,12 +513,34 @@ class PromotionService extends ChangeNotifier {
 
   PromotionStat? statFor(String promotionId) => _stats[_statKey(promotionId)];
 
+  /// Lifetime totals across days (dashboard).
+  ({int impressions, int clicks}) totalsFor(String promotionId) {
+    var impressions = 0;
+    var clicks = 0;
+    for (final s in _stats.values) {
+      if (s.promotionId != promotionId) continue;
+      impressions += s.impressions;
+      clicks += s.clicks;
+    }
+    return (impressions: impressions, clicks: clicks);
+  }
+
   void resetForTests() {
     _items.clear();
     _stats.clear();
+    _reservations.clear();
+    _credits.clear();
     _seeded = false;
     _config = PromotionConfig.defaults;
   }
+
+  void _releaseExpiredReservations() {
+    final now = TGClock.now();
+    final hold = pricing.reservationHoldHours;
+    _reservations.removeWhere((r) => r.isExpired(now, hold));
+  }
+
+  String _periodKey(DateTime t) => '${t.year}-${t.month.toString().padLeft(2, '0')}';
 
   void _seedMocks() {
     final now = TGClock.now();
@@ -149,7 +573,7 @@ class PromotionService extends ChangeNotifier {
       );
     }
 
-    // 4 Spotlight · 6 Glow · 8 Bold · 1 scheduled · 1 ended (mixed targets).
+    // Catalogue seed (VITRIN-1 display) + compact VITRIN-2 owner set.
     _items.addAll([
       mk(id: 'promo-sp-1', ownerId: 'seller_primegastro', kind: PromotionTargetKind.listing, ref: 'p001', tier: PromotionTier.spotlight, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
       mk(id: 'promo-sp-2', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p002', tier: PromotionTier.spotlight, dur: PromotionDurationKey.month1, status: PromotionStatus.active),
@@ -171,7 +595,19 @@ class PromotionService extends ChangeNotifier {
       mk(id: 'promo-bo-8', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p017', tier: PromotionTier.bold, dur: PromotionDurationKey.month1, status: PromotionStatus.active),
       mk(id: 'promo-sched-1', ownerId: 'seller_anna', kind: PromotionTargetKind.listing, ref: 'p018', tier: PromotionTier.glow, dur: PromotionDurationKey.week2, status: PromotionStatus.scheduled, startOffsetDays: 3),
       mk(id: 'promo-ended-1', ownerId: 'seller_technica', kind: PromotionTargetKind.listing, ref: 'p019', tier: PromotionTier.spotlight, dur: PromotionDurationKey.week2, status: PromotionStatus.ended, startOffsetDays: -20),
+      // VITRIN-2 dashboard demo: 3 active + 1 scheduled + 1 ended on mock store seller.
+      mk(id: 'promo-dash-1', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p001', tier: PromotionTier.glow, dur: PromotionDurationKey.month1, status: PromotionStatus.active),
+      mk(id: 'promo-dash-2', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p002', tier: PromotionTier.bold, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
+      mk(id: 'promo-dash-3', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p003', tier: PromotionTier.spotlight, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
+      mk(id: 'promo-dash-sched', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p004', tier: PromotionTier.glow, dur: PromotionDurationKey.week2, status: PromotionStatus.scheduled, startOffsetDays: 5),
+      mk(id: 'promo-dash-ended', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p005', tier: PromotionTier.bold, dur: PromotionDurationKey.week2, status: PromotionStatus.ended, startOffsetDays: -16),
     ]);
+
+    grantProCredits(FakeAuthIds.storeSeller, count: 2);
+    // Seed some stats for dashboard.
+    for (final id in ['promo-dash-1', 'promo-dash-2', 'promo-dash-3']) {
+      _stats[_statKey(id)] = PromotionStat(promotionId: id, date: _day(now), impressions: 40 + id.hashCode % 80, clicks: 3 + id.hashCode % 12);
+    }
   }
 
   String _statKey(String promotionId) {
@@ -180,4 +616,9 @@ class PromotionService extends ChangeNotifier {
   }
 
   DateTime _day(DateTime t) => DateTime(t.year, t.month, t.day);
+}
+
+/// Stable mock owner ids used by seeds (avoid importing FakeAuthState cycle).
+abstract final class FakeAuthIds {
+  static const storeSeller = 'seller_gastropl';
 }

@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_models/tg_ad_slot.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 
 class AdminAdsPage extends StatefulWidget {
@@ -48,6 +49,16 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _requestChanges(TGAdSlot slot) async {
+    final auth = context.read<FakeAuthState>();
+    final reason = await _reason(context.t('ui_admin_ad_request_changes'));
+    if (reason == null || reason.isEmpty) return;
+    final err = AdSlotService.instance.requestChanges(slot.id, actorId: auth.userId, actorRole: auth.role.name, reason: reason);
+    if (!mounted) return;
+    setState(() {});
+    showTGToast(context, context.t(err ?? 'ui_admin_ad_changes_sent'));
   }
 
   Future<void> _decide(TGAdSlot slot, {required bool approve}) async {
@@ -127,7 +138,7 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
     final ads = AdSlotService.instance;
     final pending = ads.pendingReview;
     final live = ads.liveSlides;
-    final conflicts = ads.slotConflicts();
+    final overbooked = ads.overbookedDays();
     final fmt = DateFormat('d MMM yyyy');
     final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
@@ -164,6 +175,11 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
                             children: [
                               Text(s.title, style: const TextStyle(fontWeight: FontWeight.w900)),
                               Text('${s.kind.name} · ${s.targetUrl} · ${s.pricePln} PLN', style: theme.bodySmall),
+                              Text(
+                                '${fmt.format(s.startsAt)} → ${fmt.format(s.endsAt)} · ${context.t(s.duration.labelKey)} · '
+                                '${context.t('ui_admin_ad_corrections', {'n': '${ads.pricing.maxCorrections - s.correctionsUsed}'})}',
+                                style: theme.bodySmall,
+                              ),
                             ],
                           ),
                         ),
@@ -192,9 +208,17 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
                           height: 40,
                           borderRadius: BorderRadius.circular(TGRadius.pill),
                         ),
+                        if (ads.canRequestChanges(s))
+                          TGButton(
+                            onPressed: () => _requestChanges(s),
+                            label: context.t('ui_admin_ad_request_changes'),
+                            variant: TGButtonVariant.outline,
+                            height: 40,
+                            borderRadius: BorderRadius.circular(TGRadius.pill),
+                          ),
                         TGButton(
                           onPressed: () => _decide(s, approve: false),
-                          label: context.t('ui_reject'),
+                          label: context.t('ui_admin_reject_refund'),
                           variant: TGButtonVariant.outline,
                           height: 40,
                           borderRadius: BorderRadius.circular(TGRadius.pill),
@@ -205,6 +229,16 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
                 ),
               ),
             ),
+        const SizedBox(height: 20),
+        Semantics(
+          header: true,
+          child: Text(
+            context.t('ui_admin_ad_seat_calendar', {'n': '${ads.maxPerDay}'}),
+            style: theme.titleSmall.override(fontWeight: FontWeight.w900),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _SeatGrid(rows: ads.seatGrid(days: phone ? 14 : 28)),
         const SizedBox(height: 20),
         Text(context.t('ui_admin_live_slides'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
@@ -246,23 +280,84 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
         const SizedBox(height: 20),
         Text(context.t('ui_admin_slot_conflicts'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        if (conflicts.isEmpty)
+        if (overbooked.isEmpty)
           Text(context.t('ui_admin_no_slot_conflicts'), style: theme.bodySmall)
         else
-          for (final c in conflicts)
+          for (final d in overbooked)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                context.t('ui_admin_ad_overlap', {
-                  'a': c.a.title,
-                  'b': c.b.title,
-                  'from': fmt.format(c.a.startsAt),
-                  'to': fmt.format(c.a.endsAt),
-                }),
+                context.t('ui_admin_ad_overbooked', {'date': fmt.format(d.day), 'n': '${d.taken}', 'cap': '${d.capacity}'}),
                 style: theme.bodySmall.override(fontWeight: FontWeight.w700),
               ),
             ),
       ],
+    );
+  }
+}
+
+/// Admin "N seats × day" occupancy grid.
+class _SeatGrid extends StatelessWidget {
+  const _SeatGrid({required this.rows});
+  final List<({DateTime day, List<TGAdSlot?> seats})> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
+    final dayFmt = DateFormat('EEE d MMM', locale);
+    final seatCount = rows.isEmpty ? 0 : rows.first.seats.length;
+    Color tone(TGAdSlot s) => switch (s.status) {
+          TGAdSlotStatus.live => TGColors.cta.withValues(alpha: 0.28),
+          TGAdSlotStatus.approved => TGColors.cta.withValues(alpha: 0.14),
+          _ => theme.alternate,
+        };
+    return Material(
+      color: TGColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: TGColors.border)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (final r in rows)
+            Semantics(
+              label: context.t('ui_admin_ad_seat_row_sem', {
+                'date': dayFmt.format(r.day),
+                'n': '${r.seats.where((s) => s != null).length}',
+                'cap': '$seatCount',
+              }),
+              excludeSemantics: true,
+              child: Container(
+                decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: TGColors.border, width: 0.5))),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    SizedBox(width: 96, child: Text(dayFmt.format(r.day), style: theme.bodySmall.override(fontWeight: FontWeight.w800))),
+                    for (final s in r.seats)
+                      Expanded(
+                        child: Container(
+                          height: 24,
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          alignment: Alignment.centerLeft,
+                          decoration: BoxDecoration(
+                            color: s == null ? Colors.transparent : tone(s),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: TGColors.border),
+                          ),
+                          child: Text(
+                            s?.title ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.bodySmall.override(fontSize: 11),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

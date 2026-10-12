@@ -20,6 +20,7 @@ import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 // tgAnim / tgReduceMotion live in tg_analytics.dart
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart' show TGSeller, TGSellerType;
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
@@ -210,8 +211,9 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
         TGCheckoutCart.restaurantListing(
           listingId: pending.id,
           listingFee: draft.listingFeePln,
-          promoteFee: draft.promoteFeePln,
-          promoteDays: draft.promoteDays,
+          promoteFee: 0,
+          promoteDays: 0,
+          listingDays: draft.listingPeriodDays,
           useFreeIntro: useFree,
         ),
       );
@@ -221,7 +223,11 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
     }
 
     RestaurantService.instance.replace(listing);
-    final live = life.activate(listing: listing, useFreeIntro: useFree, promoteDays: draft.promoteDays);
+    final live = life.activate(
+      listing: listing,
+      useFreeIntro: useFree,
+      periodDays: draft.listingPeriodDays,
+    );
     if (!mounted) return;
     context.go('/restaurants/success?id=${live.id}');
   }
@@ -1136,7 +1142,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
               Text(
                 free
                     ? context.t('ui_wiz_listing_free', {'days': '${cfg.freeDays}'})
-                    : context.t('ui_wiz_listing_paid', {'days': '${cfg.paidDays}', 'price': '${cfg.paidPricePln}'}),
+                    : context.t('ui_listing_duration'),
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
               if (free)
@@ -1144,51 +1150,35 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                   context.t('ui_wiz_free_extension', {
                     'free': '${cfg.freeDays}',
                     'extra': '${cfg.freeExtensionDays}',
-                    'price': '${cfg.paidPricePln}',
-                    'paid': '${cfg.paidDays}',
+                    'price': '${draft.pricing.restaurantFeePln(RestaurantDurationKey.d90)}',
+                    'paid': '${RestaurantDurationKey.d90.days}',
                   }),
                   style: theme.bodySmall,
                 )
-              else
+              else ...[
                 Text(draft.freeStartBlockReasonSafe(), style: theme.bodySmall),
-              const SizedBox(height: 12),
-              Text(
-                context.t('ui_wiz_promote', {'badge': context.t('ui_promoted_badge')}),
-                style: theme.bodySmall.override(fontWeight: FontWeight.w800),
-              ),
-              Text(
-                context.t('ui_wiz_promote_help', {'badge': context.t('ui_promoted_badge')}),
-                style: theme.bodySmall,
-              ),
-              RadioListTile<int>(
-                value: 0,
-                groupValue: draft.promoteDays,
-                onChanged: (v) {
-                  draft.promoteDays = v!;
-                  draft.touch();
-                },
-                title: Text(context.t('ui_none')),
-              ),
-              RadioListTile<int>(
-                value: 14,
-                groupValue: draft.promoteDays,
-                onChanged: (v) {
-                  draft.promoteDays = v!;
-                  draft.touch();
-                  TGAnalytics.track('resto_promote_selected', {'days': 14});
-                },
-                title: Text(context.t('ui_wiz_promote_days', {'price': '${cfg.promote.pln14}', 'days': '14'})),
-              ),
-              RadioListTile<int>(
-                value: 30,
-                groupValue: draft.promoteDays,
-                onChanged: (v) {
-                  draft.promoteDays = v!;
-                  draft.touch();
-                  TGAnalytics.track('resto_promote_selected', {'days': 30});
-                },
-                title: Text(context.t('ui_wiz_promote_days', {'price': '${cfg.promote.pln30}', 'days': '30'})),
-              ),
+                const SizedBox(height: 10),
+                for (final key in RestaurantDurationKey.values)
+                  RadioListTile<RestaurantDurationKey>(
+                    value: key,
+                    groupValue: draft.paidDuration,
+                    onChanged: (v) {
+                      if (v == null) return;
+                      draft.paidDuration = v;
+                      draft.touch();
+                    },
+                    title: Text(
+                      context.t('ui_duration_days_price', {
+                        'days': '${key.days}',
+                        'fee': '${draft.pricing.restaurantFeePln(key)}',
+                      }),
+                    ),
+                    subtitle: Text(
+                      '${draft.pricing.perDayLabel(draft.pricing.restaurantFeePln(key), key.days)} · ${context.t('ui_longer_cheaper')}',
+                    ),
+                  ),
+              ],
+              const SizedBox(height: 8),
               Text(context.t('ui_wiz_total_brutto', {'amount': '${draft.totalPln}'}), style: const TextStyle(fontWeight: FontWeight.w900)),
             ],
           ),

@@ -107,7 +107,7 @@ class DealService extends ChangeNotifier {
     const seller = 'Technica';
     final snap1 = TGDealSnapshot(
       title: 'Piec pizza 4 pizze – 3 dni do końca',
-      imageUrl: TGListingImages.cover(id: 'deal-snap-1', category: TGCategory.cookingEquipment, title: 'Piec pizza 4 pizze'),
+      imageUrl: TGListingImages.seedCover(id: 'deal-snap-1', category: TGCategory.cookingEquipment, title: 'Piec pizza 4 pizze'),
       price: 2500,
       city: 'Katowice',
       sellerName: seller,
@@ -115,7 +115,7 @@ class DealService extends ChangeNotifier {
     );
     final snap2 = TGDealSnapshot(
       title: 'Stół chłodniczy 2-drzwiowy',
-      imageUrl: TGListingImages.cover(id: 'deal-snap-2', category: TGCategory.refrigerationEquipment, title: 'Stół chłodniczy 2-drzwiowy'),
+      imageUrl: TGListingImages.seedCover(id: 'deal-snap-2', category: TGCategory.refrigerationEquipment, title: 'Stół chłodniczy 2-drzwiowy'),
       price: 2500,
       city: 'Katowice',
       sellerName: seller,
@@ -123,7 +123,7 @@ class DealService extends ChangeNotifier {
     );
     final snap3 = TGDealSnapshot(
       title: 'Zmywarka podszafkowa',
-      imageUrl: TGListingImages.cover(id: 'deal-snap-3', category: TGCategory.warewashing, title: 'Zmywarka podszafkowa'),
+      imageUrl: TGListingImages.seedCover(id: 'deal-snap-3', category: TGCategory.warewashing, title: 'Zmywarka podszafkowa'),
       price: 2500,
       city: 'Katowice',
       sellerName: seller,
@@ -1083,7 +1083,7 @@ class DealService extends ChangeNotifier {
   }
 
   void _seedCatalogReviews(DateTime now) {
-    final img = TGListingImages.cover(id: 'catalog-review', category: TGCategory.cookingEquipment, title: 'catalog-review');
+    final img = TGListingImages.seedCover(id: 'catalog-review', category: TGCategory.cookingEquipment, title: 'catalog-review');
     const names = ['Marek K.', 'Anna W.', 'Piotr B.', 'Kasia M.', 'Jan Z.'];
     const ids = ['buyer_marek', 'buyer_anna', 'buyer_piotr', 'buyer_kasia', 'buyer_jan'];
     var seq = 1100;

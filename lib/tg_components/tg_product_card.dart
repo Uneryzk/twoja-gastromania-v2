@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/tg_components/tg_listing_no_line.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_contact.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_core/tg_promo_visibility.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
@@ -60,6 +61,7 @@ class TGProductCard extends StatefulWidget {
     this.onFavoriteChanged,
     this.showSeller = true,
     this.promotionTier,
+    this.promotionId,
     this.forceFeaturedBadge = false,
     this.isPromoRepeat = false,
   });
@@ -71,6 +73,9 @@ class TGProductCard extends StatefulWidget {
 
   /// When null, resolved from [PromotionService] / legacy [TGProduct.isPromoted].
   final PromotionTier? promotionTier;
+
+  /// Stable promotion id for impression/click (legacy ids supported).
+  final String? promotionId;
 
   /// Homepage featured strip: always show ÖNE ÇIKAN even if tier lookup is glow/spotlight.
   final bool forceFeaturedBadge;
@@ -108,7 +113,18 @@ class _TGProductCardState extends State<TGProductCard> with SingleTickerProvider
     super.dispose();
   }
 
-  void _open() => context.push(widget.product.detailPath);
+  String? get _promoId {
+    if (widget.promotionId != null) return widget.promotionId;
+    return PromotionService.instance.effectiveListingPromo(widget.product)?.id;
+  }
+
+  void _open() {
+    final promo = PromotionService.instance.effectiveListingPromo(widget.product);
+    final id = _promoId ?? promo?.id;
+    final owner = promo?.ownerId ?? widget.product.ownerId ?? widget.product.seller.id;
+    tgTrackPromoClick(context: context, promotionId: id, ownerId: owner);
+    context.push(widget.product.detailPath);
+  }
 
   Future<void> _toggleFavorite() async {
     final auth = context.read<FakeAuthState>();
@@ -202,12 +218,12 @@ class _TGProductCardState extends State<TGProductCard> with SingleTickerProvider
 
     final label = [
       if (widget.isPromoRepeat) context.t('ui_promo_repeat_a11y'),
-      if (showFeatured) context.t('ui_promoted_badge'),
-      if (showSponsored) context.t('ui_sponsored'),
+      if (showFeatured) context.t('badge.featured'),
+      if (showSponsored) context.t('badge.sponsored'),
       product.title,
     ].join('. ');
 
-    return MediaQuery.withClampedTextScaling(
+    final card = MediaQuery.withClampedTextScaling(
       minScaleFactor: 1,
       maxScaleFactor: _kMaxCardTextScale,
       child: TGHoverCard(
@@ -217,6 +233,20 @@ class _TGProductCardState extends State<TGProductCard> with SingleTickerProvider
         semanticLabel: label,
         child: body,
       ),
+    );
+
+    final promo = PromotionService.instance.effectiveListingPromo(product);
+    final trackId = _promoId ?? promo?.id;
+    if (trackId == null) return card;
+    final owner = promo?.ownerId ?? product.ownerId ?? product.seller.id;
+    return TGPromoVisibility(
+      onQualified: () => tgTrackPromoImpression(
+        context: context,
+        promotionId: trackId,
+        ownerId: owner,
+        isRepeat: widget.isPromoRepeat,
+      ),
+      child: card,
     );
   }
 }
@@ -638,12 +668,12 @@ class _PromotedPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     return Semantics(
-      label: context.t('ui_promoted_badge'),
+      label: context.t('badge.featured'),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 10, vertical: compact ? 4 : 6),
         decoration: BoxDecoration(color: theme.secondary, borderRadius: BorderRadius.circular(TGRadius.pill)),
         child: Text(
-          context.t('ui_promoted_badge'),
+          context.t('badge.featured'),
           style: theme.labelSmall.override(
             color: theme.primaryText,
             fontWeight: FontWeight.w800,
@@ -665,7 +695,7 @@ class _SponsoredChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     return Semantics(
-      label: context.t('ui_sponsored'),
+      label: context.t('badge.sponsored'),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: compact ? 3 : 4),
         decoration: BoxDecoration(
@@ -674,7 +704,7 @@ class _SponsoredChip extends StatelessWidget {
           color: theme.secondaryBackground.withValues(alpha: 0.85),
         ),
         child: Text(
-          context.t('ui_sponsored'),
+          context.t('badge.sponsored'),
           style: theme.labelSmall.override(
             color: theme.primaryText,
             fontWeight: FontWeight.w700,

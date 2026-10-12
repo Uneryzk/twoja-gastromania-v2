@@ -2,10 +2,14 @@ import 'dart:math';
 
 import 'package:twoja_gastromania/products/tg_geo.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_query.dart';
+import 'package:twoja_gastromania/tg_core/promotion_engine.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 
-const int kRestoPromotedSlots = 3;
+@Deprecated('Use PromotionConfig / composeCatalogue')
+const int kRestoPromotedSlots = 6;
 const int kRestoPerPage = 24;
 const int kRestoMobilePageSize = 12;
 const int kRestoBannerAfterCard = 9;
@@ -186,19 +190,42 @@ List<RestaurantListing> sortRestaurants(Iterable<RestaurantListing> input, Resta
 List<RestaurantListing> pickPromotedRestaurants(
   Iterable<RestaurantListing> filtered, {
   required int seed,
-  int limit = kRestoPromotedSlots,
+  int limit = 40,
 }) {
-  final promoted = filtered.where((r) => r.isPromoted).toList()..sort((a, b) => a.id.compareTo(b.id));
-  if (promoted.isEmpty) return const [];
-  promoted.shuffle(Random(seed));
-  return promoted.take(limit).toList(growable: false);
+  PromotionService.instance.ensureSeeded();
+  final list = filtered.toList();
+  final slots = PromotionEngine.composeCatalogue<RestaurantListing>(
+    filteredOrganic: list,
+    idOf: (r) => r.id,
+    promoOf: (r) => PromotionService.instance.effectiveRestaurantPromo(r),
+    context: PromotionComposeContext(
+      surface: PromotionSurface.restaurants,
+      sort: PromotionSortMode.recommended,
+      page: 1,
+      sessionSeed: seed,
+    ),
+  ).pinned;
+  return [for (final s in slots.take(limit)) s.item];
 }
 
 class RestaurantResults {
-  const RestaurantResults({required this.promoted, required this.organic});
+  const RestaurantResults({
+    required this.promoted,
+    required this.organic,
+    this.promoById = const {},
+    this.promoIdByTarget = const {},
+    this.spotlightPromos = const [],
+    this.sessionSeed = 0,
+    this.sortMode = PromotionSortMode.recommended,
+  });
   static const empty = RestaurantResults(promoted: [], organic: []);
   final List<RestaurantListing> promoted;
   final List<RestaurantListing> organic;
+  final Map<String, PromotionTier?> promoById;
+  final Map<String, String> promoIdByTarget;
+  final List<Promotion> spotlightPromos;
+  final int sessionSeed;
+  final PromotionSortMode sortMode;
   int get total => promoted.length + organic.length;
   List<RestaurantListing> get allOrdered => [...promoted, ...organic];
 }
@@ -207,12 +234,43 @@ RestaurantResults computeRestaurantResults(
   Iterable<RestaurantListing> all,
   RestaurantQueryState q, {
   required int promotedSeed,
+  int page = 1,
 }) {
+  PromotionService.instance.ensureSeeded();
   final filtered = applyRestaurantFilters(all, q);
-  final promoted = pickPromotedRestaurants(filtered, seed: promotedSeed);
-  final promotedIds = promoted.map((r) => r.id).toSet();
-  final organic = sortRestaurants(filtered.where((r) => !promotedIds.contains(r.id)), q);
-  return RestaurantResults(promoted: promoted, organic: organic);
+  final sortMode = q.sort == RestaurantSort.recommended ? PromotionSortMode.recommended : PromotionSortMode.other;
+  final sorted = sortRestaurants(filtered, q);
+  final composed = PromotionEngine.composeCatalogue<RestaurantListing>(
+    filteredOrganic: sorted,
+    idOf: (r) => r.id,
+    promoOf: (r) => PromotionService.instance.effectiveRestaurantPromo(r),
+    context: PromotionComposeContext(
+      surface: PromotionSurface.restaurants,
+      sort: sortMode,
+      page: page,
+      sessionSeed: promotedSeed,
+    ),
+  );
+  final promoById = <String, PromotionTier?>{};
+  final promoIdByTarget = <String, String>{};
+  for (final s in [...composed.pinned, ...composed.feed]) {
+    if (s.promotion == null) continue;
+    promoById[s.item.id] = s.promotion!.tier;
+    promoIdByTarget[s.item.id] = s.promotion!.id;
+  }
+  for (final p in composed.spotlights) {
+    promoById[p.targetRef] = p.tier;
+    promoIdByTarget[p.targetRef] = p.id;
+  }
+  return RestaurantResults(
+    promoted: [for (final s in composed.pinned) s.item],
+    organic: [for (final s in composed.feed) s.item],
+    promoById: promoById,
+    promoIdByTarget: promoIdByTarget,
+    spotlightPromos: composed.spotlights,
+    sessionSeed: promotedSeed,
+    sortMode: sortMode,
+  );
 }
 
 int countRestaurantResults(Iterable<RestaurantListing> all, RestaurantQueryState q) =>

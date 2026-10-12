@@ -5,7 +5,9 @@ import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/products/tg_geo.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 
 const _seller = TGSeller(id: 's1', name: 'Seller', type: TGSellerType.store, verified: false, rating: 4.0);
 const _verifiedSeller = TGSeller(id: 's2', name: 'Verified', type: TGSellerType.store, verified: true, rating: 4.9);
@@ -243,23 +245,22 @@ void main() {
       _p('promo1', price: 99999, promoted: true, ageDays: 40),
       _p('promo2', price: 1, promoted: true, ageDays: 30),
       _p('promo3', price: 50000, promoted: true, ageDays: 20),
-      _p('promo4', price: 5, promoted: true, ageDays: 10), // 4th promoted: not pinned
+      _p('promo4', price: 5, promoted: true, ageDays: 10),
       for (var i = 0; i < 12; i++) _p('org$i', price: 100 + i * 37, ageDays: i, warranty: i),
     ];
 
+    setUp(() => PromotionService.instance.resetForTests());
+
     for (final sort in TGProductsSort.values) {
-      test('sort=${sort.name}: same promoted block, nothing else leaks in', () {
-        final base = computeResults(products, const TGProductsQueryState(), promotedSeed: 7);
+      test('sort=${sort.name}: glow pins sticky, nothing else leaks in', () {
         final r = computeResults(products, TGProductsQueryState(sort: sort), promotedSeed: 7);
 
-        expect(r.promoted, hasLength(kPromotedSlots));
+        // Legacy isPromoted → glow; all four stay in the pin strip (under pinnedMaxOnSort).
+        expect(r.promoted, hasLength(4));
         expect(r.promoted.every((p) => p.isPromoted), isTrue);
-        // Identical block and identical order for every sort option.
-        expect(r.promoted.map((p) => p.id).toList(), base.promoted.map((p) => p.id).toList());
-        // Pinned items never also appear in the organic list.
+        expect(r.promoById.values.every((t) => t == PromotionTier.glow), isTrue);
         final pinned = r.promoted.map((p) => p.id).toSet();
         expect(r.organic.any((p) => pinned.contains(p.id)), isFalse);
-        // Nothing is lost.
         expect(r.total, products.length);
       });
     }
@@ -295,15 +296,21 @@ void main() {
   group('seeded catalogue', () {
     setUpAll(() => SharedPreferences.setMockInitialValues({}));
 
-    test('has promoted listings and every sort keeps the same top block', () async {
+    test('has promoted listings; Spotlight/Glow pin set stable across non-recommended sorts', () async {
+      PromotionService.instance.resetForTests();
       final all = await TGProductService.instance.getAll();
-      final blocks = <String>{};
-      for (final sort in TGProductsSort.values) {
+      final recommended = computeResults(all, const TGProductsQueryState(), promotedSeed: 11);
+      expect(recommended.promoted, isNotEmpty);
+      // Recommended may also pin Bold; other sorts pin Spotlight+Glow only.
+      final glowSpotBlocks = <String>{};
+      for (final sort in TGProductsSort.values.where((s) => s != TGProductsSort.recommended)) {
         final r = computeResults(all, TGProductsQueryState(sort: sort), promotedSeed: 11);
         expect(r.promoted, isNotEmpty);
-        blocks.add(r.promoted.map((p) => p.id).join(','));
+        expect(r.promoted.every((p) => r.promoById[p.id] != PromotionTier.bold), isTrue);
+        glowSpotBlocks.add(r.promoted.map((p) => p.id).join(','));
       }
-      expect(blocks, hasLength(1));
+      expect(glowSpotBlocks, hasLength(1));
+      expect(recommended.promoted.length, greaterThanOrEqualTo(glowSpotBlocks.first.split(',').length));
     });
 
     test('most seeded listings offer in-person pickup', () async {

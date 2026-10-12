@@ -86,7 +86,7 @@ class PromotionEngine {
   ///
   /// Recommended: Spotlight → Glow → Bold (pinned header) → organic, with spotlight repeats.
   /// Other sorts: Spotlight+Glow pinned (max [pinnedMaxOnSort]); Bold stays in organic order.
-  static ({List<PromotionSlot<T>> pinned, List<PromotionSlot<T>> feed}) composeCatalogue<T>({
+  static ({List<PromotionSlot<T>> pinned, List<PromotionSlot<T>> feed, List<Promotion> spotlights}) composeCatalogue<T>({
     required List<T> filteredOrganic,
     required String Function(T item) idOf,
     required Promotion? Function(T item) promoOf,
@@ -145,22 +145,34 @@ class PromotionEngine {
       organic.add(PromotionSlot(item: c, promotion: promo?.tier == PromotionTier.bold ? promo : null));
     }
 
-    if (context.sort != PromotionSortMode.recommended) {
-      return (pinned: pinned, feed: organic);
-    }
+    // Repeats are injected per page at render time so they do not affect page counts.
+    final spotOut = context.sort == PromotionSortMode.recommended ? spots : const <Promotion>[];
+    return (pinned: pinned, feed: organic, spotlights: spotOut);
+  }
 
-    // Spotlight repeats among standard cards (don't count toward page totals externally).
-    final feed = _injectSpotlightRepeats(
-      organic: organic,
-      spotlights: spots,
+  /// Injects Spotlight repeats into one page of organic slots.
+  /// Repeats do not count toward pagination totals (call on an already-sliced page).
+  static List<PromotionSlot<T>> withSpotlightRepeats<T>({
+    required List<PromotionSlot<T>> pageOrganic,
+    required List<Promotion> spotlights,
+    required Map<String, T> byId,
+    required Set<String> alreadyShownOnPage,
+    required int page,
+    required int sessionSeed,
+    int? every,
+    int? maxRepeats,
+  }) {
+    final cfg = PromotionService.instance.config;
+    return _injectSpotlightRepeats(
+      organic: pageOrganic,
+      spotlights: spotlights,
       byId: byId,
-      alreadyShown: pinnedIds,
-      every: cfg.spotlightRepeatEvery,
-      maxRepeats: cfg.spotlightRepeatMax,
-      page: context.page,
-      sessionSeed: context.sessionSeed,
+      alreadyShown: alreadyShownOnPage,
+      every: every ?? cfg.spotlightRepeatEvery,
+      maxRepeats: maxRepeats ?? cfg.spotlightRepeatMax,
+      page: page,
+      sessionSeed: sessionSeed,
     );
-    return (pinned: pinned, feed: feed);
   }
 
   static List<PromotionSlot<T>> _injectSpotlightRepeats<T>({
@@ -179,26 +191,41 @@ class PromotionEngine {
     var repeats = 0;
     var cursor = (sessionSeed + page * 7) % spotlights.length;
     String? lastId;
+    final shown = {...alreadyShown};
 
     for (final slot in organic) {
       out.add(slot);
+      lastId = slot.promotion?.targetRef ?? lastId;
       if (slot.promotion != null) continue;
       standardSince++;
       if (standardSince < every || repeats >= maxRepeats) continue;
-      // Pick next spotlight not adjacent / preferably not already on this page.
       Promotion? pick;
       for (var n = 0; n < spotlights.length; n++) {
         final cand = spotlights[(cursor + n) % spotlights.length];
         if (cand.targetRef == lastId) continue;
         if (!byId.containsKey(cand.targetRef)) continue;
+        // Prefer spotlights not already shown on this page.
+        if (shown.contains(cand.targetRef) && n + 1 < spotlights.length) continue;
         pick = cand;
         cursor = (cursor + n + 1) % spotlights.length;
         break;
       }
+      pick ??= () {
+        for (var n = 0; n < spotlights.length; n++) {
+          final cand = spotlights[(cursor + n) % spotlights.length];
+          if (cand.targetRef == lastId) continue;
+          if (!byId.containsKey(cand.targetRef)) continue;
+          cursor = (cursor + n + 1) % spotlights.length;
+          return cand;
+        }
+        return null;
+      }();
       if (pick == null) continue;
-      final item = byId[pick.targetRef]!;
+      final item = byId[pick.targetRef];
+      if (item == null) continue;
       out.add(PromotionSlot(item: item, promotion: pick, isRepeat: true));
       lastId = pick.targetRef;
+      shown.add(pick.targetRef);
       standardSince = 0;
       repeats++;
     }

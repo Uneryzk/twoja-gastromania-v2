@@ -21,15 +21,14 @@ import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
-import 'package:twoja_gastromania/tg_components/founder_price_row.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
-import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_services/account_identity_service.dart';
-import 'package:twoja_gastromania/tg_services/founder_service.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
@@ -306,8 +305,7 @@ class _AddProductPageState extends State<AddProductPage> {
       return;
     }
     setState(() => _publishing = true);
-    TGAnalytics.emit('publish_click', {'total': draft.totalPln, 'promote': draft.promoteDays});
-    if (draft.promoteDays > 0) TGAnalytics.emit('promote_addon_selected', {'days': draft.promoteDays});
+    TGAnalytics.emit('publish_click', {'total': draft.totalPln, 'days': draft.listingPeriodDays});
     final auth = context.read<FakeAuthState>();
     if (auth.listingPlan == TGListingPlan.storeFull) {
       context.go('/plans');
@@ -319,22 +317,14 @@ class _AddProductPageState extends State<AddProductPage> {
           );
       auth.upsertOwned(pending);
       await TGProductService.instance.upsert(pending);
-      if (draft.founderPromoteRate > 0 && draft.promoteListFeePln > 0) {
-        TGFounderService.instance.recordSavings(
-          sellerId: auth.userId,
-          item: draft.promoteDays == 30 ? TGFounderDiscountItem.promote30 : TGFounderDiscountItem.promote14,
-          listPrice: draft.promoteListFeePln,
-          paidPrice: draft.promoteFeePln,
-          discountPct: draft.founderPromoteRate,
-        );
-      }
       auth.beginCheckout(
         TGCheckoutCart.listing(
           listingId: pending.id,
           listingNo: pending.listingNo,
           listingFee: draft.listingFeePln,
-          promoteFee: draft.promoteFeePln,
-          promoteDays: draft.promoteDays,
+          promoteFee: 0,
+          promoteDays: 0,
+          listingDays: draft.listingPeriodDays,
         ),
       );
       if (!mounted) return;
@@ -344,7 +334,7 @@ class _AddProductPageState extends State<AddProductPage> {
     if (auth.listingPlan == TGListingPlan.free) {
       TGAnalytics.emit('free_slot_used');
     }
-    final published = auth.publishOwned(draft.toProduct(), promoteDays: draft.promoteDays);
+    final published = auth.publishOwned(draft.toProduct(), periodDays: draft.listingPeriodDays);
     _linkRestoInventoryIfNeeded(published);
     await TGProductService.instance.upsert(published);
     if (!mounted) return;
@@ -674,7 +664,7 @@ class _AddProductPageState extends State<AddProductPage> {
       TGListingPlan.free => context.t('ui_publish_free'),
       TGListingPlan.store => context.t('ui_publish'),
       TGListingPlan.storeFull => context.t('ui_upgrade_plan'),
-      TGListingPlan.paid => context.t('ui_continue_payment', {'fee': '${TGPricing.listingFeePln}'}),
+      TGListingPlan.paid => context.t('ui_continue_payment', {'fee': '${draft.listingFeePln}'}),
     };
   }
 
@@ -1470,30 +1460,25 @@ class _AddProductPageState extends State<AddProductPage> {
           ),
         const SizedBox(height: 18),
         _PlanBox(auth: auth),
-        const SizedBox(height: 14),
-        WizardLabel(context.t('ui_promote')),
-        WizardRadioCard(selected: draft.promote == AddProductPromote.none, title: context.t('ui_warranty_none'), onTap: () => _dirty(() => draft.promote = AddProductPromote.none)),
-        const SizedBox(height: 8),
-        WizardRadioCard(selected: draft.promote == AddProductPromote.days14, title: context.t('ui_promote_14'), subtitle: context.t('ui_promote_help', {'badge': context.t('ui_promoted_badge')}), onTap: () => _dirty(() => draft.promote = AddProductPromote.days14)),
-        if (draft.promote == AddProductPromote.days14)
-          Padding(
-            padding: const EdgeInsets.only(top: 6, left: 4),
-            child: FounderPriceRow(sellerId: auth.userId, listPrice: TGPricing.promote14Pln),
-          ),
-        const SizedBox(height: 8),
-        WizardRadioCard(selected: draft.promote == AddProductPromote.days30, title: context.t('ui_promote_30'), subtitle: context.t('ui_promote_help', {'badge': context.t('ui_promoted_badge')}), onTap: () => _dirty(() => draft.promote = AddProductPromote.days30)),
-        if (draft.promote == AddProductPromote.days30)
-          Padding(
-            padding: const EdgeInsets.only(top: 6, left: 4),
-            child: FounderPriceRow(sellerId: auth.userId, listPrice: TGPricing.promote30Pln),
-          ),
+        if (plan == TGListingPlan.paid) ...[
+          const SizedBox(height: 14),
+          WizardLabel(context.t('ui_listing_duration')),
+          for (final key in ListingDurationKey.values) ...[
+            if (key != ListingDurationKey.d30) const SizedBox(height: 8),
+            WizardRadioCard(
+              selected: draft.listingDuration == key,
+              title: context.t('ui_duration_days_price', {
+                'days': '${key.days}',
+                'fee': '${draft.pricing.listingFeePln(key)}',
+              }),
+              subtitle:
+                  '${draft.pricing.perDayLabel(draft.pricing.listingFeePln(key), key.days)} · ${context.t('ui_longer_cheaper')}',
+              onTap: () => _dirty(() => draft.listingDuration = key),
+            ),
+          ],
+        ],
         const SizedBox(height: 14),
         Text(context.t('ui_total_brutto_vat', {'n': '${draft.totalPln}'}), style: FlutterFlowTheme.of(context).titleSmall.override(fontWeight: FontWeight.w900)),
-        if (draft.founderPromoteRate > 0)
-          Text(
-            'Founder discount −${(draft.founderPromoteRate * 100).round()}% on promote',
-            style: FlutterFlowTheme.of(context).bodySmall.override(fontWeight: FontWeight.w800),
-          ),
         if (plan == TGListingPlan.paid) ...[
           const SizedBox(height: 12),
           WizardCard(
@@ -2016,7 +2001,9 @@ class _PlanBox extends StatelessWidget {
       TGListingPlan.free when auth.publishedListings.isEmpty =>
         context.t('ui_free_listing_n', {'n': '1'}),
       TGListingPlan.free => context.t('ui_free_listing_n', {'n': '${auth.freeSlotsUsed + 1}'}),
-      TGListingPlan.paid => context.t('ui_standard_listing_n', {'fee': '${TGPricing.listingFeePln}'}),
+      TGListingPlan.paid => context.t('ui_standard_listing_n', {
+          'fee': '${PricingConfigService.instance.config.listingFeePln(ListingDurationKey.d30)}',
+        }),
       TGListingPlan.store => context.t('ui_included_in_plan', {
           'plan': auth.storePlanLabel,
           'used': '${auth.storeActiveUsed}',

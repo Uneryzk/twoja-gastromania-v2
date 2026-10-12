@@ -10,6 +10,7 @@ import 'package:twoja_gastromania/tg_core/promotion_engine.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -33,18 +34,17 @@ class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
   static const double _cardW = 280;
   static const double _gap = 14;
 
-  List<RestaurantListing> _pick() {
+  List<PromotionSlot<RestaurantListing>> _pickSlots() {
     PromotionService.instance.ensureSeeded();
     final now = TGClock.now();
     final seed = now.day * 17 + now.month;
     final public = RestaurantService.instance.publicListings;
-    final slots = PromotionEngine.composeHomeRestaurant<RestaurantListing>(
+    return PromotionEngine.composeHomeRestaurant<RestaurantListing>(
       candidates: public,
       idOf: (r) => r.id,
       promoOf: (r) => PromotionService.instance.effectiveRestaurantPromo(r),
       sessionSeed: seed,
     );
-    return [for (final s in slots) s.item];
   }
 
   @override
@@ -83,23 +83,23 @@ class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _pick();
-    if (items.isEmpty) return const SizedBox.shrink();
+    final slots = _pickSlots();
+    if (slots.isEmpty) return const SizedBox.shrink();
     if (!_viewed) {
       _viewed = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        TGAnalytics.track('home_resto_strip_view', {'n': items.length});
+        TGAnalytics.track('home_resto_strip_view', {'n': slots.length});
       });
     }
     final theme = FlutterFlowTheme.of(context);
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _armTimer(reduce, items.length);
+      if (mounted) _armTimer(reduce, slots.length);
     });
 
     final list = SizedBox(
-      height: phone ? 500 : 520,
+      height: 540 + (MediaQuery.textScalerOf(context).scale(16) / 16 - 1).clamp(0.0, 1.0) * 400,
       child: MouseRegion(
         onEnter: (_) => _paused = true,
         onExit: (_) => _paused = false,
@@ -110,23 +110,29 @@ class _HomeRestaurantsStripState extends State<HomeRestaurantsStrip> {
               scrollDirection: Axis.horizontal,
               clipBehavior: Clip.hardEdge,
               padding: const EdgeInsets.fromLTRB(0, 8, 0, 20),
-              itemCount: items.length,
+              itemCount: slots.length,
               separatorBuilder: (_, __) => const SizedBox(width: _gap),
-              itemBuilder: (_, i) => SizedBox(
-                width: _cardW,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: RestaurantCard(
-                    listing: items[i],
-                    onTap: () {
-                      TGAnalytics.track('home_resto_card_click', {'listingNo': items[i].listingNo});
-                      context.go(items[i].detailPath);
-                    },
+              itemBuilder: (_, i) {
+                final s = slots[i];
+                final listing = s.item;
+                return SizedBox(
+                  width: _cardW,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: RestaurantCard(
+                      listing: listing,
+                      promotionTier: s.promotion?.tier,
+                      promotionId: s.promotion?.id,
+                      onTap: () {
+                        TGAnalytics.track('home_resto_card_click', {'listingNo': listing.listingNo});
+                        context.go(listing.detailPath);
+                      },
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
-            if (!phone && items.length > 3) ...[
+            if (!phone && slots.length > 3) ...[
               Positioned(
                 left: 0,
                 top: 0,

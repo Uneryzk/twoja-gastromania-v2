@@ -6,7 +6,9 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 
@@ -152,9 +154,11 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
         ListTile(
           title: Text(
             context.t('ui_admin_banner_ads_cfg', {
-              'price': '${_draft.bannerAds.adSlotPln14}',
-              'inc': '${_draft.bannerAds.enterpriseIncludedSlidesPerMonth}',
-              'max': '${_draft.bannerAds.maxLiveHeroSlides}',
+              'w1': '${PricingConfigService.instance.config.banner.pricePln(BannerDurationKey.w1)}',
+              'w2': '${PricingConfigService.instance.config.banner.pricePln(BannerDurationKey.w2)}',
+              'm1': '${PricingConfigService.instance.config.banner.pricePln(BannerDurationKey.m1)}',
+              'inc': '${PricingConfigService.instance.config.banner.enterpriseFreePerMonth}',
+              'max': '${PricingConfigService.instance.config.banner.maxSponsoredPerDay}',
             }),
           ),
           subtitle: Text(

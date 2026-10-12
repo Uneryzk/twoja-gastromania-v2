@@ -67,21 +67,17 @@ class TGRevenueFlags {
 @immutable
 class TGBannerAdsConfig {
   const TGBannerAdsConfig({
-    this.adSlotPln14 = 299,
     this.enterpriseIncludedSlidesPerMonth = 1,
     this.maxLiveHeroSlides = 3,
   });
-  final int adSlotPln14;
   final int enterpriseIncludedSlidesPerMonth;
   final int maxLiveHeroSlides;
 
   TGBannerAdsConfig copyWith({
-    int? adSlotPln14,
     int? enterpriseIncludedSlidesPerMonth,
     int? maxLiveHeroSlides,
   }) =>
       TGBannerAdsConfig(
-        adSlotPln14: adSlotPln14 ?? this.adSlotPln14,
         enterpriseIncludedSlidesPerMonth: enterpriseIncludedSlidesPerMonth ?? this.enterpriseIncludedSlidesPerMonth,
         maxLiveHeroSlides: maxLiveHeroSlides ?? this.maxLiveHeroSlides,
       );

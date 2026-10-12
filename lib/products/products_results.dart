@@ -11,6 +11,7 @@ import 'package:twoja_gastromania/tg_components/tg_special_order_band.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 
 /// Minimum width of a grid card; the column count is derived from the width the
 /// results area actually gets (not from the screen), so it is right with or
@@ -432,7 +433,8 @@ class TGResultsBody extends StatelessWidget {
     final page = query.page.clamp(1, totalPages);
 
     // Phones accumulate ("Show more"); larger screens show one page at a time.
-    final visible = isPhone ? organic.take(page * perPage).toList() : paginate(organic, page, perPage: perPage);
+    // Spotlight repeats are injected into the page slice and do not affect pageCount.
+    final visibleSlots = results.visibleOrganicSlots(page: page, perPage: perPage, accumulate: isPhone);
 
     Widget content;
     if (loading) {
@@ -446,7 +448,9 @@ class TGResultsBody extends StatelessWidget {
           key: ValueKey(query.view),
           layout: query.view,
           promoted: results.promoted,
-          visible: visible,
+          visibleSlots: visibleSlots,
+          promoById: results.promoById,
+          promoIdByTarget: results.promoIdByTarget,
           hasOrganic: organic.isNotEmpty,
           isPhone: isPhone,
         ),
@@ -460,7 +464,11 @@ class TGResultsBody extends StatelessWidget {
         if (!loading && organic.isNotEmpty) ...[
           const SizedBox(height: 28),
           if (isPhone)
-            _ShowMore(shown: visible.length, total: organic.length, onMore: () => onChanged(query.copyWith(page: page + 1)))
+            _ShowMore(
+              shown: math.min(page * perPage, organic.length),
+              total: organic.length,
+              onMore: () => onChanged(query.copyWith(page: page + 1)),
+            )
           else
             _Pagination(current: page, total: totalPages, onPage: (p) => onChanged(query.copyWith(page: p))),
         ],
@@ -523,14 +531,18 @@ class _CardsContent extends StatelessWidget {
     super.key,
     required this.layout,
     required this.promoted,
-    required this.visible,
+    required this.visibleSlots,
+    required this.promoById,
+    required this.promoIdByTarget,
     required this.hasOrganic,
     required this.isPhone,
   });
 
   final TGProductCardLayout layout;
   final List<TGProduct> promoted;
-  final List<TGProduct> visible;
+  final List<PromotionSlot<TGProduct>> visibleSlots;
+  final Map<String, PromotionTier?> promoById;
+  final Map<String, String> promoIdByTarget;
   final bool hasOrganic;
   final bool isPhone;
 
@@ -545,15 +557,27 @@ class _CardsContent extends StatelessWidget {
           _SectionHeader(label: context.t('ui_featured_promoted'), color: theme.secondary, key: const ValueKey('promoted-header')),
           const SizedBox(height: 12),
           if (isPhone && layout == TGProductCardLayout.grid)
-            _PromotedCarousel(items: promoted)
+            _PromotedCarousel(items: promoted, promoById: promoById, promoIdByTarget: promoIdByTarget)
           else
-            _CardCollection(items: promoted, layout: layout, withBanner: false),
+            _CardCollection(
+              items: [for (final p in promoted) PromotionSlot(item: p, promotion: null)],
+              layout: layout,
+              withBanner: false,
+              promoById: promoById,
+              promoIdByTarget: promoIdByTarget,
+            ),
           const SizedBox(height: 28),
         ],
         if (hasOrganic) ...[
           _SectionHeader(label: context.t('ui_all_listings')),
           const SizedBox(height: 12),
-          _CardCollection(items: visible, layout: layout, withBanner: true),
+          _CardCollection(
+            items: visibleSlots,
+            layout: layout,
+            withBanner: true,
+            promoById: promoById,
+            promoIdByTarget: promoIdByTarget,
+          ),
         ] else if (promoted.isNotEmpty)
           Text(context.t('ui_no_other_listings'), style: theme.bodyMedium.override(color: theme.secondaryText)),
       ],
@@ -582,11 +606,32 @@ class _SectionHeader extends StatelessWidget {
 
 /// A set of cards laid out as a grid (1–3 columns) or as horizontal list rows.
 class _CardCollection extends StatelessWidget {
-  const _CardCollection({required this.items, required this.layout, required this.withBanner});
+  const _CardCollection({
+    required this.items,
+    required this.layout,
+    required this.withBanner,
+    required this.promoById,
+    required this.promoIdByTarget,
+  });
 
-  final List<TGProduct> items;
+  final List<PromotionSlot<TGProduct>> items;
   final TGProductCardLayout layout;
   final bool withBanner;
+  final Map<String, PromotionTier?> promoById;
+  final Map<String, String> promoIdByTarget;
+
+  Widget _card(PromotionSlot<TGProduct> slot, TGProductCardLayout layout, String keyPrefix) {
+    final p = slot.item;
+    final tier = slot.promotion?.tier ?? promoById[p.id];
+    return TGProductCard(
+      key: ValueKey('$keyPrefix-${p.id}-${slot.isRepeat}'),
+      product: p,
+      layout: layout,
+      promotionTier: tier,
+      isPromoRepeat: slot.isRepeat,
+      promotionId: slot.promotion?.id ?? promoIdByTarget[p.id],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -597,11 +642,11 @@ class _CardCollection extends StatelessWidget {
         if (layout == TGProductCardLayout.list) {
           const bannerAfter = 4;
           final before = withBanner ? items.take(bannerAfter).toList() : items;
-          final after = withBanner ? items.skip(bannerAfter).toList() : const <TGProduct>[];
-          Widget rows(List<TGProduct> part) => Column(
+          final after = withBanner ? items.skip(bannerAfter).toList() : const <PromotionSlot<TGProduct>>[];
+          Widget rows(List<PromotionSlot<TGProduct>> part) => Column(
                 children: [
                   for (var i = 0; i < part.length; i++) ...[
-                    TGProductCard(key: ValueKey('list-${part[i].id}'), product: part[i], layout: TGProductCardLayout.list),
+                    _card(part[i], TGProductCardLayout.list, 'list'),
                     if (i != part.length - 1) const SizedBox(height: 14),
                   ],
                 ],
@@ -621,9 +666,9 @@ class _CardCollection extends StatelessWidget {
         final extent = TGProductCard.gridExtent(cardW, MediaQuery.textScalerOf(context));
         final bannerAfter = cols * 3;
         final before = withBanner ? items.take(bannerAfter).toList() : items;
-        final after = withBanner ? items.skip(bannerAfter).toList() : const <TGProduct>[];
+        final after = withBanner ? items.skip(bannerAfter).toList() : const <PromotionSlot<TGProduct>>[];
 
-        Widget grid(List<TGProduct> part) => GridView.builder(
+        Widget grid(List<PromotionSlot<TGProduct>> part) => GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               padding: EdgeInsets.zero,
@@ -635,7 +680,7 @@ class _CardCollection extends StatelessWidget {
                 mainAxisExtent: extent,
               ),
               itemCount: part.length,
-              itemBuilder: (_, i) => TGProductCard(key: ValueKey('grid-${part[i].id}'), product: part[i]),
+              itemBuilder: (_, i) => _card(part[i], TGProductCardLayout.grid, 'grid'),
             );
 
         return Column(
@@ -651,10 +696,16 @@ class _CardCollection extends StatelessWidget {
   }
 }
 
-/// Phones: the promoted trio scrolls sideways instead of eating three screens.
+/// Phones: the promoted strip scrolls sideways instead of eating the whole screen.
 class _PromotedCarousel extends StatelessWidget {
-  const _PromotedCarousel({required this.items});
+  const _PromotedCarousel({
+    required this.items,
+    required this.promoById,
+    required this.promoIdByTarget,
+  });
   final List<TGProduct> items;
+  final Map<String, PromotionTier?> promoById;
+  final Map<String, String> promoIdByTarget;
 
   @override
   Widget build(BuildContext context) {
@@ -669,10 +720,18 @@ class _PromotedCarousel extends StatelessWidget {
         padding: const EdgeInsets.only(top: 8, bottom: 16),
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 14),
-        itemBuilder: (_, i) => SizedBox(
-          width: cardW,
-          child: TGProductCard(key: ValueKey('promo-${items[i].id}'), product: items[i]),
-        ),
+        itemBuilder: (_, i) {
+          final p = items[i];
+          return SizedBox(
+            width: cardW,
+            child: TGProductCard(
+              key: ValueKey('promo-${p.id}'),
+              product: p,
+              promotionTier: promoById[p.id],
+              promotionId: promoIdByTarget[p.id],
+            ),
+          );
+        },
       ),
     );
   }

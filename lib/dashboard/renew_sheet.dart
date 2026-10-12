@@ -6,15 +6,19 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_form.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_components/founder_price_row.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
-import 'package:twoja_gastromania/tg_components/founder_price_row.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/invoicing_service.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 
 Future<void> showRenewSheet(BuildContext context, TGProduct product, {bool early = false}) {
   final body = _RenewSheetBody(product: product, early: early);
@@ -69,27 +73,44 @@ class _RenewSheetBody extends StatefulWidget {
 }
 
 class _RenewSheetBodyState extends State<_RenewSheetBody> {
-  int _promote = 0;
+  ListingDurationKey _duration = ListingDurationKey.d30;
+  PromotionTier? _tier; // null = None
+  PromotionDurationKey _promoDur = PromotionDurationKey.week2;
   bool _paying = false;
   final _formKey = GlobalKey<PaymentFormState>();
 
-  int _promoteList(String sellerId) {
-    if (_promote == 14) return TGPricing.promote14Pln;
-    if (_promote == 30) return TGPricing.promote30Pln;
-    return 0;
+  PricingConfig get _cfg => PricingConfigService.instance.config;
+
+  int get _listingFee => _cfg.listingFeePln(_duration);
+
+  int _promoList() {
+    final t = _tier;
+    if (t == null) return 0;
+    return _cfg.promoFeePln(t, _promoDur);
   }
 
-  int _promotePaid(String sellerId) {
-    final list = _promoteList(sellerId);
+  int _promoPaid(String sellerId) {
+    final list = _promoList();
     if (list <= 0) return 0;
     return TGFounderService.instance.discountedPrice(sellerId, list);
   }
 
-  int _total(String sellerId) => TGPricing.listingFeePln + _promotePaid(sellerId);
+  int _total(String sellerId) => _listingFee + _promoPaid(sellerId);
 
-  bool _allow(int days) {
-    final room = widget.early ? widget.product.daysUntilExpiry() + TGPricing.listingPeriodDays : TGPricing.listingPeriodDays;
-    return days <= room;
+  bool _promoFits() {
+    final t = _tier;
+    if (t == null) return true;
+    // After renew, listing end = base + duration days.
+    final now = DateTime.now();
+    final base = widget.early && widget.product.expiresAt != null && widget.product.expiresAt!.isAfter(now)
+        ? widget.product.expiresAt!
+        : now;
+    final listingEnd = base.add(Duration(days: _duration.days));
+    return PromotionService.instance.promoFitsListing(
+      listingEndsAt: listingEnd,
+      promoDays: _promoDur.days,
+      startAt: now,
+    );
   }
 
   @override
@@ -99,76 +120,99 @@ class _RenewSheetBodyState extends State<_RenewSheetBody> {
     final sellerId = auth.userId;
     final p = widget.product;
     final ago = p.daysSinceExpiry();
-    final promote14Total = TGPricing.listingFeePln + TGFounderService.instance.discountedPrice(sellerId, TGPricing.promote14Pln);
-    final promote30Total = TGPricing.listingFeePln + TGFounderService.instance.discountedPrice(sellerId, TGPricing.promote30Pln);
+    final early = widget.early || (p.status != TGListingStatus.expired && p.daysUntilExpiry() <= _cfg.renewEarlyDays);
     return PopScope(
       canPop: !_paying,
       child: SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(p.title, style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-          if (p.status == TGListingStatus.expired)
-            Text(context.t('ui_expired_ago', {'n': '$ago'}), style: theme.bodySmall.override(color: TGColors.rating))
-          else
-            Text(context.t('ui_days_left_n', {'n': '${p.daysUntilExpiry()}'}), style: theme.bodySmall.override(color: TGColors.rating)),
-          const SizedBox(height: 14),
-          WizardRadioCard(
-            selected: _promote == 0,
-            title: context.t('ui_renew_pln', {'fee': '${TGPricing.listingFeePln}'}),
-            onTap: () => setState(() => _promote = 0),
-          ),
-          const SizedBox(height: 8),
-          _offer(
-            enabled: _allow(14),
-            selected: _promote == 14,
-            title: context.t('ui_renew_promote_14', {'fee': '$promote14Total'}),
-            onTap: () => setState(() => _promote = 14),
-          ),
-          if (_promote == 14) ...[
-            const SizedBox(height: 6),
-            FounderPriceRow(sellerId: sellerId, listPrice: TGPricing.promote14Pln, label: 'Promote add-on'),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(p.title, style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+            if (p.status == TGListingStatus.expired)
+              Text(context.t('ui_expired_ago', {'n': '$ago'}), style: theme.bodySmall.override(color: TGColors.rating))
+            else
+              Text(
+                early ? context.t('ui_renew_early') : context.t('ui_days_left_n', {'n': '${p.daysUntilExpiry()}'}),
+                style: theme.bodySmall.override(color: TGColors.rating),
+              ),
+            const SizedBox(height: 14),
+            WizardLabel(context.t('ui_listing_duration')),
+            for (final key in ListingDurationKey.values) ...[
+              const SizedBox(height: 8),
+              WizardRadioCard(
+                selected: _duration == key,
+                title: context.t('ui_duration_days_price', {'days': '${key.days}', 'fee': '${_cfg.listingFeePln(key)}'}),
+                subtitle: '${_cfg.perDayLabel(_cfg.listingFeePln(key), key.days)} · ${context.t('ui_longer_cheaper')}',
+                onTap: () => setState(() => _duration = key),
+              ),
+            ],
+            const SizedBox(height: 16),
+            WizardLabel(context.t('ui_promote')),
+            WizardRadioCard(
+              selected: _tier == null,
+              title: context.t('ui_promo_none'),
+              onTap: () => setState(() => _tier = null),
+            ),
+            for (final tier in PromotionTier.values) ...[
+              const SizedBox(height: 8),
+              WizardRadioCard(
+                selected: _tier == tier,
+                title: '${tier.name[0].toUpperCase()}${tier.name.substring(1)} · ${_cfg.promoFeePln(tier, _promoDur)} PLN',
+                subtitle: _cfg.perDayLabel(_cfg.promoFeePln(tier, _promoDur), _promoDur.days),
+                onTap: () => setState(() => _tier = tier),
+              ),
+            ],
+            if (_tier != null) ...[
+              const SizedBox(height: 10),
+              SegmentedButton<PromotionDurationKey>(
+                segments: [
+                  ButtonSegment(value: PromotionDurationKey.week2, label: Text(context.t('ui_duration_2w'))),
+                  ButtonSegment(value: PromotionDurationKey.month1, label: Text(context.t('ui_duration_1m'))),
+                ],
+                selected: {_promoDur},
+                onSelectionChanged: (s) => setState(() => _promoDur = s.first),
+              ),
+              if (_promoList() > 0) ...[
+                const SizedBox(height: 6),
+                FounderPriceRow(sellerId: sellerId, listPrice: _promoList(), label: 'Promote add-on'),
+              ],
+              if (!_promoFits()) ...[
+                const SizedBox(height: 8),
+                Text(context.t('ui_promo_needs_renew'), style: theme.bodySmall.override(color: TGColors.rating)),
+              ],
+            ],
+            const SizedBox(height: 12),
+            AnimatedSwitcher(
+              duration: Duration(milliseconds: (MediaQuery.maybeOf(context)?.disableAnimations ?? false) ? 0 : 150),
+              child: Text(
+                key: ValueKey(_total(sellerId)),
+                context.t('ui_total_brutto_vat', {'n': '${_total(sellerId)}'}),
+                style: theme.titleSmall.override(fontWeight: FontWeight.w900),
+              ),
+            ),
+            const SizedBox(height: 16),
+            PaymentForm(
+              key: _formKey,
+              amountPln: _total(sellerId).toDouble(),
+              autofocusBlik: true,
+              onWaitingChanged: (v) => setState(() => _paying = v),
+              onPaid: () => _finish(context, sellerId, early),
+            ),
           ],
-          const SizedBox(height: 8),
-          _offer(
-            enabled: _allow(30),
-            selected: _promote == 30,
-            title: context.t('ui_renew_promote_30', {'fee': '$promote30Total'}),
-            onTap: () => setState(() => _promote = 30),
-          ),
-          if (_promote == 30) ...[
-            const SizedBox(height: 6),
-            FounderPriceRow(sellerId: sellerId, listPrice: TGPricing.promote30Pln, label: 'Promote add-on'),
-          ],
-          const SizedBox(height: 16),
-          PaymentForm(
-            key: _formKey,
-            amountPln: _total(sellerId).toDouble(),
-            autofocusBlik: true,
-            onWaitingChanged: (v) => setState(() => _paying = v),
-            onPaid: () => _finish(context, sellerId),
-          ),
-        ],
-      ),
+        ),
       ),
     );
   }
 
-  Widget _offer({required bool enabled, required bool selected, required String title, required VoidCallback onTap}) {
-    final card = WizardRadioCard(selected: selected, title: title, onTap: enabled ? onTap : () {});
-    if (enabled) return card;
-    return Tooltip(message: 'Promote cannot last longer than the listing.', child: Opacity(opacity: 0.45, child: IgnorePointer(child: card)));
-  }
-
-  Future<void> _finish(BuildContext context, String sellerId) async {
-    final list = _promoteList(sellerId);
-    final paid = _promotePaid(sellerId);
+  Future<void> _finish(BuildContext context, String sellerId, bool early) async {
+    final list = _promoList();
+    final paid = _promoPaid(sellerId);
     final rate = TGFounderService.instance.activeDiscountRate(sellerId);
     if (rate > 0 && list > paid) {
       TGFounderService.instance.recordSavings(
         sellerId: sellerId,
-        item: _promote == 30 ? TGFounderDiscountItem.promote30 : TGFounderDiscountItem.promote14,
+        item: TGFounderDiscountItem.promote30,
         listPrice: list,
         paidPrice: paid,
         discountPct: rate,
@@ -182,11 +226,34 @@ class _RenewSheetBodyState extends State<_RenewSheetBody> {
       listingNo: widget.product.listingNo,
     );
     final auth = context.read<FakeAuthState>();
-    final published = auth.renewOwned(widget.product.id, promoteDays: _promote, early: widget.early);
-    await TGProductService.instance.upsert(published);
+    final published = auth.renewOwned(
+      widget.product.id,
+      promoteDays: 0,
+      early: early,
+      periodDays: _duration.days,
+    );
+    if (_tier != null && _promoFits()) {
+      final promo = PromotionService.instance.purchase(
+        ownerId: sellerId,
+        kind: PromotionTargetKind.listing,
+        targetRef: published.id,
+        tier: _tier!,
+        durationKey: _promoDur,
+        pricePln: paid,
+        source: PromotionSource.paid,
+        listingEndsAt: published.expiresAt,
+        paymentId: 'pay_renew_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      await TGProductService.instance.upsert(published.copyWith(
+        isPromoted: promo.status == PromotionStatus.active,
+        promotedUntil: promo.endsAt,
+      ));
+    } else {
+      await TGProductService.instance.upsert(published);
+    }
     if (!context.mounted) return;
     Navigator.pop(context);
-    TGAnalytics.emit('renew_success', {'id': widget.product.id});
+    TGAnalytics.emit('renew_success', {'id': widget.product.id, 'days': _duration.days});
     final until = DateFormat('d MMM y').format(published.expiresAt ?? DateTime.now());
     showTGToast(context, 'Live again until $until');
   }

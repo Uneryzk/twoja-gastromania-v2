@@ -23,6 +23,7 @@ class TGCheckoutCart {
     this.listingId,
     this.listingIds = const [],
     this.promoteDays = 0,
+    this.listingDays,
     this.early = false,
     this.storePlanId,
     this.period,
@@ -34,6 +35,8 @@ class TGCheckoutCart {
   final String? listingId;
   final List<String> listingIds;
   final int promoteDays;
+  /// Paid listing / renew period from PricingConfig (30/60/90 or resto 90/180/365).
+  final int? listingDays;
   final bool early;
   /// `basic` | `pro` | `enterprise`
   final String? storePlanId;
@@ -49,19 +52,24 @@ class TGCheckoutCart {
     required int promoteFee,
     required int promoteDays,
     String? listingNo,
+    int? listingDays,
+    String? promoteLabel,
   }) {
+    final days = listingDays ?? 30;
     final feeLabel = listingNo == null || listingNo.isEmpty
-        ? 'Standard listing'
-        : 'Listing fee - No. $listingNo';
+        ? 'Listing · $days days'
+        : 'Listing fee · $days days · No. $listingNo';
     final lines = <TGCheckoutLine>[
       if (listingFee > 0) TGCheckoutLine(feeLabel, listingFee.toDouble()),
-      if (promoteFee > 0)
-        TGCheckoutLine(
-          promoteDays == 30 ? 'Promote 30 days' : 'Promote 14 days',
-          promoteFee.toDouble(),
-        ),
+      if (promoteFee > 0) TGCheckoutLine(promoteLabel ?? 'Promotion', promoteFee.toDouble()),
     ];
-    return TGCheckoutCart(kind: TGCheckoutKind.listing, listingId: listingId, lines: lines, promoteDays: promoteDays);
+    return TGCheckoutCart(
+      kind: TGCheckoutKind.listing,
+      listingId: listingId,
+      lines: lines,
+      promoteDays: promoteDays,
+      listingDays: days,
+    );
   }
 
   factory TGCheckoutCart.renew({
@@ -70,29 +78,31 @@ class TGCheckoutCart {
     required int promoteFee,
     required int promoteDays,
     required bool early,
+    int? listingDays,
+    String? promoteLabel,
   }) {
+    final days = listingDays ?? 30;
     final lines = <TGCheckoutLine>[
-      TGCheckoutLine(early ? 'Renew early' : 'Renew', listingFee.toDouble()),
-      if (promoteFee > 0)
-        TGCheckoutLine(
-          promoteDays == 30 ? 'Promote 30 days' : 'Promote 14 days',
-          promoteFee.toDouble(),
-        ),
+      TGCheckoutLine(early ? 'Renew early · $days days' : 'Renew · $days days', listingFee.toDouble()),
+      if (promoteFee > 0) TGCheckoutLine(promoteLabel ?? 'Promotion', promoteFee.toDouble()),
     ];
     return TGCheckoutCart(
       kind: TGCheckoutKind.renew,
       listingId: listingId,
       lines: lines,
       promoteDays: promoteDays,
+      listingDays: days,
       early: early,
     );
   }
 
-  factory TGCheckoutCart.renewBulk({required List<String> ids, required int unitFee}) {
+  factory TGCheckoutCart.renewBulk({required List<String> ids, required int unitFee, int? listingDays}) {
+    final days = listingDays ?? 30;
     return TGCheckoutCart(
       kind: TGCheckoutKind.renewBulk,
       listingIds: ids,
-      lines: [TGCheckoutLine('Renew ${ids.length} listings', (unitFee * ids.length).toDouble())],
+      listingDays: days,
+      lines: [TGCheckoutLine('Renew ${ids.length} listings · $days days each', (unitFee * ids.length).toDouble())],
     );
   }
 
@@ -102,17 +112,20 @@ class TGCheckoutCart {
     required int promoteFee,
     required int promoteDays,
     bool useFreeIntro = false,
+    int? listingDays,
+    String? promoteLabel,
   }) {
+    final days = listingDays ?? 90;
     final lines = <TGCheckoutLine>[
-      if (listingFee > 0) TGCheckoutLine('Restaurant listing · 90 days', listingFee.toDouble()),
-      if (promoteFee > 0)
-        TGCheckoutLine(promoteDays == 30 ? 'Promote 30 days' : 'Promote 14 days', promoteFee.toDouble()),
+      if (listingFee > 0) TGCheckoutLine('Restaurant listing · $days days', listingFee.toDouble()),
+      if (promoteFee > 0) TGCheckoutLine(promoteLabel ?? 'Promotion', promoteFee.toDouble()),
     ];
     return TGCheckoutCart(
       kind: TGCheckoutKind.restaurantListing,
       listingId: listingId,
       lines: lines,
       promoteDays: promoteDays,
+      listingDays: days,
       useFreeIntro: useFreeIntro,
     );
   }

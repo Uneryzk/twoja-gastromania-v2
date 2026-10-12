@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/add_product/add_product_fields.dart';
 import 'package:twoja_gastromania/dashboard/dashboard_nav.dart';
 import 'package:twoja_gastromania/dashboard/listing_row.dart';
+import 'package:twoja_gastromania/dashboard/promotions_panel.dart';
 import 'package:twoja_gastromania/dashboard/renew_sheet.dart';
 import 'package:twoja_gastromania/deals/sold_flow_sheet.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_listing_row.dart';
@@ -26,8 +27,10 @@ import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 
 /// Expired first (most overdue at the top), then live listings by days left
 /// (soonest expiry first). Drafts and other non-live rows sit at the end.
@@ -186,47 +189,71 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                       ],
                       const SizedBox(height: 14),
                       _Tabs(current: tab, attention: auth.ownedNeedsAttention.isNotEmpty, onSelect: (f) => TGNav.dashboardListings(context, filter: f)),
+                      if (tab == 'promotions') ...[
+                        const SizedBox(height: 14),
+                        const TGPromotionsPanel(),
+                      ] else ...[
                       if (expiredN > 0) ...[
                         const SizedBox(height: 12),
-                        TGButton(
-                          key: const Key('dashboard-renew-all'),
-                          onPressed: () {
-                            auth.beginCheckout(
-                              TGCheckoutCart.renewBulk(ids: auth.ownedExpired.map((p) => p.id).toList(), unitFee: TGPricing.listingFeePln),
-                            );
-                            context.go('/add-product/checkout');
-                          },
-                          label: context.t('ui_renew_all_expired', {
-                            'n': '$expiredN',
-                            'fee': '${expiredN * TGPricing.listingFeePln}',
-                          }),
-                          height: 44,
-                          borderRadius: BorderRadius.circular(TGRadius.pill),
-                        ),
-                      ],
-                      if (expiredN >= 4) ...[
-                        const SizedBox(height: 12),
-                        WizardCard(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '4 × ${TGPricing.listingFeePln} = ${4 * TGPricing.listingFeePln} PLN vs Basic Store 199 PLN',
-                                  style: theme.titleSmall.override(fontWeight: FontWeight.w800),
+                        Builder(builder: (context) {
+                          final fee = PricingConfigService.instance.config.listingFeePln(ListingDurationKey.d30);
+                          return TGButton(
+                            key: const Key('dashboard-renew-all'),
+                            onPressed: () {
+                              auth.beginCheckout(
+                                TGCheckoutCart.renewBulk(
+                                  ids: auth.ownedExpired.map((p) => p.id).toList(),
+                                  unitFee: fee,
+                                  listingDays: ListingDurationKey.d30.days,
                                 ),
-                              ),
-                              TGButton(
-                                onPressed: () {
-                                  TGAnalytics.emit('basic_store_nudge_click');
-                                  context.go('/plans');
-                                },
-                                label: 'See Basic Store',
-                                variant: TGButtonVariant.outline,
-                                height: 40,
-                              ),
-                            ],
-                          ),
-                        ),
+                              );
+                              context.go('/add-product/checkout');
+                            },
+                            label: context.t('ui_renew_all_expired', {
+                              'n': '$expiredN',
+                              'fee': '${expiredN * fee}',
+                            }),
+                            height: 44,
+                            borderRadius: BorderRadius.circular(TGRadius.pill),
+                          );
+                        }),
+                      ],
+                      if (PricingConfigService.instance.config.shouldNudgeBasicStore(
+                        paidBasket30dEqPln: expiredN * PricingConfigService.instance.config.listingFeePln(ListingDurationKey.d30),
+                        listingCount: expiredN,
+                      )) ...[
+                        const SizedBox(height: 12),
+                        Builder(builder: (context) {
+                          final cfg = PricingConfigService.instance.config;
+                          final fee = cfg.listingFeePln(ListingDurationKey.d30);
+                          final n = cfg.storeNudgeMinListings;
+                          return WizardCard(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    context.t('ui_basic_store_nudge', {
+                                      'n': '$n',
+                                      'fee': '$fee',
+                                      'sum': '${n * fee}',
+                                      'store': '${cfg.basicStoreMonthlyPln}',
+                                    }),
+                                    style: theme.titleSmall.override(fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                                TGButton(
+                                  onPressed: () {
+                                    TGAnalytics.emit('basic_store_nudge_click');
+                                    context.go('/plans');
+                                  },
+                                  label: 'See Basic Store',
+                                  variant: TGButtonVariant.outline,
+                                  height: 40,
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
                       ],
                       const SizedBox(height: 18),
                       ..._restoDashboardCards(context, auth, theme),
@@ -245,8 +272,16 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                             onRenewEarly: p.isExpiringSoon ? () => showRenewSheet(context, p, early: true) : null,
                             onResume: p.status == TGListingStatus.paymentPending
                                 ? () {
+                                    final fee = PricingConfigService.instance.config.listingFeePln(ListingDurationKey.d30);
                                     auth.beginCheckout(
-                                      TGCheckoutCart.listing(listingId: p.id, listingNo: p.listingNo, listingFee: TGPricing.listingFeePln, promoteFee: 0, promoteDays: 0),
+                                      TGCheckoutCart.listing(
+                                        listingId: p.id,
+                                        listingNo: p.listingNo,
+                                        listingFee: fee,
+                                        promoteFee: 0,
+                                        promoteDays: 0,
+                                        listingDays: ListingDurationKey.d30.days,
+                                      ),
                                     );
                                     context.go('/add-product/checkout');
                                   }
@@ -254,6 +289,7 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                           ),
                         for (final r in restos) RestaurantListingRow(listing: r),
                       ],
+                      ], // end non-promotions tab
                     ],
                   ),
                 ),
@@ -314,6 +350,7 @@ class _Tabs extends StatelessWidget {
       ('all', context.t('ui_all')),
       ('active', 'Active'),
       ('expired', context.t('ui_filter_expired')),
+      ('promotions', context.t('ui_promotions_tab')),
       if (attention) ('review', context.t('ui_filter_review')),
       ('drafts', 'Drafts'),
     ];

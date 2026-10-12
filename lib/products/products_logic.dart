@@ -183,21 +183,69 @@ List<TGProduct> pickPromoted(Iterable<TGProduct> filtered, {required int seed, i
 
 /// Filtered results split into the sticky promoted block and the sorted rest.
 class TGProductResults {
-  const TGProductResults({required this.promoted, required this.organic, this.promoById = const {}});
+  const TGProductResults({
+    required this.promoted,
+    required this.organic,
+    this.promoById = const {},
+    this.promoIdByTarget = const {},
+    this.spotlightPromos = const [],
+    this.sessionSeed = 0,
+    this.sortMode = PromotionSortMode.recommended,
+  });
 
   static const empty = TGProductResults(promoted: [], organic: []);
 
   /// Always rendered first, whatever the sort order is.
   final List<TGProduct> promoted;
 
-  /// Everything else, in the requested sort order.
+  /// Organic feed without spotlight repeats (repeats are page-local).
   final List<TGProduct> organic;
 
   /// Tier lookup for card chrome.
   final Map<String, PromotionTier?> promoById;
 
-  /// Total number of matching listings (promoted + organic).
+  /// Promotion id by listing id (for impression/click).
+  final Map<String, String> promoIdByTarget;
+
+  /// Active spotlights used for per-page repeat injection.
+  final List<Promotion> spotlightPromos;
+
+  final int sessionSeed;
+  final PromotionSortMode sortMode;
+
+  /// Total number of matching listings (promoted + organic; repeats excluded).
   int get total => promoted.length + organic.length;
+
+  /// Organic page slice with Spotlight repeats injected (not counted in [total]).
+  List<PromotionSlot<TGProduct>> visibleOrganicSlots({
+    required int page,
+    required int perPage,
+    required bool accumulate,
+  }) {
+    final slice = accumulate
+        ? organic.take(page * perPage).toList()
+        : paginate(organic, page, perPage: perPage);
+    Promotion? promoFor(TGProduct p) {
+      final id = promoIdByTarget[p.id];
+      if (id == null) return null;
+      return PromotionService.instance.activeFor(kind: PromotionTargetKind.listing, targetRef: p.id) ??
+          PromotionService.instance.effectiveListingPromo(p);
+    }
+
+    final slots = [for (final p in slice) PromotionSlot(item: p, promotion: promoFor(p))];
+    if (sortMode != PromotionSortMode.recommended || spotlightPromos.isEmpty) return slots;
+
+    final byId = {for (final p in [...promoted, ...organic]) p.id: p};
+    final shown = {...promoted.map((p) => p.id), ...slice.map((p) => p.id)};
+    return PromotionEngine.withSpotlightRepeats(
+      pageOrganic: slots,
+      spotlights: spotlightPromos,
+      byId: byId,
+      alreadyShownOnPage: shown,
+      page: page,
+      sessionSeed: sessionSeed,
+    );
+  }
 }
 
 TGProductResults computeResults(
@@ -221,14 +269,25 @@ TGProductResults computeResults(
       sessionSeed: promotedSeed,
     ),
   );
-  final promoById = <String, PromotionTier?>{
-    for (final s in [...composed.pinned, ...composed.feed])
-      if (s.promotion != null) s.item.id: s.promotion!.tier,
-  };
+  final promoById = <String, PromotionTier?>{};
+  final promoIdByTarget = <String, String>{};
+  for (final s in [...composed.pinned, ...composed.feed]) {
+    if (s.promotion == null) continue;
+    promoById[s.item.id] = s.promotion!.tier;
+    promoIdByTarget[s.item.id] = s.promotion!.id;
+  }
+  for (final p in composed.spotlights) {
+    promoById[p.targetRef] = p.tier;
+    promoIdByTarget[p.targetRef] = p.id;
+  }
   return TGProductResults(
     promoted: [for (final s in composed.pinned) s.item],
     organic: [for (final s in composed.feed) s.item],
     promoById: promoById,
+    promoIdByTarget: promoIdByTarget,
+    spotlightPromos: composed.spotlights,
+    sessionSeed: promotedSeed,
+    sortMode: sortMode,
   );
 }
 

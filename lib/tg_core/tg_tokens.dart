@@ -5,6 +5,14 @@ import 'package:flutter/material.dart';
 /// Every colour / radius / duration used by the TG components should come from
 /// here (directly or through `FlutterFlowTheme`, which is wired to these
 /// constants) so the identity can never drift between screens.
+/// Left dark scrim for sponsored hero slides — rgba(18,18,18,.88) fading right.
+const LinearGradient tgBannerScrim = LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [Color(0xE0121212), Color(0x99121212), Color(0x00121212)],
+  stops: [0, 0.45, 0.85],
+);
+
 abstract final class TGColors {
   /// Primary page background.
   static const Color background = Color(0xFF252525);
@@ -108,18 +116,23 @@ class TGStorePlan {
 
 /// Commercial rules of the classifieds model (no escrow, no in-platform
 /// checkout – the platform only monetises listings and stores).
+///
+/// VITRIN-2: prefer [PricingConfigService] for listing/promo fees. These
+/// constants match [PricingConfig.defaults] for legacy call sites / tests.
 abstract final class TGPricing {
   /// Number of free listings every account gets. Slots never expire.
   static const int freeListingQuota = 3;
 
-  /// Each listing (free or paid) stays live this many days from publish.
+  /// Each free listing stays live this many days from publish.
   static const int freePeriodDays = 30;
 
-  /// Fee per listing after the free tier is used up (PLN, VAT included).
+  /// Shortest paid listing fee (30d) — brutto PLN. Prefer PricingConfig.
   static const int listingFeePln = 49;
   static const int listingPeriodDays = 30;
-  static const int promote14Pln = 39;
-  static const int promote30Pln = 69;
+
+  /// @Deprecated — VITRIN-2 uses Glow tier prices from PromotionConfig (49/79).
+  static const int promote14Pln = 49;
+  static const int promote30Pln = 79;
 
   static const double vatRate = 0.23;
 

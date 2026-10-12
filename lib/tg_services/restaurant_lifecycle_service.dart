@@ -111,6 +111,7 @@ class RestaurantLifecycleService extends ChangeNotifier {
     required RestaurantListing listing,
     required bool useFreeIntro,
     int promoteDays = 0,
+    int? periodDays,
     bool pendingAuthorization = false,
   }) {
     final now = TGClock.now();
@@ -131,7 +132,7 @@ class RestaurantLifecycleService extends ChangeNotifier {
     }
 
     final source = useFreeIntro ? RestaurantListingSource.freeIntro : RestaurantListingSource.paid;
-    final days = useFreeIntro ? cfg.freeDays : cfg.paidDays;
+    final days = useFreeIntro ? cfg.freeDays : (periodDays ?? cfg.paidDays);
     if (useFreeIntro) {
       _consumeFreeStart(ownerId: listing.ownerId, premisesKey: listing.premisesKey, phone: listing.phone);
     }
@@ -149,6 +150,7 @@ class RestaurantLifecycleService extends ChangeNotifier {
     TGAnalytics.track('resto_publish', {
       'mode': useFreeIntro ? 'free_intro' : 'paid',
       'listingNo': no,
+      'days': days,
       'promoteDays': promoteDays,
     });
     if (promoteDays > 0) {
@@ -162,6 +164,7 @@ class RestaurantLifecycleService extends ChangeNotifier {
     required String listingId,
     int promoteDays = 0,
     bool early = false,
+    int? periodDays,
   }) {
     final cur = RestaurantService.instance.byId(listingId);
     if (cur == null) throw StateError('listing missing');
@@ -170,7 +173,7 @@ class RestaurantLifecycleService extends ChangeNotifier {
     final next = cur.copyWith(
       status: RestaurantListingStatus.active,
       isHidden: false,
-      expiresAt: base.add(Duration(days: cfg.paidDays)),
+      expiresAt: base.add(Duration(days: periodDays ?? cfg.paidDays)),
       source: RestaurantListingSource.paid,
       promotedUntil: promoteDays > 0 ? now.add(Duration(days: promoteDays)) : cur.promotedUntil,
     );

@@ -493,7 +493,7 @@ List<TGStoreProject> _projects(int count, String title, String city) {
         title: '$title ${i + 1}',
         city: city,
         year: 2024 - (i % 4),
-        photos: TGListingImages.galleryForTheme(
+        photos: TGListingImages.seedGalleryForTheme(
           id: 'project-$city-$i',
           theme: 'restaurant',
           title: title,
@@ -539,8 +539,8 @@ List<TGProduct> _seedExtraListings() {
         city: seller.id == 'seller_ek' ? 'Rybnik' : seller.id == 'seller_rm' ? 'Katowice' : 'Chorzów',
         voivodeship: 'Śląskie',
         phone: phone,
-        imageUrl: TGListingImages.cover(id: id, category: cat, title: title),
-        imageUrls: TGListingImages.gallery(id: id, category: cat, title: title, count: 4),
+        imageUrl: TGListingImages.seedCover(id: id, category: cat, title: title),
+        imageUrls: TGListingImages.seedGallery(id: id, category: cat, title: title, count: 4),
         photoCount: 4,
         isPromoted: promoted,
         createdAt: now.subtract(Duration(days: int.tryParse(no.substring(6)) ?? 3)),

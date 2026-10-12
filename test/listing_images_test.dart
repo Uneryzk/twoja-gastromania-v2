@@ -19,18 +19,15 @@ void main() {
       expect(TGListingImages.categoryCover(TGCategory.barAndBeverageEquipment), TGListingImages.coffeeEspresso);
     });
 
-    test('dynamic listing matching returns bundled local assets', () {
-      expect(TGListingImages.kDisableDynamicListingImages, isFalse);
-      final cover = TGListingImages.cover(id: 'x', category: TGCategory.cookingEquipment, title: 'Oven');
-      expect(cover, startsWith('assets/images/'));
-      expect(TGListingImages.bundledAssets.contains(cover), isTrue);
-      final gallery = TGListingImages.gallery(id: 'x', category: TGCategory.cookingEquipment, title: 'Oven', count: 5);
-      expect(gallery, isNotEmpty);
-      expect(gallery.every(TGListingImages.bundledAssets.contains), isTrue);
+    test('dynamic title/theme matching is disabled; manual photos come from admin/seller panels', () {
+      expect(TGListingImages.kDisableDynamicListingImages, isTrue);
+      expect(TGListingImages.cover(id: 'x', category: TGCategory.cookingEquipment, title: 'Oven'), isEmpty);
+      expect(TGListingImages.gallery(id: 'x', category: TGCategory.cookingEquipment, title: 'Oven', count: 5), isEmpty);
+      // Inventory key → fixed library asset is not title matching and stays available.
       expect(TGListingImages.forEquipmentKey('resto_eq_dishwasher'), TGListingImages.warewashing);
     });
 
-    test('galleryWithPrimary keeps stored primary first', () {
+    test('galleryWithPrimary keeps only the stored primary', () {
       const primary = 'assets/images/mutfak-ekipmanlari.jpg';
       final g = TGListingImages.galleryWithPrimary(
         primary: primary,
@@ -39,9 +36,7 @@ void main() {
         title: 'Piec',
         count: 4,
       );
-      expect(g.first, primary);
-      expect(g.length, greaterThanOrEqualTo(1));
-      expect(g.every(TGListingImages.bundledAssets.contains), isTrue);
+      expect(g, [primary]);
     });
 
     test('ensureBundled drops missing asset paths', () {

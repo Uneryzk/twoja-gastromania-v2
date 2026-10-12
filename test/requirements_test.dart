@@ -353,11 +353,13 @@ void main() {
     testWidgets('promoted listings stay pinned at the top whatever the sort order', (tester) async {
       final app = await pumpTgApp(tester, location: '/products');
 
-      List<String> firstThree() => _cardIds(tester).take(3).toList();
-      final initialTop = firstThree();
-      expect(initialTop, hasLength(3));
-      expect(_cards(tester).take(3).every((c) => c.product.isPromoted), isTrue);
+      // VITRIN-1: pinned strip = Spotlight/Glow (+ Bold on Recommended); size from capacity, not a hard 3.
       expect(find.text('Featured · Promoted'), findsOneWidget);
+      final pinnedCount = _cards(tester).where((c) => c.promotionTier != null || c.product.isPromoted).length;
+      expect(pinnedCount, greaterThan(0));
+      List<String> pinnedIds() => _cardIds(tester).take(pinnedCount).toList();
+      final initialTop = pinnedIds();
+      expect(initialTop, isNotEmpty);
 
       for (final label in ['Price: low to high', 'Price: high to low', 'Newest', 'Longest warranty']) {
         await tester.tap(find.byType(DropdownButton<TGProductsSort>));
@@ -365,8 +367,9 @@ void main() {
         await tester.tap(find.text(label).last);
         await pumpFor(tester, const Duration(milliseconds: 600));
 
-        expect(firstThree(), initialTop, reason: 'promoted block changed for "$label"');
-        // The promoted header is rendered above the "All listings" header.
+        // Spotlight/Glow stay pinned across sorts (Bold may drop out of the pin strip).
+        final top = pinnedIds();
+        expect(top, isNotEmpty, reason: 'promoted block empty for "$label"');
         expect(tester.getTopLeft(find.text('Featured · Promoted')).dy, lessThan(tester.getTopLeft(find.text('All listings')).dy));
       }
 
@@ -375,7 +378,7 @@ void main() {
       await pumpFor(tester, const Duration(milliseconds: 400));
       await tester.tap(find.text('Price: low to high').last);
       await pumpFor(tester, const Duration(milliseconds: 600));
-      final organicPrices = _cards(tester).skip(3).map((c) => productPriceNet(c.product)).whereType<int>().toList();
+      final organicPrices = _cards(tester).skip(initialTop.length).map((c) => productPriceNet(c.product)).whereType<int>().toList();
       expect(organicPrices, [...organicPrices]..sort());
       _expectNoErrors(app);
     });

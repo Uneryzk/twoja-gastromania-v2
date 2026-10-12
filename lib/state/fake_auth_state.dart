@@ -4,6 +4,7 @@ import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
@@ -708,7 +709,8 @@ class FakeAuthState extends ChangeNotifier {
   }
 
   /// Each free publish consumes one slot. Slots are never refunded.
-  TGProduct publishOwned(TGProduct listing, {int promoteDays = 0}) {
+  /// [periodDays] comes from PricingConfig (free = freeListingDays; paid = 30/60/90).
+  TGProduct publishOwned(TGProduct listing, {int promoteDays = 0, int? periodDays}) {
     final now = DateTime.now();
     final plan = listingPlan;
     var source = listing.source;
@@ -723,10 +725,11 @@ class FakeAuthState extends ChangeNotifier {
     } else {
       source = TGListingSource.paid;
     }
+    final days = periodDays ?? TGPricing.listingPeriodDays;
     final published = listing.copyWith(
       status: TGListingStatus.active,
       publishedAt: now,
-      expiresAt: now.add(const Duration(days: TGPricing.listingPeriodDays)),
+      expiresAt: now.add(Duration(days: days)),
       source: source,
       freeSlotIndex: slot,
       isPromoted: promoteDays > 0,
@@ -748,16 +751,17 @@ class FakeAuthState extends ChangeNotifier {
     notifyListeners();
   }
 
-  TGProduct renewOwned(String id, {int promoteDays = 0, bool early = false}) {
+  TGProduct renewOwned(String id, {int promoteDays = 0, bool early = false, int? periodDays}) {
     final listing = ownedListings.firstWhere((p) => p.id == id);
     final now = DateTime.now();
     final base = early && listing.expiresAt != null && listing.expiresAt!.isAfter(now)
         ? listing.expiresAt!
         : now;
+    final days = periodDays ?? TGPricing.listingPeriodDays;
     final published = listing.copyWith(
       status: TGListingStatus.active,
       publishedAt: listing.publishedAt ?? now,
-      expiresAt: base.add(const Duration(days: TGPricing.listingPeriodDays)),
+      expiresAt: base.add(Duration(days: days)),
       source: TGListingSource.paid,
       isPromoted: promoteDays > 0,
       promotedUntil: promoteDays > 0 ? now.add(Duration(days: promoteDays)) : null,
@@ -767,8 +771,8 @@ class FakeAuthState extends ChangeNotifier {
     return published;
   }
 
-  List<TGProduct> renewAllExpired() {
-    return [for (final p in [...ownedExpired]) renewOwned(p.id)];
+  List<TGProduct> renewAllExpired({int? periodDays}) {
+    return [for (final p in [...ownedExpired]) renewOwned(p.id, periodDays: periodDays)];
   }
 
   void subscribeStore(String planId) {
@@ -788,6 +792,10 @@ class FakeAuthState extends ChangeNotifier {
       TGStorePlanKind.enterprise => 9999,
     };
     sellerType = TGSellerType.store;
+    // VITRIN-2: Pro grants 3 Glow/1m credits per period; Enterprise has none.
+    if (storePlan == TGStorePlanKind.pro) {
+      PromotionService.instance.grantProCredits(userId);
+    }
     notifyListeners();
   }
 
@@ -854,8 +862,8 @@ TGProduct _own({
     city: 'Katowice',
     voivodeship: 'Śląskie',
     phone: '+48 (532) 784-074',
-    imageUrl: TGListingImages.cover(id: id, category: TGCategory.cookingEquipment, title: title),
-    imageUrls: TGListingImages.gallery(id: id, category: TGCategory.cookingEquipment, title: title, count: 4),
+    imageUrl: TGListingImages.seedCover(id: id, category: TGCategory.cookingEquipment, title: title),
+    imageUrls: TGListingImages.seedGallery(id: id, category: TGCategory.cookingEquipment, title: title, count: 4),
     photoCount: 4,
     isPromoted: false,
     createdAt: created,

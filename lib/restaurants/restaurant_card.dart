@@ -9,7 +9,10 @@ import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
+import 'package:twoja_gastromania/tg_core/tg_promo_visibility.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 
 enum RestaurantCardVariant { grid, list, compact }
 
@@ -19,11 +22,17 @@ class RestaurantCard extends StatefulWidget {
     required this.listing,
     this.variant = RestaurantCardVariant.grid,
     this.onTap,
+    this.promotionTier,
+    this.promotionId,
+    this.isPromoRepeat = false,
   });
 
   final RestaurantListing listing;
   final RestaurantCardVariant variant;
   final VoidCallback? onTap;
+  final PromotionTier? promotionTier;
+  final String? promotionId;
+  final bool isPromoRepeat;
 
   @override
   State<RestaurantCard> createState() => _RestaurantCardState();
@@ -35,7 +44,33 @@ class _RestaurantCardState extends State<RestaurantCard> {
 
   RestaurantListing get r => widget.listing;
 
+  PromotionTier? get _tier {
+    if (widget.promotionTier != null) return widget.promotionTier;
+    return PromotionService.instance.effectiveRestaurantPromo(r)?.tier;
+  }
+
+  String? get _promoId {
+    if (widget.promotionId != null) return widget.promotionId;
+    return PromotionService.instance.effectiveRestaurantPromo(r)?.id;
+  }
+
+  bool get _titleBold {
+    final t = _tier;
+    return t == PromotionTier.bold || t == PromotionTier.spotlight;
+  }
+
+  bool get _neon {
+    final t = _tier;
+    return t == PromotionTier.glow || t == PromotionTier.spotlight || (r.isPromoted && t == null);
+  }
+
   void _open() {
+    final promo = PromotionService.instance.effectiveRestaurantPromo(r);
+    tgTrackPromoClick(
+      context: context,
+      promotionId: _promoId ?? promo?.id,
+      ownerId: promo?.ownerId ?? r.ownerId,
+    );
     TGAnalytics.track('resto_card_click', {'listingNo': r.listingNo, 'id': r.id});
     if (widget.onTap != null) {
       widget.onTap!();
@@ -54,51 +89,73 @@ class _RestaurantCardState extends State<RestaurantCard> {
   @override
   Widget build(BuildContext context) {
     final reduce = tgReduceMotion(context);
-    return switch (widget.variant) {
+    final body = switch (widget.variant) {
       RestaurantCardVariant.grid => _grid(context, reduce),
       RestaurantCardVariant.list => _list(context, reduce),
       RestaurantCardVariant.compact => _compact(context),
     };
+    final promo = PromotionService.instance.effectiveRestaurantPromo(r);
+    final trackId = _promoId ?? promo?.id;
+    if (trackId == null) return body;
+    return TGPromoVisibility(
+      onQualified: () => tgTrackPromoImpression(
+        context: context,
+        promotionId: trackId,
+        ownerId: promo?.ownerId ?? r.ownerId,
+        isRepeat: widget.isPromoRepeat,
+      ),
+      child: body,
+    );
   }
 
   Widget _grid(BuildContext context, bool reduce) {
     final theme = FlutterFlowTheme.of(context);
-    final promoted = r.isPromoted;
+    final neon = _neon;
+    final strong = _tier == PromotionTier.spotlight;
+    final fill = neon
+        ? Color.alphaBlend(const Color(0xFFE91E8C).withValues(alpha: 0.08), const Color(0xFF1F1F1F))
+        : const Color(0xFF1F1F1F);
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: AnimatedContainer(
         duration: Duration(milliseconds: reduce ? 0 : 180),
         // Soft lift kept inside the card bounds via clip — avoids bleeding into next homepage section.
-        transform: Matrix4.translationValues(0, _hover && !reduce ? -3 : 0, 0),
+        transform: Matrix4.translationValues(0, _hover && !reduce ? -4 : 0, 0),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: const Color(0xFF1F1F1F),
+          color: fill,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            width: promoted ? 2 : 1,
-            color: promoted ? Colors.transparent : const Color(0xFF2F2F2F),
+            width: neon ? 2 : 1,
+            color: neon ? Colors.transparent : const Color(0xFF2F2F2F),
           ),
-          gradient: promoted
+          gradient: neon
               ? const LinearGradient(colors: [Color(0xFFE91E8C), Color(0xFF14B8A6)])
               : null,
-          boxShadow: _hover && !reduce
-              ? [
-                  BoxShadow(
-                    color: (promoted ? const Color(0xFFE91E8C) : const Color(0xFF14B8A6)).withValues(alpha: 0.28),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
+          boxShadow: [
+            if (neon) ...[
+              BoxShadow(
+                color: const Color(0xFFE91E8C).withValues(alpha: strong ? 0.45 : 0.32),
+                blurRadius: strong ? 18 : 12,
+              ),
+              BoxShadow(
+                color: const Color(0xFF14B8A6).withValues(alpha: strong ? 0.28 : 0.18),
+                blurRadius: strong ? 14 : 10,
+              ),
+            ],
+            if (_hover && !reduce)
+              BoxShadow(
+                color: (neon ? const Color(0xFFE91E8C) : const Color(0xFF14B8A6)).withValues(alpha: 0.28),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+          ],
         ),
-        child: promoted
-            ? Padding(
-                padding: const EdgeInsets.all(2),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(14)),
-                  child: _gridInner(theme),
-                ),
+        child: neon
+            ? DecoratedBox(
+                decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(14)),
+                child: _gridInner(theme),
               )
             : _gridInner(theme),
       ),
@@ -138,8 +195,10 @@ class _RestaurantCardState extends State<RestaurantCard> {
                       icon: Icon(_fav ? Icons.favorite : Icons.favorite_border, color: _fav ? const Color(0xFFE91E8C) : Colors.white),
                     ),
                   ),
-                  if (r.isPromoted)
-                    Positioned(left: 10, bottom: 10, child: _pill(context.t('ui_promoted_badge'), const Color(0xFFE91E8C))),
+                  if (_tier == PromotionTier.glow || _tier == PromotionTier.spotlight || (r.isPromoted && _tier == null))
+                    Positioned(left: 10, bottom: 10, child: _featuredPill(context)),
+                  if (_tier == PromotionTier.bold && PromotionService.instance.config.labelBold)
+                    Positioned(left: 10, bottom: 10, child: _sponsoredChip(context)),
                   Positioned(
                     right: 10,
                     bottom: 10,
@@ -153,7 +212,12 @@ class _RestaurantCardState extends State<RestaurantCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(restoLocalizedTitle(context, r), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(
+                    restoLocalizedTitle(context, r),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.titleSmall.override(fontSize: 16, fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w500),
+                  ),
                   if (r.venueName != null && r.venueName!.trim().isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
@@ -225,7 +289,12 @@ class _RestaurantCardState extends State<RestaurantCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(restoLocalizedTitle(context, r), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleMedium.override(fontWeight: FontWeight.w800)),
+                    Text(
+                      restoLocalizedTitle(context, r),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.titleMedium.override(fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w500),
+                    ),
                     const SizedBox(height: 6),
                     Text(r.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.bodySmall.override(color: theme.secondaryText)),
                     const SizedBox(height: 8),
@@ -303,7 +372,12 @@ class _RestaurantCardState extends State<RestaurantCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(restoLocalizedTitle(context, r), maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w700)),
+                    Text(
+                      restoLocalizedTitle(context, r),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.titleSmall.override(fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w500),
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       '${_area(r.totalAreaM2)} · ${NumberFormat.decimalPattern('pl_PL').format(r.rentMonthly)} ${context.t('ui_per_month')} · $fee',
@@ -313,9 +387,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                     const SizedBox(height: 4),
                     Text(r.city, style: theme.bodySmall.override(color: theme.secondaryText)),
                     Text(
-                      r.seller.verified
-                          ? r.seller.name
-                          : (r.posterRole == RestaurantPosterRole.owner ? context.t('resto_poster_owner') : context.t('resto_poster_agent')),
+                      r.posterRole == RestaurantPosterRole.owner ? context.t('resto_poster_owner') : context.t('resto_poster_agent'),
                       style: theme.bodySmall.override(fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -473,6 +545,34 @@ class _RestaurantCardState extends State<RestaurantCard> {
           if (icon != null) ...[Icon(icon, size: 12, color: Colors.white), const SizedBox(width: 4)],
           Text(text, style: TextStyle(color: Colors.white, fontSize: compact ? 10 : 11, fontWeight: FontWeight.w800)),
         ],
+      ),
+    );
+  }
+
+  Widget _featuredPill(BuildContext context) {
+    final label = context.t('badge.featured');
+    return Semantics(
+      label: label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(color: const Color(0xFFE91E8C), borderRadius: BorderRadius.circular(99)),
+        child: Text(label, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 11, fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
+
+  Widget _sponsoredChip(BuildContext context) {
+    final label = context.t('badge.sponsored');
+    return Semantics(
+      label: label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: Colors.white70),
+          color: const Color(0xFF1F1F1F).withValues(alpha: 0.85),
+        ),
+        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
       ),
     );
   }
