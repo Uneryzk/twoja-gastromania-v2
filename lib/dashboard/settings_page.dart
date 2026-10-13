@@ -13,8 +13,10 @@ import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_account.dart';
+import 'package:twoja_gastromania/tg_models/tg_referral.dart';
 import 'package:twoja_gastromania/tg_services/account_settings_service.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
+import 'package:twoja_gastromania/tg_services/referral_repository.dart';
 import 'package:twoja_gastromania/tg_services/verification_service.dart';
 
 /// `/dashboard/settings?tab=profile|security|language|blocked|privacy`.
@@ -581,9 +583,29 @@ class _PrivacyTab extends StatelessWidget {
     final cooling = next != null && TGClock.now().isBefore(next);
     final last = svc.exportsOf(auth.userId).lastOrNull;
     final del = svc.deletionOf(auth.userId);
-    return Column(
+    return ListenableBuilder(
+      listenable: ReferralRepository.instance,
+      builder: (context, _) {
+        final referred = ReferralRepository.instance.accountOf(auth.userId);
+        return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (referred != null)
+          _Section(
+            key: const Key('set-referral-visibility'),
+            title: context.t('ref_privacy_title'),
+            subtitle: context.t('ref_privacy_sub'),
+            child: SwitchListTile(
+              key: const Key('set-referral-visibility-switch'),
+              value: referred.referralVisibility == TGReferralVisibility.on,
+              contentPadding: EdgeInsets.zero,
+              title: Text(context.t('ref_privacy_toggle')),
+              onChanged: (on) {
+                ReferralRepository.instance.setVisibility(auth.userId, on ? TGReferralVisibility.on : TGReferralVisibility.withdrawn);
+                auth.applyReferralMirror(ReferralRepository.instance.accountOf(auth.userId));
+              },
+            ),
+          ),
         _Section(
           key: const Key('set-export-section'),
           title: context.t('set_export_title'),
@@ -661,6 +683,8 @@ class _PrivacyTab extends StatelessWidget {
                 ),
         ),
       ],
+        );
+      },
     );
   }
 }

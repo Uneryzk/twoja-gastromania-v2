@@ -113,7 +113,18 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
         FFRoute(
           name: LoginPageWidget.routeName,
           path: LoginPageWidget.routePath,
-          builder: (context, params) => const LoginPageWidget(),
+          builder: (context, params) => LoginPageWidget(
+            startRegister: params.state.uri.queryParameters['mode'] == 'register',
+            referralCode: params.state.uri.queryParameters['ref'],
+          ),
+        ),
+        FFRoute(
+          name: 'RegisterPage',
+          path: LoginPageWidget.registerPath,
+          builder: (context, params) => LoginPageWidget(
+            startRegister: true,
+            referralCode: params.state.uri.queryParameters['ref'],
+          ),
         ),
         FFRoute(
           name: ProductDetailPageWidget.routeName,
@@ -403,6 +414,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           builder: (context, params) => const AdminRevenueConfigHost(),
         ),
         FFRoute(
+          name: 'AdminGrowth',
+          path: '/admin/growth',
+          builder: (context, params) => AdminGrowthHost(tab: params.state.uri.queryParameters['tab']),
+        ),
+        FFRoute(
           name: 'AdminPriority',
           path: '/admin/priority',
           builder: (context, params) => const AdminPriorityHost(),
@@ -472,6 +488,16 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           name: SettingsPage.routeName,
           path: SettingsPage.routePath,
           builder: (context, params) => SettingsPage(tab: params.state.uri.queryParameters['tab']),
+        ),
+        FFRoute(
+          name: RepresentativePage.routeName,
+          path: RepresentativePage.routePath,
+          builder: (context, params) => RepresentativePage(tab: params.state.uri.queryParameters['tab']),
+        ),
+        FFRoute(
+          name: RepShareReportPage.routeName,
+          path: RepShareReportPage.routePath,
+          builder: (context, params) => RepShareReportPage(token: params.state.pathParameters['token'] ?? ''),
         ),
         for (final item in DashPlaceholders.all)
           FFRoute(

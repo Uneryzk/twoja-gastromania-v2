@@ -211,6 +211,7 @@ class AdSlotService extends ChangeNotifier {
       expiresAt: TGClock.now().add(Duration(hours: pricing.holdHours)),
     );
     _holds.add(hold);
+    TGAnalytics.track('banner_reserve', {'start': start.toIso8601String(), 'days': duration});
     TGAnalytics.track('banner_hold', {'start': start.toIso8601String(), 'days': duration});
     notifyListeners();
     return hold;

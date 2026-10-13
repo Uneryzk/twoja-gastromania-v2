@@ -1022,7 +1022,11 @@ class TGSpecialOrderService extends ChangeNotifier {
       params: {'n': r.requestNo},
     );
     _audit(requestId, actorId, actorRole, 'match', detail: sellerIds.join(','));
-    TGAnalytics.track('so_admin_match', {'requestNo': r.requestNo, 'n': sellerIds.length});
+    if (sellerIds.isEmpty) {
+      TGAnalytics.track('so_admin_crosscheck_none', {'requestNo': r.requestNo});
+    } else {
+      TGAnalytics.track('so_admin_match', {'requestNo': r.requestNo, 'n': sellerIds.length});
+    }
     notifyListeners();
   }
 

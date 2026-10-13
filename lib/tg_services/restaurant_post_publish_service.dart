@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
-import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_services/notification_service.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
 /// Next-steps sheet dismissals + day-1 / day-3 detail reminders.
@@ -52,10 +52,11 @@ class RestaurantPostPublishService extends ChangeNotifier {
     if (r.equipmentIncluded == RestaurantEquipmentIncluded.all) {
       return 'Selling some items separately?';
     }
+    final cfg = PricingConfigService.instance.config;
     if (freeLeft > 0) {
-      return 'Your first 3 listings are free. $freeLeft left.';
+      return 'Your first ${cfg.freeListingQuota} listings are free. $freeLeft left.';
     }
-    return '${TGPricing.listingFeePln} PLN / 30 days each, or Basic Store 199 PLN for up to 15 listings';
+    return '${cfg.defaultListingFeePln} PLN / ${cfg.defaultListingDays} days each, or Basic Store ${cfg.basicStoreMonthlyPln} PLN for up to 15 listings';
   }
 
   void onClockAdvanced() {

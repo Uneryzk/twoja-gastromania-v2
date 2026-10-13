@@ -35,6 +35,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -1418,7 +1419,7 @@ class _OwnerPanel extends StatelessWidget {
             const SizedBox(height: 12),
             TGButton(
               onPressed: onRenew,
-              label: context.t('ui_renew_pln', {'fee': '149'}),
+              label: context.t('ui_renew_pln', {'fee': '${PricingConfigService.instance.config.restaurantFeePln(PricingConfigService.instance.config.defaultRestaurantDays)}'}),
               height: 48,
               borderRadius: BorderRadius.circular(TGRadius.pill),
             ),

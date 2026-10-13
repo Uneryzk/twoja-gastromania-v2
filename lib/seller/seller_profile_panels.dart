@@ -22,6 +22,8 @@ import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:url_launcher/link.dart';
 
 class StoreProductsPanel extends StatefulWidget {
@@ -800,7 +802,7 @@ class StoreProjectGallery extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: AspectRatio(
           aspectRatio: 4 / 3,
-          child: Image.asset(p.photos.first, fit: BoxFit.cover),
+          child: WatermarkedImage(url: p.photos.first, surface: TGImageSurface.listingCard, fit: BoxFit.cover),
         ),
       );
       return InkWell(
@@ -923,7 +925,7 @@ class _ProjectLightboxState extends State<_ProjectLightbox> {
                     child: InteractiveViewer(
                       minScale: 1,
                       maxScale: 4,
-                      child: Image.asset(photos[_photo], fit: BoxFit.contain),
+                      child: WatermarkedImage(url: photos[_photo], surface: TGImageSurface.lightbox, fit: BoxFit.contain),
                     ),
                   ),
                   Positioned(
@@ -984,7 +986,7 @@ class _ProjectLightboxState extends State<_ProjectLightbox> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.asset(photos[_photo], fit: BoxFit.contain),
+                              child: WatermarkedImage(url: photos[_photo], surface: TGImageSurface.lightbox, fit: BoxFit.contain),
                             ),
                             if (photos.length > 1) ...[
                               Align(alignment: Alignment.centerLeft, child: IconButton.filledTonal(onPressed: () => _shiftPhoto(-1), icon: const Icon(Icons.chevron_left))),

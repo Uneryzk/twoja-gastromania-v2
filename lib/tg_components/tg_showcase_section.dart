@@ -253,7 +253,7 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
                       child: TGProductCard(
                         product: widget.product,
                         promotionTier: tier,
-                        forceFeaturedBadge: tier != PromotionTier.bold,
+                        forceFeaturedBadge: TGProductCard.showsFeaturedBadge(tier: tier, force: true),
                         showSeller: false,
                       ),
                     ),

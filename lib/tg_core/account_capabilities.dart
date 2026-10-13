@@ -6,6 +6,8 @@ import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 import 'package:twoja_gastromania/tg_services/priority_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_referral.dart';
+import 'package:twoja_gastromania/tg_services/referral_repository.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 
@@ -28,6 +30,8 @@ class AccountCapabilities {
     this.isModerator = false,
     this.isAdmin = false,
     this.hasMessages = false,
+    this.isRepresentative = false,
+    this.repProfile,
   });
 
   final bool isSeller;
@@ -40,6 +44,8 @@ class AccountCapabilities {
   final bool isModerator;
   final bool isAdmin;
   final bool hasMessages;
+  final bool isRepresentative;
+  final TGRepresentative? repProfile;
 
   bool get isStaff => isModerator || isAdmin;
 
@@ -52,8 +58,10 @@ class AccountCapabilities {
     final id = auth.userId;
     final isModerator = auth.role == TGUserRole.moderator;
     final isAdmin = auth.role == TGUserRole.admin;
+    ReferralRepository.instance.ensureSeeded();
+    final rep = ReferralRepository.instance.profileForUser(id);
     if (TGRevenueConfigService.instance.productionMode) {
-      return AccountCapabilities(isModerator: isModerator, isAdmin: isAdmin);
+      return AccountCapabilities(isModerator: isModerator, isAdmin: isAdmin, isRepresentative: rep != null, repProfile: rep);
     }
     final restos = RestaurantService.instance.ownedBy(id).isNotEmpty;
     final store = auth.storePlan != null;
@@ -78,6 +86,8 @@ class AccountCapabilities {
       isModerator: isModerator,
       isAdmin: isAdmin,
       hasMessages: MessagingService.instance.inboxFor(id).isNotEmpty,
+      isRepresentative: rep != null,
+      repProfile: rep,
     );
   }
 
@@ -91,5 +101,6 @@ class AccountCapabilities {
         'isBuyerActive': isBuyerActive,
         'isModerator': isModerator,
         'isAdmin': isAdmin,
+        'isRepresentative': isRepresentative,
       };
 }

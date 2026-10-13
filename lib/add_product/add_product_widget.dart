@@ -23,12 +23,15 @@ import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_referral.dart';
 import 'package:twoja_gastromania/tg_services/account_identity_service.dart';
+import 'package:twoja_gastromania/tg_services/referral_repository.dart';
 import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -1488,7 +1491,15 @@ class _AddProductPageState extends State<AddProductPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(context.t('ui_store_nudge'), style: FlutterFlowTheme.of(context).titleSmall.override(fontWeight: FontWeight.w800)),
+                Text(
+                  context.t('ui_store_nudge', {
+                    'n': '${draft.pricing.storeNudgeMinListings}',
+                    'fee': '${draft.pricing.defaultListingFeePln}',
+                    'basket': '${draft.pricing.storeNudgeThresholdPln}',
+                    'store': '${draft.pricing.basicStoreMonthlyPln}',
+                  }),
+                  style: FlutterFlowTheme.of(context).titleSmall.override(fontWeight: FontWeight.w800),
+                ),
                 WizardHelp(context.t('ui_store_nudge_help')),
                 const SizedBox(height: 8),
                 TGButton(onPressed: () => context.go('/plans'), label: context.t('ui_see_basic_store'), variant: TGButtonVariant.outline, height: 44),
@@ -2000,12 +2011,15 @@ class _PlanBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final plan = auth.listingPlan;
+    final cfg = PricingConfigService.instance.config;
+    final period = DurationFormatter.daysOf(context, cfg.freeListingDays);
     final title = switch (plan) {
       TGListingPlan.free when auth.publishedListings.isEmpty =>
-        context.t('ui_free_listing_n', {'n': '1'}),
-      TGListingPlan.free => context.t('ui_free_listing_n', {'n': '${auth.freeSlotsUsed + 1}'}),
+        context.t('ui_free_listing_n', {'n': '1', 'quota': '${cfg.freeListingQuota}', 'period': period}),
+      TGListingPlan.free => context.t('ui_free_listing_n', {'n': '${auth.freeSlotsUsed + 1}', 'quota': '${cfg.freeListingQuota}', 'period': period}),
       TGListingPlan.paid => context.t('ui_standard_listing_n', {
-          'fee': '${PricingConfigService.instance.config.listingFeePln(30)}',
+          'fee': '${cfg.defaultListingFeePln}',
+          'period': DurationFormatter.daysOf(context, cfg.defaultListingDays),
         }),
       TGListingPlan.store => context.t('ui_included_in_plan', {
           'plan': auth.storePlanLabel,
@@ -2023,8 +2037,8 @@ class _PlanBox extends StatelessWidget {
           if (plan == TGListingPlan.free)
             WizardHelp(
               leftAfter > 0
-                  ? context.t('ui_free_listing_help', {'n': '$leftAfter'})
-                  : context.t('ui_free_listing_help_last'),
+                  ? context.t('ui_free_listing_help', {'n': '$leftAfter', 'period': period})
+                  : context.t('ui_free_listing_help_last', {'period': period}),
             ),
         ],
       ),
@@ -2095,6 +2109,14 @@ class _LoginModalState extends State<_LoginModal> {
       }
     }
     context.read<FakeAuthState>().logIn();
+    if (_register) {
+      final auth = context.read<FakeAuthState>();
+      auth.applyReferralMirror(ReferralRepository.instance.applySessionOnSignup(
+        userId: auth.userId,
+        displayName: auth.displayName,
+        segment: TGReferralSegment.individual,
+      ));
+    }
     widget.onDone();
   }
 
@@ -2112,6 +2134,16 @@ class _LoginModalState extends State<_LoginModal> {
       AccountIdentityService.instance.claim(email: email, phone: phone);
     }
     context.read<FakeAuthState>().logIn();
+    if (_register) {
+      final auth = context.read<FakeAuthState>();
+      auth.applyReferralMirror(ReferralRepository.instance.applySessionOnSignup(
+        userId: auth.userId,
+        displayName: auth.displayName,
+        segment: TGReferralSegment.individual,
+        email: email,
+        phone: phone,
+      ));
+    }
     widget.onDone();
   }
 

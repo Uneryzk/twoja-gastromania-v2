@@ -7,7 +7,8 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
-import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -153,7 +154,7 @@ class _RestoMessageBodyState extends State<_RestoMessageBody> {
                     child: SizedBox(
                       width: 64,
                       height: 48,
-                      child: TGSmartImage(url: r.imageUrl, fit: BoxFit.cover),
+                      child: WatermarkedImage(url: r.imageUrl, surface: TGImageSurface.listingCard, fit: BoxFit.cover),
                     ),
                   ),
                   const SizedBox(width: 12),

@@ -8,6 +8,8 @@ import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/favorites_service.dart';
 import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_referral.dart';
+import 'package:twoja_gastromania/tg_services/referral_repository.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
@@ -162,6 +164,42 @@ class ManufacturerDevPick {
         planLabel: planLabel,
         promotedUsed: promotedUsed,
       );
+}
+
+/// Dev Switcher personas for GROWTH-2 representatives (mock only).
+class RepresentativeDevPick {
+  const RepresentativeDevPick({
+    required this.userId,
+    required this.labelKey,
+    required this.displayName,
+    required this.initials,
+  });
+
+  final String userId;
+  final String labelKey;
+  final String displayName;
+  final String initials;
+
+  static const marek = RepresentativeDevPick(
+    userId: 'rep_marek',
+    labelKey: 'ui_dev_rep_marek',
+    displayName: 'Marek Kowalski',
+    initials: 'MK',
+  );
+  static const piotr = RepresentativeDevPick(
+    userId: 'rep_piotr',
+    labelKey: 'ui_dev_rep_piotr',
+    displayName: 'Piotr Nowak',
+    initials: 'PN',
+  );
+  static const anna = RepresentativeDevPick(
+    userId: 'rep_anna',
+    labelKey: 'ui_dev_rep_anna',
+    displayName: 'Anna Wiśniewska',
+    initials: 'AW',
+  );
+
+  static const all = [marek, piotr, anna];
 }
 
 class BuyerDevPick {
@@ -321,6 +359,12 @@ class FakeAuthState extends ChangeNotifier {
   List<TGProduct> ownedListings = const [];
   TGCheckoutCart? checkoutCart;
 
+  String? referredByCode;
+  String? referredByRepId;
+  DateTime? referredAt;
+  DateTime? referralConsentAt;
+  TGReferralVisibility referralVisibility = TGReferralVisibility.on;
+
   int get freeListingsTotal => PricingConfigService.instance.config.freeListingQuota;
   int get freeListingsLeft => (freeListingsTotal - freeSlotsUsed).clamp(0, freeListingsTotal);
 
@@ -416,6 +460,7 @@ class FakeAuthState extends ChangeNotifier {
         userInitials = 'V';
         displayName = 'Visitor';
         phoneVerified = false;
+        _clearReferralMirror();
         break;
       case TGUserRole.seller:
         _isLoggedIn = true;
@@ -641,6 +686,40 @@ class FakeAuthState extends ChangeNotifier {
 
   /// Mock auth: Special Order manufacturer persona (same store chrome + seller key).
   void actAsManufacturer(ManufacturerDevPick pick) => actAsStoreOwner(pick.asStoreOwner);
+
+  /// Mock auth: GROWTH-2 representative. Does not change existing seller personas.
+  void actAsRepresentative(RepresentativeDevPick pick) {
+    ReferralRepository.instance.ensureSeeded();
+    _isLoggedIn = true;
+    role = TGUserRole.seller;
+    sellerType = TGSellerType.private;
+    userId = pick.userId;
+    userInitials = pick.initials;
+    displayName = pick.displayName;
+    phoneVerified = true;
+    storePlan = null;
+    ownedListings = const [];
+    checkoutCart = null;
+    _clearReferralMirror();
+    notifyListeners();
+  }
+
+  void applyReferralMirror(TGReferredAccount? acc) {
+    referredByCode = acc?.referredByCode;
+    referredByRepId = acc?.referredByRepId;
+    referredAt = acc?.referredAt;
+    referralConsentAt = acc?.referralConsentAt;
+    referralVisibility = acc?.referralVisibility ?? TGReferralVisibility.on;
+    notifyListeners();
+  }
+
+  void _clearReferralMirror() {
+    referredByCode = null;
+    referredByRepId = null;
+    referredAt = null;
+    referralConsentAt = null;
+    referralVisibility = TGReferralVisibility.on;
+  }
 
   /// Mock auth: Special Order request owner (Jan / Piotr / Tomasz).
   void actAsSpecialOrderBuyer(SpecialOrderBuyerDevPick pick) => actAsBuyer(pick.asBuyer);

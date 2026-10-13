@@ -76,10 +76,18 @@ class TGBillingService extends ChangeNotifier {
           if (!(_hideMock && p.isMock)) p,
       ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
+  List<TGSubscription> allStoreSubscriptions() => [
+        for (final s in _subs)
+          if (s.kind == TGSubscriptionKind.store && !(_hideMock && s.isMock)) s,
+      ];
+
   final Map<String, int> _refundedGr = {};
 
   /// Total refunded on [paymentId] so far.
-  double refundedPln(String paymentId) => (_refundedGr[paymentId] ?? 0) / 100;
+  double refundedPln(String paymentId) => refundedGrosz(paymentId) / 100;
+
+  /// Refunded amount in grosz (integer).
+  int refundedGrosz(String paymentId) => _refundedGr[paymentId] ?? 0;
 
   /// Records a (partial) refund of our own service fee. The payment flips to
   /// `refunded` once the full gross amount has been returned.

@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -45,11 +46,14 @@ class _PlansPageState extends State<PlansPage> {
     super.dispose();
   }
 
-  static const _plans = [
-    (id: 'basic', nameKey: 'ui_plan_basic_store', chooseKey: 'ui_choose_basic', monthly: 199, featured: false, featureKeys: ['ui_feat_15_listings', 'ui_feat_verified_badge', 'ui_feat_store_page']),
-    (id: 'pro', nameKey: 'ui_plan_pro_store', chooseKey: 'ui_choose_pro', monthly: 499, featured: true, featureKeys: ['ui_feat_50_listings', 'ui_feat_3_featured', 'ui_feat_quote_tools']),
-    (id: 'enterprise', nameKey: 'ui_plan_enterprise_store', chooseKey: 'ui_choose_enterprise', monthly: 899, featured: false, featureKeys: ['ui_feat_unlimited', 'ui_feat_banner', 'ui_feat_special_order']),
-  ];
+  List<({String id, String nameKey, String chooseKey, int monthly, bool featured, List<String> featureKeys})> get _plans {
+    final cfg = PricingConfigService.instance.config;
+    return [
+      (id: 'basic', nameKey: 'ui_plan_basic_store', chooseKey: 'ui_choose_basic', monthly: cfg.basicStoreMonthlyPln, featured: false, featureKeys: ['ui_feat_15_listings', 'ui_feat_verified_badge', 'ui_feat_store_page']),
+      (id: 'pro', nameKey: 'ui_plan_pro_store', chooseKey: 'ui_choose_pro', monthly: cfg.proStoreMonthlyPln, featured: true, featureKeys: ['ui_feat_50_listings', 'ui_feat_3_featured', 'ui_feat_quote_tools']),
+      (id: 'enterprise', nameKey: 'ui_plan_enterprise_store', chooseKey: 'ui_choose_enterprise', monthly: cfg.enterpriseStoreMonthlyPln, featured: false, featureKeys: ['ui_feat_unlimited', 'ui_feat_banner', 'ui_feat_special_order']),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +441,12 @@ class _SponsorSlotCard extends StatelessWidget {
       children: [
         Text(context.t('ui_plans_sponsor_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 6),
-        Text(context.t('ui_plans_sponsor_desc'), style: theme.bodyMedium),
+        Text(
+          context.t('ui_plans_sponsor_desc', {
+            'period': DurationFormatter.daysOf(context, PricingConfigService.instance.config.sponsorSlot.durations.last),
+          }),
+          style: theme.bodyMedium,
+        ),
         const SizedBox(height: 10),
         TGButton(
           onPressed: () => context.go('/dashboard/manufacturer?tab=sponsor'),

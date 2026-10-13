@@ -15,6 +15,7 @@ import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 
@@ -124,7 +125,7 @@ class _RulesCard extends StatelessWidget {
       ('Free months', '${cfg.freeMonths} months Pro-level Special Order tools (and Priority if for sale)'),
       ('≥5 qualified', '20% off promote / Priority / sponsor slot'),
       ('≥10 qualified', '40% off the same items'),
-      ('Not discounted', 'Store plans, standard listing fee (49 PLN), Renew'),
+      ('Not discounted', 'Store plans, standard listing fee (${PricingConfigService.instance.config.defaultListingFeePln} PLN), Renew'),
       ('Ends', 'All program discounts end on programEndsAt'),
       ('Badge', 'No badge is awarded.'),
     ];

@@ -176,7 +176,7 @@ class _TGRestaurantShowcaseSectionState extends State<TGRestaurantShowcaseSectio
               children: [
                 Expanded(
                   child: Text(
-                    tier.name[0].toUpperCase() + tier.name.substring(1),
+                    tier.brand,
                     style: theme.titleSmall.override(fontWeight: FontWeight.w900),
                   ),
                 ),

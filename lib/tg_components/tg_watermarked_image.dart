@@ -36,6 +36,21 @@ class WatermarkedImage extends StatefulWidget {
 
   static const markKey = Key('tg-watermark');
 
+  /// Staff-only original pointer (`originals/…`, `originalRef=`). Never render
+  /// this URL on public surfaces — fall back to an empty / placeholder image.
+  static bool isPrivateOriginalRef(String url) {
+    final u = url.trim();
+    if (u.isEmpty) return false;
+    final lower = u.toLowerCase();
+    return lower.startsWith('originals/') ||
+        lower.contains('/originals/') ||
+        lower.contains('originalref=') ||
+        lower.contains('original_ref');
+  }
+
+  /// Public listing URL, or empty when [url] is a private original reference.
+  static String publicUrl(String url) => isPrivateOriginalRef(url) ? '' : url;
+
   @override
   State<WatermarkedImage> createState() => _WatermarkedImageState();
 }
@@ -45,8 +60,10 @@ class _WatermarkedImageState extends State<WatermarkedImage> {
   ImageStreamListener? _listener;
   Size? _intrinsic;
 
+  String get _url => WatermarkedImage.publicUrl(widget.url);
+
   ImageProvider? get _provider {
-    final u = widget.url;
+    final u = _url;
     if (u.startsWith('assets/')) return AssetImage(u);
     if (u.startsWith('http://') || u.startsWith('https://')) return NetworkImage(u);
     if (u.startsWith('data:image')) {
@@ -102,8 +119,9 @@ class _WatermarkedImageState extends State<WatermarkedImage> {
 
   @override
   Widget build(BuildContext context) {
-    final image = TGSmartImage(url: widget.url, fit: widget.fit, cacheWidth: widget.cacheWidth, fallback: widget.fallback);
-    if (!watermarkAppliesTo(widget.surface) || widget.url.isEmpty) return image;
+    final url = _url;
+    final image = TGSmartImage(url: url, fit: widget.fit, cacheWidth: widget.cacheWidth, fallback: widget.fallback);
+    if (!watermarkAppliesTo(widget.surface) || url.isEmpty) return image;
     return ListenableBuilder(
       listenable: TGWatermarkService.instance,
       builder: (context, _) {

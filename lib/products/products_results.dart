@@ -9,7 +9,9 @@ import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_special_order_band.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
@@ -901,7 +903,10 @@ class _SellBanner extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          context.t('ui_sell_banner_title'),
+          context.t('ui_sell_banner_title', {
+            'quota': '${PricingConfigService.instance.config.freeListingQuota}',
+            'period': DurationFormatter.daysOf(context, PricingConfigService.instance.config.freeListingDays),
+          }),
           style: theme.titleSmall.override(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 6),

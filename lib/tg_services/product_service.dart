@@ -6,6 +6,7 @@ import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 
 class TGProductService {
   TGProductService._();
@@ -17,18 +18,34 @@ class TGProductService {
   List<TGProduct>? _cache;
 
   /// Sync snapshot when catalogue already loaded (homepage / promo seed).
-  List<TGProduct> get cachedAll => List.unmodifiable(_cache ?? const []);
+  static const _kSeedProductIds = {
+    'p001', 'p002', 'p003', 'p004', 'p005', 'p006', 'p007', 'p008', 'p009',
+    'p010', 'p011', 'p012', 'p013', 'p014', 'p015', 'p016', 'p017', 'p018',
+  };
 
-  TGProduct? cachedByNo(String no) => _cache?.where((p) => p.listingNo == no).firstOrNull;
+  List<TGProduct> _visible(List<TGProduct> all) {
+    if (!TGRevenueConfigService.instance.productionMode) return all;
+    return [for (final p in all) if (!_kSeedProductIds.contains(p.id)) p];
+  }
+
+  List<TGProduct> get cachedAll => List.unmodifiable(_visible(_cache ?? const []));
+
+  TGProduct? cachedByNo(String no) => cachedAll.where((p) => p.listingNo == no).firstOrNull;
 
   static const Duration _prefsTimeout = Duration(seconds: 2);
 
   Future<List<TGProduct>> getAll() async {
-    if (_cache != null) return _cache!;
+    if (_cache != null && !(_cache!.isEmpty && !TGRevenueConfigService.instance.productionMode)) {
+      return _visible(_cache!);
+    }
     try {
       final prefs = await SharedPreferences.getInstance().timeout(_prefsTimeout);
       final raw = prefs.getString(_storageKey);
       if (raw == null || raw.trim().isEmpty) {
+        if (TGRevenueConfigService.instance.productionMode) {
+          _cache = const [];
+          return _cache!;
+        }
         final seeded = _seedProducts();
         await _persist(prefs, seeded);
         _cache = seeded;
@@ -50,6 +67,10 @@ class TGProductService {
       }
 
       if (products.isEmpty) {
+        if (TGRevenueConfigService.instance.productionMode) {
+          _cache = const [];
+          return _cache!;
+        }
         final seeded = _seedProducts();
         await _persist(prefs, seeded);
         _cache = seeded;
@@ -62,9 +83,13 @@ class TGProductService {
       }
 
       _cache = products;
-      return products;
+      return _visible(products);
     } catch (e) {
       debugPrint('Failed to load products: $e');
+      if (TGRevenueConfigService.instance.productionMode) {
+        _cache = const [];
+        return _cache!;
+      }
       final seeded = _seedProducts();
       _cache = seeded;
       return seeded;
@@ -82,7 +107,8 @@ class TGProductService {
   }
 
   Future<void> upsert(TGProduct product) async {
-    final all = [...await getAll()];
+    await getAll();
+    final all = [...(_cache ?? const <TGProduct>[])];
     final i = all.indexWhere((p) => p.id == product.id);
     if (i >= 0) {
       all[i] = product;

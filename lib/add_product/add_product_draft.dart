@@ -390,7 +390,7 @@ class AddProductDraft extends ChangeNotifier {
       if (programText.isNotEmpty) 'Program time': '$programText min',
       if (basketSize.isNotEmpty) 'Basket size': basketSize,
       if (depositText.isNotEmpty) 'Deposit': '$depositText PLN',
-      if (minPeriodText.isNotEmpty) 'Min. period': '$minPeriodText mies.',
+      if (minPeriodText.isNotEmpty) 'Min. period': minPeriodText,
     };
 
     final sellerName = sellerType == TGSellerType.store

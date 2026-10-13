@@ -16,7 +16,10 @@ import 'package:twoja_gastromania/tg_core/tg_contact.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_components/tg_referral_code_field.dart';
+import 'package:twoja_gastromania/tg_models/tg_referral.dart';
 import 'package:twoja_gastromania/tg_services/account_identity_service.dart';
+import 'package:twoja_gastromania/tg_services/referral_repository.dart';
 
 import 'login_model.dart';
 export 'login_model.dart';
@@ -36,10 +39,14 @@ Future<void> reportIdentityIssue(BuildContext context, TGIdentityConflict confli
 }
 
 class LoginPageWidget extends StatefulWidget {
-  const LoginPageWidget({super.key});
+  const LoginPageWidget({super.key, this.startRegister = false, this.referralCode});
 
   static const String routeName = 'LoginPage';
   static const String routePath = '/login';
+  static const String registerPath = '/register';
+
+  final bool startRegister;
+  final String? referralCode;
 
   @override
   State<LoginPageWidget> createState() => _LoginPageWidgetState();
@@ -61,6 +68,12 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
     _model.phoneController ??= TextEditingController();
     _model.phoneFocusNode ??= FocusNode();
     AccountIdentityService.instance.ensureSeeded();
+    ReferralRepository.instance.ensureSeeded();
+    if (widget.startRegister) _model.isRegister = true;
+    final ref = widget.referralCode?.trim();
+    if (ref != null && ref.isNotEmpty) {
+      ReferralRepository.instance.setSessionCode(ref);
+    }
   }
 
   @override
@@ -83,8 +96,20 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
       }
     }
     context.read<FakeAuthState>().logIn();
+    if (_model.isRegister) _applyReferral(context.read<FakeAuthState>());
     showTGToast(context, context.t('ui_signed_in_demo'));
     TGNav.home(context);
+  }
+
+  void _applyReferral(FakeAuthState auth, {String email = '', String phone = ''}) {
+    final acc = ReferralRepository.instance.applySessionOnSignup(
+      userId: auth.userId,
+      displayName: auth.displayName,
+      segment: TGReferralSegment.individual,
+      email: email,
+      phone: phone,
+    );
+    auth.applyReferralMirror(acc);
   }
 
   Future<void> _reportIssue() async {
@@ -118,6 +143,7 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
       AccountIdentityService.instance.claim(email: email, phone: phone);
     }
     context.read<FakeAuthState>().logIn();
+    if (_model.isRegister) _applyReferral(context.read<FakeAuthState>(), email: email, phone: phone);
     showTGToast(context, context.t('ui_signed_in_demo'));
     TGNav.home(context);
   }
@@ -167,6 +193,7 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                       isRegister: _model.isRegister,
                       conflict: _conflict,
                       onReportIssue: _reportIssue,
+                      referralCode: widget.referralCode,
                       onTogglePasswordVisibility: () => safeSetState(
                         () => _model.passwordVisibility = !_model.passwordVisibility,
                       ),
@@ -293,6 +320,7 @@ class LoginCard extends StatelessWidget {
     this.phoneFocusNode,
     this.conflict,
     this.onReportIssue,
+    this.referralCode,
   });
 
   final String logoAssetPath;
@@ -308,6 +336,7 @@ class LoginCard extends StatelessWidget {
   final bool isRegister;
   final TGIdentityConflict? conflict;
   final VoidCallback? onReportIssue;
+  final String? referralCode;
   final VoidCallback onTogglePasswordVisibility;
   final VoidCallback onToggleMode;
   final VoidCallback onForgotPassword;
@@ -417,6 +446,8 @@ class LoginCard extends StatelessWidget {
                 keyboardType: TextInputType.phone,
                 prefixIcon: Icons.phone_outlined,
               ),
+              const SizedBox(height: 12),
+              ReferralCodeField(initialCode: referralCode),
             ],
             if (conflict != null) ...[
               const SizedBox(height: 12),

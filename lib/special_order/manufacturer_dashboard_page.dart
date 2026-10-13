@@ -272,6 +272,13 @@ class _ManufacturerIdentityHeader extends StatelessWidget {
   }
 }
 
+/// Dart [String.toUpperCase] is locale-blind (`i` → `I`). Map Turkish letters
+/// first so İ / Ğ never lose their dots at runtime.
+String _tgToUpperTr(String value) {
+  const map = {'i': 'İ', 'ı': 'I', 'ğ': 'Ğ', 'ü': 'Ü', 'ş': 'Ş', 'ö': 'Ö', 'ç': 'Ç'};
+  return value.split('').map((c) => map[c] ?? c.toUpperCase()).join();
+}
+
 class _MfrLogo extends StatelessWidget {
   const _MfrLogo({required this.url, required this.name, required this.size});
   final String? url;
@@ -299,7 +306,7 @@ class _MfrLogo extends StatelessWidget {
 
   Widget _fallback(FlutterFlowTheme theme) => Center(
         child: Text(
-          name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?',
+          name.isNotEmpty ? _tgToUpperTr(name.substring(0, 1)) : '?',
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: size * 0.4, color: theme.primary),
         ),
       );
@@ -327,7 +334,15 @@ class _OverviewTab extends StatelessWidget {
             children: [
               Text(context.t('ui_mfr_store_plan'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
-              Text(plan?.name.toUpperCase() ?? '—', style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+              Text(
+                switch (plan) {
+                  TGStorePlanKind.basic => context.t('ui_plan_basic_store'),
+                  TGStorePlanKind.pro => context.t('ui_plan_pro_store'),
+                  TGStorePlanKind.enterprise => context.t('ui_plan_enterprise_store'),
+                  null => '—',
+                },
+                style: theme.headlineSmall.override(fontWeight: FontWeight.w900),
+              ),
               TextButton(onPressed: () => context.go('/plans'), child: Text(context.t('ui_mfr_manage_plan'))),
             ],
           ),

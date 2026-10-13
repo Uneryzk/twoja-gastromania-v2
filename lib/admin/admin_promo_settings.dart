@@ -13,7 +13,7 @@ import 'package:twoja_gastromania/tg_services/go_live_checks.dart';
 import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 
-String _tierName(PromotionTier t) => t.name[0].toUpperCase() + t.name.substring(1);
+String _tierName(PromotionTier t) => t.brand;
 
 class _NumField extends StatelessWidget {
   const _NumField({required this.controller, required this.label, this.suffix});
@@ -121,7 +121,7 @@ class _AdminPromotionSettingsState extends State<AdminPromotionSettings> {
       action: 'Promotion settings updated',
       detail: [
         for (final t in PromotionTier.values)
-          '${_tierName(t)} ${[for (final d in _durations) '${d}d ${prices[t]?[d]}'].join('/')} PLN ×${cap(t)}',
+          '${_tierName(t)} ${[for (final d in _durations) '${DurationFormatter.daysOf(context, d)} ${prices[t]?[d]}'].join('/')} PLN ×${cap(t)}',
       ].join(' · '),
     );
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('ui_admin_saved'))));

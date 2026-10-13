@@ -14,7 +14,8 @@ import 'package:twoja_gastromania/tg_components/tg_inline_translate.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
-import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
@@ -645,7 +646,7 @@ class _ThreadList extends StatelessWidget {
                                       height: 42,
                                       child: t.listingImageUrl.isEmpty
                                           ? ColoredBox(color: theme.alternate)
-                                          : TGSmartImage(url: t.listingImageUrl, fallback: (_) => ColoredBox(color: theme.alternate)),
+                                          : WatermarkedImage(url: t.listingImageUrl, surface: TGImageSurface.listingCard, fallback: (_) => ColoredBox(color: theme.alternate)),
                                     ),
                                   ),
                                   const SizedBox(width: 10),
@@ -792,7 +793,7 @@ class _ChatPane extends StatelessWidget {
                             height: 36,
                             child: thread.listingImageUrl.isEmpty
                                 ? ColoredBox(color: theme.alternate)
-                                : TGSmartImage(url: thread.listingImageUrl, fallback: (_) => ColoredBox(color: theme.alternate)),
+                                : WatermarkedImage(url: thread.listingImageUrl, surface: TGImageSurface.listingCard, fallback: (_) => ColoredBox(color: theme.alternate)),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1093,7 +1094,7 @@ class _ContextPanel extends StatelessWidget {
               aspectRatio: 16 / 10,
               child: thread.listingImageUrl.isEmpty
                   ? const ColoredBox(color: TGColors.border)
-                  : TGSmartImage(url: thread.listingImageUrl, fallback: (_) => const ColoredBox(color: TGColors.border)),
+                  : WatermarkedImage(url: thread.listingImageUrl, surface: TGImageSurface.listingCard, fallback: (_) => const ColoredBox(color: TGColors.border)),
             ),
           ),
           const SizedBox(height: 8),

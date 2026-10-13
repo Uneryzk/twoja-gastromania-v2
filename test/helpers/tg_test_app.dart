@@ -33,6 +33,8 @@ import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/growth_service.dart';
+import 'package:twoja_gastromania/tg_services/referral_repository.dart';
 import 'package:twoja_gastromania/tg_services/review_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:url_launcher_platform_interface/link.dart' show LinkDelegate;
@@ -221,6 +223,8 @@ Future<TGApp> pumpTgApp(
   TGVerificationService.instance.reset();
   TGAccountSettingsService.instance.reset();
   TGAdminConsoleService.instance.reset();
+  ReferralRepository.instance.reset();
+  GrowthService.instance.reset();
   ActionDismissals.instance.reset();
   AdminLocaleState.instance.reset(to: locale.languageCode);
   final auth = FakeAuthState(isLoggedIn: signedIn);

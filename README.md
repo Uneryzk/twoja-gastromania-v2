@@ -2,6 +2,18 @@
 
 A new Flutter project.
 
+## Referral / representative panel (GROWTH-2)
+
+> **This is only a UI filter, not real security; production requires
+> server-side authorization.**
+>
+> **Bu yalnızca arayüz filtresidir, gerçek güvenlik değildir; üretimde
+> sunucu tarafı yetkilendirme şart.**
+
+All representative queries go through `ReferralRepository` (`lib/tg_services/referral_repository.dart`) and take `repId`. Phone, email, messages, payment method and invoices never appear on representative DTOs. Mock representatives (`Marek-IND2026`, `Piotr-CORP2026`, `Anna-OPS2026`) are seeded only outside Production Mode.
+
+`pdf` / `printing` are not in `pubspec.yaml`; reports use a printable on-screen preview instead of generating a PDF file. Share links are 128-bit tokens, 14 days (`TGReferralConfig.shareLinkDays`), revokeable, and opened at `/r/:token` with a noindex marker.
+
 ## Getting Started
 
 FlutterFlow projects are built to run on the Flutter _stable_ release.

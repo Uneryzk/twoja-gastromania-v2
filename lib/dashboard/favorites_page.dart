@@ -7,7 +7,8 @@ import 'package:twoja_gastromania/dashboard/dashboard_shell.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
-import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_favorite.dart';
@@ -167,7 +168,7 @@ class _FavCard extends StatelessWidget {
                     height: 56,
                     child: fav.imageUrl.isEmpty
                         ? const ColoredBox(color: TGColors.border)
-                        : TGSmartImage(url: fav.imageUrl, fallback: (_) => const ColoredBox(color: TGColors.border)),
+                        : WatermarkedImage(url: fav.imageUrl, surface: TGImageSurface.favorites, fallback: (_) => const ColoredBox(color: TGColors.border)),
                   ),
                 ),
               ),

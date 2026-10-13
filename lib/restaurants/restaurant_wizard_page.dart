@@ -1154,8 +1154,8 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                   context.t('ui_wiz_free_extension', {
                     'free': '${cfg.freeDays}',
                     'extra': '${cfg.freeExtensionDays}',
-                    'price': '${draft.pricing.restaurantFeePln(90)}',
-                    'paid': '${90}',
+                    'price': '${draft.pricing.restaurantFeePln(PricingConfigService.instance.config.defaultRestaurantDays)}',
+                    'paid': '${PricingConfigService.instance.config.defaultRestaurantDays}',
                   }),
                   style: theme.bodySmall,
                 )

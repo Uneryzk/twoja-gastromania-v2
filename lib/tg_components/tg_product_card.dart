@@ -81,8 +81,15 @@ class TGProductCard extends StatefulWidget {
   /// Stable promotion id for impression/click (legacy ids supported).
   final String? promotionId;
 
-  /// Homepage featured strip: always show ÖNE ÇIKAN even if tier lookup is glow/spotlight.
+  /// Homepage featured strip: force ÖNE ÇIKAN for Glow / Spotlight only.
+  /// Bold never shows the featured badge, even when this is true.
   final bool forceFeaturedBadge;
+
+  /// Single rule: Featured / ÖNE ÇIKAN is Glow + Spotlight only. Never Bold.
+  static bool showsFeaturedBadge({required PromotionTier? tier, bool force = false}) {
+    if (tier == PromotionTier.bold) return false;
+    return force || tier == PromotionTier.glow || tier == PromotionTier.spotlight;
+  }
 
   /// Spotlight repeat slot — exposed to screen readers.
   final bool isPromoRepeat;
@@ -198,7 +205,7 @@ class _TGProductCardState extends State<TGProductCard> with SingleTickerProvider
     final animateNowy =
         !reduceMotion && product.condition == TGCondition.newItem && _NowyRibbonSession.shouldAnimate(product.id);
     final tier = _tier;
-    final showFeatured = widget.forceFeaturedBadge || tier == PromotionTier.glow || tier == PromotionTier.spotlight;
+    final showFeatured = TGProductCard.showsFeaturedBadge(tier: tier, force: widget.forceFeaturedBadge);
 
     final fav = _FavoriteButton(active: _favorite, controller: _favController, onPressed: _toggleFavorite);
 
@@ -753,9 +760,9 @@ class _PriceRow extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     final hasPrice = product.price != null;
     final discounted = hasPrice && product.oldPrice != null && product.oldPrice! > product.price!;
-    final unitSuffix = (hasPrice && product.listingType == TGListingType.rent) ? ' / mies.' : '';
+    final unitSuffix = (hasPrice && product.listingType == TGListingType.rent) ? ' ${context.t('ui_per_month')}' : '';
 
-    final priceText = hasPrice ? '${formatPln(product.price!)}$unitSuffix' : 'Zapytaj o cenę';
+    final priceText = hasPrice ? '${formatPln(product.price!)}$unitSuffix' : context.t('ui_ask_price');
     final priceStyle = theme.titleLarge.override(
       fontSize: compact ? 18 : (hasPrice ? 22 : 18),
       fontWeight: FontWeight.w800,

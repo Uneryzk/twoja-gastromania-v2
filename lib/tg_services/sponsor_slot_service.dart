@@ -204,6 +204,7 @@ class TGSponsorSlotService extends ChangeNotifier {
       expiresAt: TGClock.now().add(Duration(hours: pricing.holdHours)),
     );
     _holds.add(h);
+    TGAnalytics.track('slot_reserve', {'sellerId': sellerId, 'segment': '${specialty.name}|$region', 'days': duration});
     TGAnalytics.track('slot_hold', {'sellerId': sellerId, 'segment': '${specialty.name}|$region', 'days': duration});
     notifyListeners();
     return h;

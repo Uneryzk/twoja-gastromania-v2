@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
@@ -16,9 +17,14 @@ import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_models/tg_ad_slot.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
+import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
+import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
+import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 
 /// Section heading used on the home page.
 class HomeSectionTitle extends StatelessWidget {
@@ -610,7 +616,7 @@ class _CategoryCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 /// Homepage featured products (VITRIN-1):
-/// Spotlight → Glow only; every card shows ÖNE ÇIKAN; no auto-advance.
+/// Spotlight → Glow only; FEATURED only on Glow / Spotlight; no auto-advance.
 /// Desktop: 5 cards wide · ≤5 static · 6–10 two rows · >10 manual carousel.
 class HomePromotedSection extends StatefulWidget {
   const HomePromotedSection({super.key, required this.products, this.tiers = const {}});
@@ -647,7 +653,7 @@ class _HomePromotedSectionState extends State<HomePromotedSection> {
       product: p,
       promotionTier: widget.tiers[p.id] ?? promo?.tier,
       promotionId: promo?.id,
-      forceFeaturedBadge: true,
+      forceFeaturedBadge: TGProductCard.showsFeaturedBadge(tier: widget.tiers[p.id] ?? promo?.tier),
     );
   }
 
@@ -757,25 +763,7 @@ class _HomePromotedSectionState extends State<HomePromotedSection> {
 // Best sellers
 // ---------------------------------------------------------------------------
 
-class _BestSeller {
-  const _BestSeller(this.name, this.logo, this.rating, this.products, this.path);
-
-  final String name;
-  final String logo;
-  final double rating;
-  final int products;
-  final String path;
-}
-
-const List<_BestSeller> _bestSellers = [
-  _BestSeller('Technica', 'assets/images/TECHNICA.png', 4.0, 3, '/seller/2931-technica'),
-  _BestSeller('Gastrosilesia.pl', 'assets/images/Gastrosilesia-pl.png', 4.5, 8, '/seller/1847-gastrosilesia'),
-  _BestSeller('EK', 'assets/images/Untitled-2_Topaz_Gigapixel_2x_scale.png', 3.5, 5, '/seller/4102-ek'),
-  _BestSeller('RM', 'assets/images/RM.png', 4.5, 2, '/seller/5518-rm'),
-  _BestSeller('PrimeGastro', 'assets/images/PRIMEGASTRO.png', 3.5, 2, '/seller/1048-primegastro'),
-];
-
-/// Horizontally scrolling verified-seller cards.
+/// Horizontally scrolling seller cards (VERIFY-1 shield only when earned).
 class HomeBestSellers extends StatefulWidget {
   const HomeBestSellers({super.key});
 
@@ -800,6 +788,8 @@ class _HomeBestSellersState extends State<HomeBestSellers> {
 
   @override
   Widget build(BuildContext context) {
+    final sellers = TGSellerProfileService.instance.bestSellers;
+    if (sellers.isEmpty) return const SizedBox.shrink();
     final theme = FlutterFlowTheme.of(context);
     final l10n = FFLocalizations.of(context);
     final wide = MediaQuery.sizeOf(context).width >= TGBreakpoints.phone;
@@ -832,9 +822,9 @@ class _HomeBestSellersState extends State<HomeBestSellers> {
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
             padding: const EdgeInsets.symmetric(vertical: 12),
-            itemCount: _bestSellers.length,
+            itemCount: sellers.length,
             separatorBuilder: (_, __) => const SizedBox(width: 18),
-            itemBuilder: (context, i) => SizedBox(width: 232, child: _SellerCard(seller: _bestSellers[i])),
+            itemBuilder: (context, i) => SizedBox(width: 232, child: _SellerCard(profile: sellers[i])),
           ),
         ),
       ],
@@ -843,65 +833,71 @@ class _HomeBestSellersState extends State<HomeBestSellers> {
 }
 
 class _SellerCard extends StatelessWidget {
-  const _SellerCard({required this.seller});
-  final _BestSeller seller;
+  const _SellerCard({required this.profile});
+  final TGStoreProfile profile;
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final l10n = FFLocalizations.of(context);
+    final seller = tgSellerFromProfile(profile);
+    final verified = tgShowsVerifiedSellerBadge(seller);
+    final listingN = TGProductService.instance.cachedAll.where((p) => p.seller.id == profile.sellerKey).length;
     return TGHoverCard(
-      semanticLabel: '${seller.name}, verified seller, ${seller.products} products',
-      onTap: () => context.push(seller.path),
+      semanticLabel: verified ? '${profile.name}, ${context.t('ui_verified_seller')}, $listingN' : '${profile.name}, $listingN',
+      onTap: () => context.push(profile.path),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Verified badge (design token: verified green).
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: theme.success.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(TGRadius.input),
-                  border: Border.all(color: theme.success.withValues(alpha: 0.55)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.verified_user, size: 16, color: theme.success),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        l10n.getText('iudua9mi'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w800),
+            if (verified)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.success.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(TGRadius.input),
+                    border: Border.all(color: theme.success.withValues(alpha: 0.55)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.verified_user, size: 16, color: theme.success),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          context.t('ui_verified_seller'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w800),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              )
+            else
+              const SizedBox(height: 8),
             const SizedBox(height: 12),
-            // Logos are designed for light backgrounds.
             Expanded(
               child: Container(
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(TGRadius.input)),
                 padding: const EdgeInsets.all(10),
-                child: Image.asset(seller.logo, fit: BoxFit.contain, cacheWidth: 400, errorBuilder: (_, __, ___) => Icon(Icons.storefront, color: theme.secondaryText, size: 40)),
+                child: profile.logoUrl != null
+                    ? Image.asset(profile.logoUrl!, fit: BoxFit.contain, cacheWidth: 400, errorBuilder: (_, __, ___) => Icon(Icons.storefront, color: theme.secondaryText, size: 40))
+                    : Icon(Icons.storefront, color: theme.secondaryText, size: 40),
               ),
             ),
             const SizedBox(height: 12),
-            TGRatingStars(rating: seller.rating, size: 20),
+            TGRatingStars(rating: profile.rating, size: 20),
             const SizedBox(height: 6),
             Row(
               children: [
                 Text(l10n.getText('g89e8jcq'), style: theme.bodyMedium.override(color: theme.secondaryText, fontWeight: FontWeight.w700)),
                 const SizedBox(width: 8),
-                Text('${seller.products}', style: theme.bodyLarge.override(fontWeight: FontWeight.w900)),
+                Text('$listingN', style: theme.bodyLarge.override(fontWeight: FontWeight.w900)),
               ],
             ),
           ],
@@ -930,103 +926,391 @@ const List<_StatData> _stats = [
   _StatData('assets/images/24_saat.png', 'eio1zib0', 181),
 ];
 
+/// Locale-aware grouping (pl-PL: "1 426").
+String homeStatNumber(int n, Locale locale) {
+  final tag = (locale.countryCode == null || locale.countryCode!.isEmpty) ? locale.languageCode : '${locale.languageCode}_${locale.countryCode}';
+  return NumberFormat.decimalPattern(tag).format(n);
+}
+
 class HomeStatsSection extends StatelessWidget {
-  const HomeStatsSection({super.key});
+  const HomeStatsSection({super.key, this.debugValues});
+
+  /// Test-only value override. Production UI always uses [_stats].
+  @visibleForTesting
+  final List<int>? debugValues;
+
+  static const kMinProductionValue = 5;
+  static const kMinVisibleCards = 2;
 
   @override
   Widget build(BuildContext context) {
     final l10n = FFLocalizations.of(context);
-    return LayoutBuilder(
-      builder: (context, c) {
-        final cols = c.maxWidth >= 900 ? 4 : 2;
-        final desktop = c.maxWidth >= 900;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.zero,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            mainAxisExtent: desktop ? 214 : 196,
-          ),
-          itemCount: _stats.length,
-          itemBuilder: (context, i) => HomeStatCard(
-            imageAsset: _stats[i].image,
-            title: l10n.getText(_stats[i].titleKey).replaceAll(RegExp(r'\s+'), ' ').trim(),
-            targetValue: _stats[i].value,
-            large: desktop,
-          ),
+    return ListenableBuilder(
+      listenable: TGRevenueConfigService.instance,
+      builder: (context, _) {
+        final prod = TGRevenueConfigService.instance.productionMode;
+        final rows = <_StatData>[
+          for (var i = 0; i < _stats.length; i++)
+            _StatData(_stats[i].image, _stats[i].titleKey, debugValues != null && i < debugValues!.length ? debugValues![i] : _stats[i].value),
+        ];
+        final shown = [for (final s in rows) if (!prod || s.value >= kMinProductionValue) s];
+        if (shown.length < kMinVisibleCards) return const SizedBox.shrink();
+        return LayoutBuilder(
+          builder: (context, c) {
+            final cols = c.maxWidth >= 900 ? 4 : 2;
+            final desktop = c.maxWidth >= 900;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                mainAxisExtent: desktop ? 214 : 196,
+              ),
+              itemCount: shown.length,
+              itemBuilder: (context, i) => HomeStatCard(
+                key: Key('home-stat-${shown[i].titleKey}'),
+                imageAsset: shown[i].image,
+                title: l10n.getText(shown[i].titleKey).replaceAll(RegExp(r'\s+'), ' ').trim(),
+                playId: shown[i].titleKey,
+                targetValue: shown[i].value,
+                stagger: Duration(milliseconds: 100 * i),
+                large: desktop,
+              ),
+            );
+          },
         );
       },
     );
   }
 }
 
-class HomeStatCard extends StatelessWidget {
-  const HomeStatCard({super.key, required this.imageAsset, required this.title, required this.targetValue, this.large = true});
+class HomeStatCard extends StatefulWidget {
+  const HomeStatCard({
+    super.key,
+    required this.imageAsset,
+    required this.title,
+    required this.targetValue,
+    this.playId,
+    this.stagger = Duration.zero,
+    this.large = true,
+  });
 
   final String imageAsset;
   final String title;
-  final int targetValue;
+  final int? targetValue;
+  final String? playId;
+  final Duration stagger;
   final bool large;
+
+  @override
+  State<HomeStatCard> createState() => _HomeStatCardState();
+}
+
+class _HomeStatCardState extends State<HomeStatCard> {
+  bool _revealed = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    final avatar = large ? 84.0 : 64.0;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.secondaryBackground,
-        borderRadius: BorderRadius.circular(TGRadius.card),
-        border: Border.all(color: theme.tertiary),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ClipOval(
-            child: Image.asset(imageAsset, width: avatar, height: avatar, fit: BoxFit.cover, cacheWidth: 260, errorBuilder: (_, __, ___) => SizedBox(width: avatar, height: avatar)),
+    final avatar = widget.large ? 84.0 : 64.0;
+    final locale = Localizations.localeOf(context);
+    final numberStyle = theme.bodyMedium.override(
+      color: theme.primary,
+      fontSize: widget.large ? 22 : 18,
+      fontWeight: FontWeight.w900,
+    ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+    final target = widget.targetValue;
+    final finalLabel = target == null ? widget.title : '${widget.title}. ${homeStatNumber(target, locale)}';
+    return _HalfVisibleOnce(
+      onHalf: () {
+        if (!_revealed) setState(() => _revealed = true);
+      },
+      child: Semantics(
+        container: true,
+        label: finalLabel,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: theme.secondaryBackground,
+            borderRadius: BorderRadius.circular(TGRadius.card),
+            border: Border.all(color: theme.tertiary),
           ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.titleMedium.override(fontSize: large ? 16 : 14, fontWeight: FontWeight.w800, lineHeight: 1.15),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipOval(
+                child: Image.asset(widget.imageAsset, width: avatar, height: avatar, fit: BoxFit.cover, cacheWidth: 260, errorBuilder: (_, __, ___) => SizedBox(width: avatar, height: avatar)),
+              ),
+              const SizedBox(height: 10),
+              ExcludeSemantics(
+                child: Text(
+                  widget.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.titleMedium.override(fontSize: widget.large ? 16 : 14, fontWeight: FontWeight.w800, lineHeight: 1.15),
+                ),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: (widget.large ? 22.0 : 18.0) * 1.2,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: HomeStatCountUp(
+                    id: widget.playId ?? widget.title,
+                    target: target,
+                    revealed: _revealed,
+                    stagger: widget.stagger,
+                    textStyle: numberStyle,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: AnimatedCountUpText(
-              target: targetValue,
-              duration: const Duration(milliseconds: 1100),
-              textStyle: theme.bodyMedium.override(color: theme.primary, fontSize: large ? 22 : 18, fontWeight: FontWeight.w900),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// Counts up from 0 to [target] when first shown.
-class AnimatedCountUpText extends StatelessWidget {
-  const AnimatedCountUpText({super.key, required this.target, required this.duration, required this.textStyle});
+/// Counts 0 → target once the card is ≥50% on screen. One implicit controller per card.
+class HomeStatCountUp extends StatefulWidget {
+  const HomeStatCountUp({
+    super.key,
+    required this.id,
+    required this.target,
+    required this.textStyle,
+    this.revealed,
+    this.stagger = Duration.zero,
+  });
 
-  final int target;
-  final Duration duration;
+  final String id;
+  final int? target;
   final TextStyle textStyle;
+  /// When set, the parent owns visibility (card ≥50%). Null = measure this box.
+  final bool? revealed;
+  final Duration stagger;
+
+  static const firstDuration = Duration(milliseconds: 2000);
+  static const liveDuration = Duration(milliseconds: 600);
+
+  @visibleForTesting
+  static void resetPlayed() => _HomeStatCountUpState._played.clear();
+
+  @override
+  State<HomeStatCountUp> createState() => _HomeStatCountUpState();
+}
+
+class _HomeStatCountUpState extends State<HomeStatCountUp> {
+  static final Set<String> _played = {};
+
+  int _from = 0;
+  int _to = 0;
+  int _shown = 0;
+  Duration _duration = Duration.zero;
+  bool _halfVisible = false;
+  bool _started = false;
+  Timer? _stagger;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.revealed == true) _halfVisible = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _tryStart();
+    });
+  }
+
+  @override
+  void dispose() {
+    _stagger?.cancel();
+    super.dispose();
+  }
+
+  bool get _reduce => MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+  void _run({required int from, required int to, required Duration duration}) {
+    _stagger?.cancel();
+    final snap = to == 0 || _reduce || duration == Duration.zero;
+    setState(() {
+      _from = snap ? to : from;
+      _to = to;
+      _shown = snap ? to : from;
+      _duration = snap ? Duration.zero : duration;
+    });
+    _played.add(widget.id);
+  }
+
+  void _tryStart() {
+    if (widget.revealed == true) _halfVisible = true;
+    final target = widget.target;
+    if (!_halfVisible || _started || target == null) return;
+    _started = true;
+    if (_played.contains(widget.id) || target == 0 || _reduce) {
+      _run(from: target, to: target, duration: Duration.zero);
+      return;
+    }
+    final delay = widget.stagger;
+    if (delay == Duration.zero) {
+      _run(from: 0, to: target, duration: HomeStatCountUp.firstDuration);
+      return;
+    }
+    _stagger = Timer(delay, () {
+      if (!mounted || widget.target == null) return;
+      _run(from: 0, to: widget.target!, duration: HomeStatCountUp.firstDuration);
+    });
+  }
+
+  void _onHalfVisible() {
+    if (_halfVisible) return;
+    _halfVisible = true;
+    _tryStart();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeStatCountUp old) {
+    super.didUpdateWidget(old);
+    if (widget.revealed == true) _halfVisible = true;
+    if (!_started && widget.target != null) {
+      _tryStart();
+      return;
+    }
+    if (_started && old.target != widget.target && widget.target != null) {
+      _run(
+        from: _shown,
+        to: widget.target!,
+        duration: _reduce ? Duration.zero : HomeStatCountUp.liveDuration,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: reduce ? target.toDouble() : 0, end: target.toDouble()),
-      duration: reduce ? Duration.zero : duration,
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) => Text(value.round().toString(), style: textStyle),
+    final locale = Localizations.localeOf(context);
+    final loading = widget.target == null;
+    final number = RepaintBoundary(
+      child: loading
+          ? const _StatNumberSkeleton()
+          : ExcludeSemantics(
+              child: TweenAnimationBuilder<int>(
+                tween: IntTween(begin: _from, end: _to),
+                duration: _duration,
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) {
+                  _shown = value;
+                  return Text(
+                    homeStatNumber(value, locale),
+                    key: Key('home-stat-number-${widget.id}'),
+                    style: widget.textStyle,
+                  );
+                },
+              ),
+            ),
+    );
+    if (widget.revealed != null) return number;
+    return _HalfVisibleOnce(onHalf: _onHalfVisible, child: number);
+  }
+}
+
+class _StatNumberSkeleton extends StatelessWidget {
+  const _StatNumberSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('home-stat-skeleton'),
+      width: 56,
+      height: 18,
+      decoration: BoxDecoration(
+        color: FlutterFlowTheme.of(context).alternate,
+        borderRadius: BorderRadius.circular(4),
+      ),
+    );
+  }
+}
+
+/// Fires [onHalf] once when ≥50% of [child] is in the viewport. No new package.
+class _HalfVisibleOnce extends StatefulWidget {
+  const _HalfVisibleOnce({required this.onHalf, required this.child});
+  final VoidCallback onHalf;
+  final Widget child;
+
+  @override
+  State<_HalfVisibleOnce> createState() => _HalfVisibleOnceState();
+}
+
+class _HalfVisibleOnceState extends State<_HalfVisibleOnce> {
+  bool _fired = false;
+  final List<ScrollPosition> _positions = [];
+
+  void _detach() {
+    for (final p in _positions) {
+      p.removeListener(_schedule);
+    }
+    _positions.clear();
+  }
+
+  void _schedule() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _check());
+  }
+
+  void _attach() {
+    _detach();
+    context.visitAncestorElements((el) {
+      if (el is StatefulElement && el.state is ScrollableState) {
+        final pos = (el.state as ScrollableState).position;
+        _positions.add(pos);
+        pos.addListener(_schedule);
+      }
+      return true;
+    });
+  }
+
+  void _check() {
+    if (_fired || !mounted) return;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize || !box.attached) return;
+    final size = box.size;
+    if (size.isEmpty) return;
+    final rect = box.localToGlobal(Offset.zero) & size;
+    final view = Offset.zero & MediaQuery.sizeOf(context);
+    final overlap = rect.intersect(view);
+    final visible = overlap.width > 0 && overlap.height > 0 ? (overlap.width * overlap.height) / (size.width * size.height) : 0.0;
+    if (visible >= 0.5) {
+      _fired = true;
+      widget.onHalf();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _attach();
+    _schedule();
+  }
+
+  @override
+  void dispose() {
+    _detach();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (_) {
+        _schedule();
+        return false;
+      },
+      child: LayoutBuilder(
+        builder: (context, _) {
+          _schedule();
+          return widget.child;
+        },
+      ),
     );
   }
 }

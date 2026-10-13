@@ -347,10 +347,10 @@ class _RestaurantCardState extends State<RestaurantCard> {
                         _copyPhone();
                       },
                       style: FilledButton.styleFrom(backgroundColor: TGColors.cta, foregroundColor: TGColors.onCta),
-                      child: Semantics(label: 'Call ${r.phone}', child: const Text('Call')),
+                      child: Semantics(label: '${context.t('ui_call')} ${r.phone}', child: Text(context.t('ui_call'))),
                     ),
                     const SizedBox(height: 8),
-                    OutlinedButton(onPressed: _open, child: const Text('Message')),
+                    OutlinedButton(onPressed: _open, child: Text(context.t('ui_message'))),
                   ],
                 ),
               ),
@@ -403,37 +403,62 @@ class _RestaurantCardState extends State<RestaurantCard> {
                       restoLocalizedTitle(context, r),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.titleSmall.override(fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w500),
+                      style: theme.titleSmall.override(
+                        fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w500,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '${_area(r.totalAreaM2)} · ${NumberFormat.decimalPattern('pl_PL').format(r.rentMonthly)} ${context.t('ui_per_month')} · $fee',
                       maxLines: 2,
-                      style: theme.bodySmall.override(fontWeight: FontWeight.w600),
+                      style: theme.bodySmall.override(fontWeight: FontWeight.w600, color: const Color(0xFFE8E8E8)),
                     ),
                     const SizedBox(height: 4),
-                    Text(r.city, style: theme.bodySmall.override(color: theme.secondaryText)),
+                    Text(r.city, style: theme.bodySmall.override(color: const Color(0xFFB8B8B8))),
                     Text(
                       r.posterRole == RestaurantPosterRole.owner ? context.t('resto_poster_owner') : context.t('resto_poster_agent'),
-                      style: theme.bodySmall.override(fontWeight: FontWeight.w600),
+                      style: theme.bodySmall.override(fontWeight: FontWeight.w600, color: const Color(0xFFE8E8E8)),
+                    ),
+                    const SizedBox(height: 6),
+                    Semantics(
+                      label: '${context.t('ui_call')} ${r.phone}',
+                      value: r.phone,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                r.phone,
+                                maxLines: 1,
+                                style: theme.bodySmall.override(
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Semantics(
+                            label: '${context.t('ui_call')} ${r.phone}',
+                            button: true,
+                            child: Material(
+                              color: TGColors.cta,
+                              shape: const CircleBorder(),
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: _copyPhone,
+                                child: const SizedBox(width: 44, height: 44, child: Icon(Icons.phone, color: TGColors.onCta, size: 20)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Semantics(
-                label: 'Call ${r.phone}',
-                button: true,
-                child: Material(
-                  color: TGColors.cta,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () {
-                      TGAnalytics.track('resto_call_click', {'listingNo': r.listingNo, 'mode': 'tel'});
-                    },
-                    child: const SizedBox(width: 44, height: 44, child: Icon(Icons.phone, color: TGColors.onCta, size: 20)),
-                  ),
                 ),
               ),
             ],
@@ -543,21 +568,25 @@ class _RestaurantCardState extends State<RestaurantCard> {
   }
 
   Widget _phoneRow(FlutterFlowTheme theme, {required bool desktopCopy}) {
-    return InkWell(
-      onTap: desktopCopy ? _copyPhone : null,
-      child: Row(
-        children: [
-          Icon(Icons.phone, size: 14, color: theme.secondaryText),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              '${r.phone} · ${r.city}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.bodySmall.override(fontWeight: FontWeight.w600),
+    return Semantics(
+      label: '${context.t('ui_call')} ${r.phone}',
+      value: r.phone,
+      child: InkWell(
+        onTap: desktopCopy ? _copyPhone : null,
+        child: Row(
+          children: [
+            Icon(Icons.phone, size: 14, color: theme.secondaryText),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                '${r.phone} · ${r.city}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.bodySmall.override(fontWeight: FontWeight.w600),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -9,7 +9,8 @@ import 'package:twoja_gastromania/restaurants/restaurant_renew_sheet.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_transfer_sheet.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
-import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/tg_core/restaurant_config.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -62,7 +63,7 @@ class RestaurantListingRow extends StatelessWidget {
                         child: SizedBox(
                           width: 96,
                           height: 72,
-                          child: TGSmartImage(url: r.imageUrl, fit: BoxFit.cover),
+                          child: WatermarkedImage(url: r.imageUrl, surface: TGImageSurface.listingCard, fit: BoxFit.cover),
                         ),
                       ),
                       const SizedBox(width: 12),

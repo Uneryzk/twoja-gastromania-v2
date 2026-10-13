@@ -825,7 +825,7 @@ class _PriceBlock extends StatelessWidget {
     final rent = hasPrice && product.listingType == TGListingType.rent;
     final main = !hasPrice
         ? context.t('ui_ask_price')
-        : '${formatPln(product.price!)}${rent ? ' / mies.' : ''}';
+        : '${formatPln(product.price!)}${rent ? ' ${context.t('ui_per_month')}' : ''}';
 
     String? other;
     if (hasPrice) {
@@ -969,7 +969,7 @@ class _FeaturedSpecs extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <(IconData, String)>[
       (Icons.bolt_outlined, switch (product.powerType) { TGPowerType.electric => context.t('ui_electric'), TGPowerType.gas => context.t('ui_gas'), TGPowerType.other => context.t('ui_other') }),
-      (Icons.verified_outlined, product.warrantyMonths == 0 ? context.t('ui_warranty_none') : '${product.warrantyMonths} mies.'),
+      (Icons.verified_outlined, product.warrantyMonths == 0 ? context.t('ui_warranty_none') : context.t('ui_n_months', {'n': '${product.warrantyMonths}'})),
       (Icons.storefront_outlined, product.pickup ? context.t('ui_pickup') : '—'),
       (Icons.local_shipping_outlined, product.delivery ? context.t('ui_delivery') : '—'),
     ];

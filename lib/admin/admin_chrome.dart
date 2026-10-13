@@ -42,10 +42,11 @@ abstract final class TGAdminNav {
   static const conversations = '/admin/conversations';
   static const nip = '/admin/nip';
   static const goLive = '/admin/go-live';
+  static const growth = '/admin/growth';
   static String userPath(String userId) => '$users/${Uri.encodeComponent(userId)}';
 
-  /// Sections a moderator may not open (payments / refunds, go-live, templates).
-  static const adminOnlySections = {'templates', 'payments', 'golive'};
+  /// Sections a moderator may not open (payments / refunds, go-live, templates, growth).
+  static const adminOnlySections = {'templates', 'payments', 'golive', 'growth'};
   static String soCasePath(String requestNo) => '$specialOrders/$requestNo';
   static String soQueuePath(TGSoAdminQueue queue) =>
       queue == TGSoAdminQueue.needsMatching ? specialOrders : '$specialOrders?queue=${queue.name}';
@@ -285,6 +286,7 @@ Future<void> showAdminSectionsMenu(BuildContext context) {
     if (isAdmin) ('payments', Icons.payments_outlined, 'adm_nav_payments', TGAdminNav.payments),
     ('audit', Icons.receipt_long_outlined, 'ui_admin_audit', TGAdminNav.audit),
     if (isAdmin) ('golive', Icons.rocket_launch_outlined, 'adm_nav_golive', TGAdminNav.goLive),
+    if (isAdmin) ('growth', Icons.trending_up_outlined, 'ui_admin_nav_growth', TGAdminNav.growth),
   ];
   return Navigator.of(context).push<void>(MaterialPageRoute(
     fullscreenDialog: true,
@@ -397,6 +399,12 @@ class AdminSideMenu extends StatelessWidget {
                   ),
                   _SoNavGroup(section: section),
                   const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
+                    child: Text(context.t('ui_admin_nav_settings'), style: theme.labelSmall.override(color: theme.secondaryText, fontWeight: FontWeight.w900, fontSize: 10)),
+                  ),
+                  if (isAdmin)
+                    _NavTile(key: const Key('admin-nav-growth'), selected: section == 'growth', icon: Icons.trending_up_outlined, label: context.t('ui_admin_nav_growth'), onTap: () => context.go(TGAdminNav.growth)),
                   _NavTile(selected: section == 'revenue', icon: Icons.tune_outlined, label: context.t('ui_admin_nav_revenue'), onTap: () => context.go(TGAdminNav.revenueConfig)),
                   _NavTile(selected: section == 'priority', icon: Icons.bolt_outlined, label: context.t('ui_admin_nav_priority'), onTap: () => context.go(TGAdminNav.priority)),
                   _NavTile(selected: section == 'founders', icon: Icons.emoji_events_outlined, label: context.t('ui_admin_nav_founders'), onTap: () => context.go(TGAdminNav.founders)),
@@ -509,7 +517,7 @@ class _SoNavGroup extends StatelessWidget {
 }
 
 class _NavTile extends StatelessWidget {
-  const _NavTile({required this.selected, required this.icon, required this.label, required this.onTap, this.subtitle});
+  const _NavTile({super.key, required this.selected, required this.icon, required this.label, required this.onTap, this.subtitle});
   final bool selected;
   final IconData icon;
   final String label;
@@ -584,6 +592,7 @@ class _MobileAdminTabs extends StatelessWidget {
               _tab(context, 'ads', Icons.view_carousel_outlined, TGAdminNav.ads),
               _tab(context, 'verified', Icons.verified_user_outlined, TGAdminNav.verified),
               _tab(context, 'watermark', Icons.branding_watermark_outlined, TGAdminNav.watermark),
+              if (isAdmin) _tab(context, 'growth', Icons.trending_up_outlined, TGAdminNav.growth),
               _tab(context, 'audit', Icons.receipt_long_outlined, TGAdminNav.audit),
               if (isAdmin) _tab(context, 'golive', Icons.rocket_launch_outlined, TGAdminNav.goLive),
               if (isAdmin) _tab(context, 'templates', Icons.email_outlined, TGAdminNav.templates),

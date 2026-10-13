@@ -172,7 +172,7 @@ class _TGManufacturerPromotePanelState extends State<TGManufacturerPromotePanel>
     );
   }
 
-  String _tierName(PromotionTier t) => t.name[0].toUpperCase() + t.name.substring(1);
+  String _tierName(PromotionTier t) => t.brand;
 }
 
 /// Shows the card as it would look with [tier] before the promotion exists.

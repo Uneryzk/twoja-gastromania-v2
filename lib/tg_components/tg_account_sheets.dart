@@ -7,7 +7,9 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_services/billing_service.dart';
@@ -191,6 +193,11 @@ void applyTGDevSwitchPick(GoRouter router, FakeAuthState auth, Object picked) {
     router.go('/dashboard/listings');
     return;
   }
+  if (picked is RepresentativeDevPick) {
+    auth.actAsRepresentative(picked);
+    router.go('/dashboard/representative');
+    return;
+  }
   if (picked is _DevBusinessDays) {
     _devAdvanceBusinessDays(picked.days);
     return;
@@ -238,6 +245,9 @@ Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
       _devSection(context, t('ui_dev_sec_staff')),
       PopupMenuItem(value: TGUserRole.admin, child: Text(t('ui_dev_admin'), style: itemStyle)),
       PopupMenuItem(value: TGUserRole.moderator, child: Text(t('ui_dev_moderator'), style: itemStyle)),
+      const PopupMenuDivider(),
+      _devSection(context, t('ui_dev_sec_reps')),
+      for (final p in RepresentativeDevPick.all) PopupMenuItem(value: p, child: Text(t(p.labelKey), style: itemStyle)),
       const PopupMenuDivider(),
       _devSection(context, t('ui_dev_sec_private_seller')),
       PopupMenuItem(value: TGEntitlementScenario.noListings, child: Text(t('ui_dev_sc_no_listings'), style: itemStyle)),
@@ -433,14 +443,20 @@ class _PricingSheet extends StatelessWidget {
           ],
           _InfoCard(
             icon: Icons.card_giftcard_rounded,
-            title: context.t('ui_first_n_listings_free', {'n': '${TGPricing.freeListingQuota}'}),
-            body: context.t('ui_free_listings_body', {'days': '${TGPricing.listingPeriodDays}'}),
+            title: context.t('ui_first_n_listings_free', {'n': '${PricingConfigService.instance.config.freeListingQuota}'}),
+            body: context.t('ui_free_listings_body', {'days': '${PricingConfigService.instance.config.freeListingDays}'}),
           ),
           const SizedBox(height: 10),
           _InfoCard(
             icon: Icons.receipt_long_rounded,
-            title: context.t('ui_listing_fee_title', {'fee': '${TGPricing.listingFeePln}', 'days': '${TGPricing.listingPeriodDays}'}),
-            body: context.t('ui_listing_fee_body', {'fee': '${TGPricing.listingFeePln}', 'days': '${TGPricing.listingPeriodDays}'}),
+            title: context.t('ui_listing_fee_title', {
+              'fee': '${PricingConfigService.instance.config.defaultListingFeePln}',
+              'days': '${PricingConfigService.instance.config.defaultListingDays}',
+            }),
+            body: context.t('ui_listing_fee_body', {
+              'fee': '${PricingConfigService.instance.config.defaultListingFeePln}',
+              'days': '${PricingConfigService.instance.config.defaultListingDays}',
+            }),
             accent: theme.secondary,
           ),
           const SizedBox(height: 18),
@@ -451,7 +467,11 @@ class _PricingSheet extends StatelessWidget {
             style: theme.bodySmall.override(color: theme.secondaryText),
           ),
           const SizedBox(height: 10),
-          for (final plan in TGPricing.storePlans) ...[
+          for (final plan in [
+            TGStorePlan(name: 'Basic', monthlyPricePln: PricingConfigService.instance.config.basicStoreMonthlyPln),
+            TGStorePlan(name: 'Pro', monthlyPricePln: PricingConfigService.instance.config.proStoreMonthlyPln),
+            TGStorePlan(name: 'Enterprise', monthlyPricePln: PricingConfigService.instance.config.enterpriseStoreMonthlyPln),
+          ]) ...[
             _PlanRow(plan: plan),
             const SizedBox(height: 8),
           ],
@@ -550,11 +570,17 @@ class _QuotaCard extends StatelessWidget {
         progress = 0.85;
       case TGHeaderPillKind.noQuota:
         headline = context.t('ui_no_free_listings_left');
-        detail = context.t('ui_next_listing_fee', {'fee': '${TGPricing.listingFeePln}', 'days': '${TGPricing.listingPeriodDays}'});
+        detail = context.t('ui_next_listing_fee', {
+          'fee': '${PricingConfigService.instance.config.defaultListingFeePln}',
+          'days': '${PricingConfigService.instance.config.defaultListingDays}',
+        });
         progress = 1;
       case TGHeaderPillKind.noListings:
         headline = context.t('ui_three_free_listings');
-        detail = context.t('ui_first_three_free_detail');
+        detail = context.t('ui_first_three_free_detail', {
+          'quota': '${PricingConfigService.instance.config.freeListingQuota}',
+          'period': DurationFormatter.daysOf(context, PricingConfigService.instance.config.freeListingDays),
+        });
         progress = 0;
       case TGHeaderPillKind.freeQuota:
         headline = context.t('ui_free_listings_left_of', {'left': '${auth.freeListingsLeft}', 'total': '${auth.freeListingsTotal}'});

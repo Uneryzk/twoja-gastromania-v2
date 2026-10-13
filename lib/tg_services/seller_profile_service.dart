@@ -5,6 +5,7 @@ import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 
 class TGSellerProfileService extends ChangeNotifier {
   TGSellerProfileService._();
@@ -24,9 +25,12 @@ class TGSellerProfileService extends ChangeNotifier {
 
   List<TGStoreProfile> get all => List.unmodifiable(_profiles);
 
-  List<TGStoreProfile> get bestSellers => _profiles
-      .where((p) => p.isStore && p.isLive && const {'2931', '1847', '4102', '5518', '1048'}.contains('${p.publicId}'))
-      .toList();
+  List<TGStoreProfile> get bestSellers {
+    if (TGRevenueConfigService.instance.productionMode) return const [];
+    return _profiles
+        .where((p) => p.isStore && p.isLive && const {'2931', '1847', '4102', '5518', '1048'}.contains('${p.publicId}'))
+        .toList();
+  }
 
   List<TGStoreProfile> get specialOrderManufacturers =>
       _profiles.where((p) => p.isSpecialOrderManufacturer).toList();

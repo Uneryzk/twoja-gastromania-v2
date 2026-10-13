@@ -14,7 +14,9 @@ import 'package:twoja_gastromania/tg_components/tg_search_field.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -426,14 +428,17 @@ class _AccountPill extends StatelessWidget {
   String _tooltip(BuildContext context) {
     final listings = auth.listingTooltipLines();
     final head = switch (auth.pillKind) {
-      TGHeaderPillKind.noListings => context.t('ui_tooltip_first_three'),
+      TGHeaderPillKind.noListings => context.t('ui_tooltip_first_three', {
+          'quota': '${PricingConfigService.instance.config.freeListingQuota}',
+          'period': DurationFormatter.daysOf(context, PricingConfigService.instance.config.freeListingDays),
+        }),
       TGHeaderPillKind.freeQuota => context.t('ui_tooltip_free_left', {
           'left': '${auth.freeListingsLeft}',
           'total': '${auth.freeListingsTotal}',
         }),
       TGHeaderPillKind.noQuota => context.t('ui_next_listing', {
-          'fee': '${TGPricing.listingFeePln}',
-          'days': '${TGPricing.listingPeriodDays}',
+          'fee': '${PricingConfigService.instance.config.defaultListingFeePln}',
+          'days': '${PricingConfigService.instance.config.defaultListingDays}',
         }),
       TGHeaderPillKind.store => context.t('ui_store_listings_active', {
           'plan': context.t(switch (auth.storePlanLabel) {

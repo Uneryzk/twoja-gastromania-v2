@@ -13,6 +13,7 @@ import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
+import 'package:twoja_gastromania/tg_services/referral_repository.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
@@ -72,12 +73,13 @@ const dashBillingItem = DashNavItem(id: 'billing', labelKey: 'dash_nav_billing',
 const dashSettingsItem = DashNavItem(id: 'settings', labelKey: 'dash_nav_settings', icon: Icons.settings_outlined, route: '/dashboard/settings');
 const dashVerificationItem = DashNavItem(id: 'verification', labelKey: 'dash_nav_verification', icon: Icons.verified_outlined, route: '/dashboard/verification');
 const dashFavoritesItem = DashNavItem(id: 'favorites', labelKey: 'dash_nav_favorites', icon: Icons.favorite_border, route: '/dashboard/favorites');
+const dashRepItem = DashNavItem(id: 'representative', labelKey: 'dash_nav_representative', icon: Icons.badge_outlined, route: '/dashboard/representative');
 
 /// Sidebar / "More" groups for an account. Existing routes are linked as-is.
 List<DashNavGroup> dashNavGroups(AccountCapabilities caps, FakeAuthState auth) {
   const plans = DashNavItem(id: 'plans', labelKey: 'dash_nav_plans', icon: Icons.workspace_premium_outlined, route: '/plans');
   return [
-    const DashNavGroup('dash_grp_overview', [_overviewItem, _actionsItem]),
+    DashNavGroup('dash_grp_overview', [_overviewItem, _actionsItem, if (caps.isRepresentative) dashRepItem]),
     DashNavGroup('dash_grp_sell', [
       _listingsItem,
       dashInsightsItem,
@@ -167,6 +169,7 @@ class DashboardShell extends StatelessWidget {
         ModerationService.instance,
         TGSpecialOrderService.instance,
         TGRevenueConfigService.instance,
+        ReferralRepository.instance,
       ]);
 
   @override
