@@ -1,22 +1,34 @@
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 
-/// Promote packages for restaurant listings (PLN, VAT-inclusive).
+/// Promote packages for restaurant listings: `{days: PLN}` (VAT-inclusive).
 @immutable
 class RestaurantPromotePrices {
-  const RestaurantPromotePrices({required this.pln14, required this.pln30});
+  const RestaurantPromotePrices({this.prices = const {14: 49, 30: 79}});
 
-  final int pln14;
-  final int pln30;
+  final Map<int, int> prices;
 
-  RestaurantPromotePrices copyWith({int? pln14, int? pln30}) =>
-      RestaurantPromotePrices(pln14: pln14 ?? this.pln14, pln30: pln30 ?? this.pln30);
+  List<int> get durations => prices.keys.toList()..sort();
 
-  Map<String, dynamic> toJson() => {'pln14': pln14, 'pln30': pln30};
+  int pricePln(int days) => prices[days] ?? 0;
 
-  static RestaurantPromotePrices fromJson(Map<String, dynamic> json) => RestaurantPromotePrices(
-        pln14: (json['pln14'] as num?)?.toInt() ?? 39,
-        pln30: (json['pln30'] as num?)?.toInt() ?? 69,
-      );
+  RestaurantPromotePrices copyWith({Map<int, int>? prices}) => RestaurantPromotePrices(prices: prices ?? this.prices);
+
+  Map<String, dynamic> toJson() => {'prices': {for (final e in prices.entries) '${e.key}': e.value}};
+
+  /// Also reads the legacy `pln14` / `pln30` keys.
+  static RestaurantPromotePrices fromJson(Map<String, dynamic> json) {
+    final raw = json['prices'];
+    if (raw is Map) {
+      return RestaurantPromotePrices(prices: {
+        for (final e in raw.entries) int.parse('${e.key}'): (e.value as num).toInt(),
+      });
+    }
+    return RestaurantPromotePrices(prices: {
+      14: (json['pln14'] as num?)?.toInt() ?? 39,
+      30: (json['pln30'] as num?)?.toInt() ?? 69,
+    });
+  }
 }
 
 /// Single source of truth for restaurant listing commercial rules.
@@ -59,7 +71,7 @@ class RestaurantConfig {
     paidDays: 90,
     renewEarlyDays: 14,
     // Legacy 14/30 promote maps to Glow 2w / 1m (PromotionConfig).
-    promote: RestaurantPromotePrices(pln14: 49, pln30: 79),
+    promote: RestaurantPromotePrices(),
     freeStartCapPer12m: 3,
     perPremisesMax: 3,
     dailyListingCap: 3,
@@ -68,9 +80,9 @@ class RestaurantConfig {
   );
 
   /// CTA label for hub / banners (config-driven free period).
-  String get listCtaLabel => 'List your business · free for $freeDays days';
+  String get listCtaLabel => 'List your business · free for ${DurationFormatter.days(freeDays, 'en')}';
 
-  String get listBannerTitle => 'Selling your business? List it free for $freeDays days';
+  String get listBannerTitle => 'Selling your business? List it free for ${DurationFormatter.days(freeDays, 'en')}';
 
   RestaurantConfig copyWith({
     int? freeDays,

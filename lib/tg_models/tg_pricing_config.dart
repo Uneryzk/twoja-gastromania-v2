@@ -1,79 +1,41 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 
-/// Listing (equipment / rental) paid duration keys — days only, labels via i18n.
-enum ListingDurationKey { d30, d60, d90 }
+/// Sorted duration options (days) of a `{days: price}` table.
+List<int> tgDurationOptions(Map<int, int> prices) => prices.keys.toList()..sort();
 
-/// Restaurant paid duration keys.
-enum RestaurantDurationKey { d90, d180, d365 }
-
-extension ListingDurationKeyX on ListingDurationKey {
-  int get days => switch (this) {
-        ListingDurationKey.d30 => 30,
-        ListingDurationKey.d60 => 60,
-        ListingDurationKey.d90 => 90,
-      };
-}
-
-extension RestaurantDurationKeyX on RestaurantDurationKey {
-  int get days => switch (this) {
-        RestaurantDurationKey.d90 => 90,
-        RestaurantDurationKey.d180 => 180,
-        RestaurantDurationKey.d365 => 365,
-      };
-}
-
-/// Hero banner paid duration keys (VITRIN-3).
-enum BannerDurationKey { w1, w2, m1 }
-
-extension BannerDurationKeyX on BannerDurationKey {
-  int get days => switch (this) {
-        BannerDurationKey.w1 => 7,
-        BannerDurationKey.w2 => 14,
-        BannerDurationKey.m1 => 30,
-      };
-
-  /// i18n key for the duration label.
-  String get labelKey => switch (this) {
-        BannerDurationKey.w1 => 'ui_banner_dur_w1',
-        BannerDurationKey.w2 => 'ui_banner_dur_w2',
-        BannerDurationKey.m1 => 'ui_banner_dur_m1',
-      };
-}
-
-/// Hero banner (AdSlot) commercial rules — brutto PLN.
+/// Hero banner (AdSlot) commercial rules — brutto PLN, durations in days.
 @immutable
 class BannerPricing {
   const BannerPricing({
-    this.prices = const {
-      BannerDurationKey.w1: 129,
-      BannerDurationKey.w2: 199,
-      BannerDurationKey.m1: 349,
-    },
+    this.prices = const {7: 129, 14: 199, 30: 349},
     this.maxSponsoredPerDay = 3,
     this.holdHours = 24,
     this.waitlistHorizonDays = 60,
     this.fullRefundDaysBeforeStart = 7,
-    this.enterpriseFreeDuration = BannerDurationKey.w1,
+    this.enterpriseFreeDays = 7,
     this.enterpriseFreePerMonth = 1,
     this.maxCorrections = 1,
     this.titleMaxChars = 60,
   });
 
-  final Map<BannerDurationKey, int> prices;
+  /// `{durationDays: pricePln}`.
+  final Map<int, int> prices;
   final int maxSponsoredPerDay;
   final int holdHours;
   final int waitlistHorizonDays;
   final int fullRefundDaysBeforeStart;
-  final BannerDurationKey enterpriseFreeDuration;
+  final int enterpriseFreeDays;
   final int enterpriseFreePerMonth;
   final int maxCorrections;
   final int titleMaxChars;
 
-  int pricePln(BannerDurationKey key) => prices[key] ?? 0;
+  List<int> get durations => tgDurationOptions(prices);
+
+  int pricePln(int days) => prices[days] ?? 0;
 
   BannerPricing copyWith({
-    Map<BannerDurationKey, int>? prices,
+    Map<int, int>? prices,
     int? maxSponsoredPerDay,
     int? holdHours,
     int? waitlistHorizonDays,
@@ -86,10 +48,37 @@ class BannerPricing {
         holdHours: holdHours ?? this.holdHours,
         waitlistHorizonDays: waitlistHorizonDays ?? this.waitlistHorizonDays,
         fullRefundDaysBeforeStart: fullRefundDaysBeforeStart ?? this.fullRefundDaysBeforeStart,
-        enterpriseFreeDuration: enterpriseFreeDuration,
+        enterpriseFreeDays: enterpriseFreeDays,
         enterpriseFreePerMonth: enterpriseFreePerMonth ?? this.enterpriseFreePerMonth,
         maxCorrections: maxCorrections,
         titleMaxChars: titleMaxChars,
+      );
+}
+
+/// Special Order sponsor slot (project type × region) — one sponsor per
+/// segment per day; brutto PLN, durations in days.
+@immutable
+class SponsorSlotPricing {
+  const SponsorSlotPricing({
+    this.prices = const {7: 89, 14: 149, 30: 249},
+    this.holdHours = 24,
+    this.horizonDays = 60,
+  });
+
+  /// `{durationDays: pricePln}`.
+  final Map<int, int> prices;
+  final int holdHours;
+  final int horizonDays;
+
+  List<int> get durations => tgDurationOptions(prices);
+
+  int pricePln(int days) => prices[days] ?? 0;
+
+  SponsorSlotPricing copyWith({Map<int, int>? prices, int? holdHours, int? horizonDays}) =>
+      SponsorSlotPricing(
+        prices: prices ?? this.prices,
+        holdHours: holdHours ?? this.holdHours,
+        horizonDays: horizonDays ?? this.horizonDays,
       );
 }
 
@@ -102,48 +91,66 @@ class PricingConfig {
   const PricingConfig({
     this.freeListingDays = 30,
     this.freeListingQuota = 3,
-    this.listingPrices = const {
-      ListingDurationKey.d30: 49,
-      ListingDurationKey.d60: 79,
-      ListingDurationKey.d90: 99,
-    },
-    this.restaurantPrices = const {
-      RestaurantDurationKey.d90: 149,
-      RestaurantDurationKey.d180: 249,
-      RestaurantDurationKey.d365: 399,
-    },
+    this.listingPrices = const {30: 49, 60: 79, 90: 99},
+    this.restaurantPrices = const {90: 149, 180: 249, 365: 399},
     this.renewEarlyDays = 14,
     this.reservationHoldHours = 24,
     this.proCreditsPerPeriod = 3,
     this.basicStoreMonthlyPln = 199,
+    this.proStoreMonthlyPln = 499,
+    this.enterpriseStoreMonthlyPln = 899,
     this.storeNudgeMinListings = 4,
     this.storeNudgeThresholdPln = 196,
     this.promotions = PromotionConfig.defaults,
     this.banner = const BannerPricing(),
+    this.sponsorSlot = const SponsorSlotPricing(),
   });
 
   /// Free listing always lasts this many days.
   final int freeListingDays;
   final int freeListingQuota;
-  final Map<ListingDurationKey, int> listingPrices;
-  final Map<RestaurantDurationKey, int> restaurantPrices;
+  /// `{durationDays: pricePln}` for equipment / rental listings.
+  final Map<int, int> listingPrices;
+
+  /// `{durationDays: pricePln}` for restaurant listings.
+  final Map<int, int> restaurantPrices;
   final int renewEarlyDays;
   final int reservationHoldHours;
   final int proCreditsPerPeriod;
   final int basicStoreMonthlyPln;
+  final int proStoreMonthlyPln;
+  final int enterpriseStoreMonthlyPln;
   final int storeNudgeMinListings;
   final int storeNudgeThresholdPln;
   final PromotionConfig promotions;
   final BannerPricing banner;
+  final SponsorSlotPricing sponsorSlot;
 
   static const PricingConfig defaults = PricingConfig();
 
-  int listingFeePln(ListingDurationKey key) => listingPrices[key] ?? 0;
+  List<int> get listingDurations => tgDurationOptions(listingPrices);
+  List<int> get restaurantDurations => tgDurationOptions(restaurantPrices);
 
-  int restaurantFeePln(RestaurantDurationKey key) => restaurantPrices[key] ?? 0;
+  /// Shortest paid listing period (the default choice).
+  int get defaultListingDays => listingDurations.first;
+  int get defaultRestaurantDays => restaurantDurations.first;
 
-  int promoFeePln(PromotionTier tier, PromotionDurationKey duration) =>
-      promotions.pricePln(tier, duration);
+  int listingFeePln(int days) => listingPrices[days] ?? 0;
+
+  int get defaultListingFeePln => listingFeePln(defaultListingDays);
+
+  /// Monthly gross price by plan name (`basic` / `pro` / `enterprise`,
+  /// case-insensitive, optional " Store" suffix); null when unknown.
+  int? storeMonthlyPln(String plan) => switch (plan.toLowerCase().replaceAll(' store', '').trim()) {
+        'basic' => basicStoreMonthlyPln,
+        'pro' => proStoreMonthlyPln,
+        'enterprise' => enterpriseStoreMonthlyPln,
+        _ => null,
+      };
+
+  int restaurantFeePln(int days) => restaurantPrices[days] ?? 0;
+
+  int promoFeePln(PromotionTier tier, int days) => promotions.pricePln(tier, days);
 
   /// Per-day equivalent (brutto). Example: 49/30 → 1.63.
   double perDay(int pricePln, int days) => days <= 0 ? 0 : pricePln / days;
@@ -158,9 +165,9 @@ class PricingConfig {
   }
 
   int totalListingPlusPromo({
-    required ListingDurationKey listing,
+    required int listing,
     PromotionTier? tier,
-    PromotionDurationKey? promoDuration,
+    int? promoDuration,
   }) {
     final base = listingFeePln(listing);
     if (tier == null || promoDuration == null) return base;
@@ -168,9 +175,9 @@ class PricingConfig {
   }
 
   int totalRestaurantPlusPromo({
-    required RestaurantDurationKey listing,
+    required int listing,
     PromotionTier? tier,
-    PromotionDurationKey? promoDuration,
+    int? promoDuration,
   }) {
     final base = restaurantFeePln(listing);
     if (tier == null || promoDuration == null) return base;
@@ -181,7 +188,7 @@ class PricingConfig {
   int upgradeCostPln({
     required PromotionTier from,
     required PromotionTier to,
-    required PromotionDurationKey duration,
+    required int duration,
     required int remainingDays,
     required int totalDays,
   }) {
@@ -206,19 +213,23 @@ class PricingConfig {
   PricingConfig copyWith({
     int? freeListingDays,
     int? freeListingQuota,
-    Map<ListingDurationKey, int>? listingPrices,
-    Map<RestaurantDurationKey, int>? restaurantPrices,
+    Map<int, int>? listingPrices,
+    Map<int, int>? restaurantPrices,
     int? renewEarlyDays,
     int? reservationHoldHours,
     int? proCreditsPerPeriod,
     int? basicStoreMonthlyPln,
+    int? proStoreMonthlyPln,
+    int? enterpriseStoreMonthlyPln,
     int? storeNudgeMinListings,
     int? storeNudgeThresholdPln,
     PromotionConfig? promotions,
     BannerPricing? banner,
+    SponsorSlotPricing? sponsorSlot,
   }) =>
       PricingConfig(
         banner: banner ?? this.banner,
+        sponsorSlot: sponsorSlot ?? this.sponsorSlot,
         freeListingDays: freeListingDays ?? this.freeListingDays,
         freeListingQuota: freeListingQuota ?? this.freeListingQuota,
         listingPrices: listingPrices ?? this.listingPrices,
@@ -227,6 +238,8 @@ class PricingConfig {
         reservationHoldHours: reservationHoldHours ?? this.reservationHoldHours,
         proCreditsPerPeriod: proCreditsPerPeriod ?? this.proCreditsPerPeriod,
         basicStoreMonthlyPln: basicStoreMonthlyPln ?? this.basicStoreMonthlyPln,
+        proStoreMonthlyPln: proStoreMonthlyPln ?? this.proStoreMonthlyPln,
+        enterpriseStoreMonthlyPln: enterpriseStoreMonthlyPln ?? this.enterpriseStoreMonthlyPln,
         storeNudgeMinListings: storeNudgeMinListings ?? this.storeNudgeMinListings,
         storeNudgeThresholdPln: storeNudgeThresholdPln ?? this.storeNudgeThresholdPln,
         promotions: promotions ?? this.promotions,

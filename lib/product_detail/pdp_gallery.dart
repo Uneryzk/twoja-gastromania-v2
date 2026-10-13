@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
@@ -119,7 +121,7 @@ class _PdpGalleryState extends State<PdpGallery> {
                           _preloadNeighbors(i);
                         },
                         itemBuilder: (context, i) {
-                          final child = PdpPhoto(url: images[i], fit: BoxFit.contain);
+                          final child = PdpPhoto(url: images[i], fit: BoxFit.contain, surface: TGImageSurface.listingDetail);
                           final faded = reduce
                               ? child
                               : AnimatedSwitcher(
@@ -466,7 +468,7 @@ class _ThumbState extends State<_Thumb> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                PdpPhoto(url: widget.url, fit: BoxFit.cover),
+                PdpPhoto(url: widget.url, fit: BoxFit.cover, surface: TGImageSurface.listingDetail),
                 if (_hover && !widget.active) ColoredBox(color: Colors.white.withValues(alpha: 0.16)),
               ],
             ),
@@ -477,21 +479,24 @@ class _ThumbState extends State<_Thumb> {
   }
 }
 
+/// Listing photo in the PDP gallery / lightbox. Inside the lightbox it is the
+/// [InteractiveViewer] child, so the watermark scales with the zoom.
 class PdpPhoto extends StatelessWidget {
-  const PdpPhoto({super.key, required this.url, this.fit = BoxFit.contain});
+  const PdpPhoto({super.key, required this.url, this.fit = BoxFit.contain, this.surface = TGImageSurface.listingDetail});
   final String url;
   final BoxFit fit;
+  final TGImageSurface surface;
 
   @override
   Widget build(BuildContext context) {
-    Widget fallback(BuildContext c, Object e, StackTrace? s) => const _PhotoFallback();
-    if (url.startsWith('http')) {
-      return Image.network(url, fit: fit, errorBuilder: fallback, gaplessPlayback: true);
-    }
-    if (url.startsWith('assets/')) {
-      return Image.asset(url, fit: fit, errorBuilder: fallback, gaplessPlayback: true, cacheWidth: 1200);
-    }
-    return const _PhotoFallback();
+    if (!url.startsWith('http') && !url.startsWith('assets/')) return const _PhotoFallback();
+    return WatermarkedImage(
+      url: url,
+      surface: surface,
+      fit: fit,
+      cacheWidth: url.startsWith('assets/') ? (surface == TGImageSurface.lightbox ? TGImageVariant.lightbox : TGImageVariant.detail).widthPx : null,
+      fallback: (_) => const _PhotoFallback(),
+    );
   }
 }
 
@@ -521,13 +526,49 @@ Future<void> showPdpShareMenu(BuildContext context, TGProduct product) async {
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
     builder: (ctx) {
       return SafeArea(
-        child: ListTile(
-          leading: const Icon(Icons.link),
-          title: Text(ctx.t('ui_copy_link')),
-          onTap: () async {
-            Navigator.pop(ctx);
-            await copyTextWithToast(context, url, message: context.t('ui_link_copied'));
-          },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Semantics(
+                container: true,
+                label: product.title,
+                child: Row(
+                  key: const Key('pdp-share-preview'),
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(TGRadius.input),
+                      child: SizedBox(
+                        width: 240,
+                        height: 126,
+                        child: WatermarkedImage(
+                          url: product.displayImageUrl,
+                          surface: TGImageSurface.sharePreview,
+                          cacheWidth: TGImageVariant.card.widthPx,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ExcludeSemantics(
+                        child: Text(product.title, maxLines: 3, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: Text(ctx.t('ui_copy_link')),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await copyTextWithToast(context, url, message: context.t('ui_link_copied'));
+              },
+            ),
+          ],
         ),
       );
     },
@@ -630,7 +671,7 @@ class _LightboxState extends State<_Lightbox> {
                             transformationController: _transform,
                             minScale: 1,
                             maxScale: 4,
-                            child: Center(child: PdpPhoto(url: widget.images[i], fit: BoxFit.contain)),
+                            child: Center(child: PdpPhoto(url: widget.images[i], fit: BoxFit.contain, surface: TGImageSurface.lightbox)),
                           ),
                         ),
                       );

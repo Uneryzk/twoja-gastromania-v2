@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_form.dart';
@@ -19,6 +20,8 @@ import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
+import 'package:twoja_gastromania/payment/payment_models.dart';
+import 'package:twoja_gastromania/tg_models/tg_billing.dart';
 
 /// Post-publish Showcase (VITRIN-2): Bold / Glow / Spotlight cards for the user's listing.
 class TGShowcaseSection extends StatefulWidget {
@@ -39,7 +42,7 @@ class TGShowcaseSection extends StatefulWidget {
 
 class _TGShowcaseSectionState extends State<TGShowcaseSection> {
   PromotionTier? _tier;
-  PromotionDurationKey _duration = PromotionDurationKey.week2;
+  int _duration = PricingConfigService.instance.config.promotions.defaultDays;
   bool _paying = false;
   bool _dismissed = false;
   final _formKey = GlobalKey<PaymentFormState>();
@@ -75,7 +78,7 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
         : TGClock.now();
     return PromotionService.instance.promoFitsListing(
       listingEndsAt: ends,
-      promoDays: _duration.days,
+      promoDays: _duration,
       startAt: start,
     );
   }
@@ -116,10 +119,10 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
           const SizedBox(height: 8),
           Semantics(
             label: context.t('ui_promo_duration'),
-            child: SegmentedButton<PromotionDurationKey>(
+            child: SegmentedButton<int>(
               segments: [
-                ButtonSegment(value: PromotionDurationKey.week2, label: Text(context.t('ui_duration_2w'))),
-                ButtonSegment(value: PromotionDurationKey.month1, label: Text(context.t('ui_duration_1m'))),
+                for (final d in PricingConfigService.instance.config.promotions.durations)
+                  ButtonSegment(value: d, label: Text(DurationFormatter.daysOf(context, d))),
               ],
               selected: {_duration},
               onSelectionChanged: (s) => setState(() => _duration = s.first),
@@ -130,7 +133,7 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
             duration: Duration(milliseconds: reduce ? 0 : 150),
             child: Text(
               key: ValueKey('$_tier-$_duration-${_paidPrice(auth.userId)}'),
-              '${_paidPrice(auth.userId)} PLN · ${_cfg.perDayLabel(_listPrice, _duration.days)}',
+              '${_paidPrice(auth.userId)} PLN · ${_cfg.perDayLabel(_listPrice, _duration)}',
               style: theme.titleMedium.override(fontWeight: FontWeight.w900),
             ),
           ),
@@ -152,6 +155,10 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
             PaymentForm(
               key: _formKey,
               amountPln: _paidPrice(auth.userId).toDouble(),
+              billingKind: TGPaymentKind.promotion,
+              billingDescription: tgPromoBillingLabel(_tier!, _duration),
+              billingListingId: widget.product.id,
+              billingListingNo: widget.product.listingNo,
               autofocusBlik: false,
               onWaitingChanged: (v) => setState(() => _paying = v),
               onPaid: () => _buy(auth),
@@ -179,7 +186,7 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
         if (_bannerAllowed) ...[
           const SizedBox(height: 8),
           TextButton(
-            onPressed: () => context.go('/dashboard/advertising'),
+            onPressed: () => context.go('/dashboard/advertising?tab=banners'),
             child: Text(context.t('ui_want_banner_spot')),
           ),
         ],
@@ -240,11 +247,16 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
               SizedBox(
                 height: 160,
                 child: IgnorePointer(
-                  child: TGProductCard(
-                    product: widget.product,
-                    promotionTier: tier,
-                    forceFeaturedBadge: tier != PromotionTier.bold,
-                    showSeller: false,
+                  child: FittedBox(
+                    child: SizedBox(
+                      width: 220,
+                      child: TGProductCard(
+                        product: widget.product,
+                        promotionTier: tier,
+                        forceFeaturedBadge: tier != PromotionTier.bold,
+                        showSeller: false,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -286,7 +298,7 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
       kind: PromotionTargetKind.listing,
       targetRef: widget.product.id,
       tier: tier,
-      durationKey: _duration,
+      durationDays: _duration,
       pricePln: paid,
       source: PromotionSource.paid,
       listingEndsAt: widget.product.expiresAt,

@@ -12,15 +12,15 @@ void main() {
 
   test('defaults match VITRIN-2 examples', () {
     const c = PricingConfig.defaults;
-    expect(c.listingFeePln(ListingDurationKey.d30), 49);
-    expect(c.listingFeePln(ListingDurationKey.d90), 99);
-    expect(c.restaurantFeePln(RestaurantDurationKey.d90), 149);
-    expect(c.promoFeePln(PromotionTier.glow, PromotionDurationKey.month1), 79);
-    expect(c.promoFeePln(PromotionTier.spotlight, PromotionDurationKey.month1), 99);
+    expect(c.listingFeePln(30), 49);
+    expect(c.listingFeePln(90), 99);
+    expect(c.restaurantFeePln(90), 149);
+    expect(c.promoFeePln(PromotionTier.glow, 30), 79);
+    expect(c.promoFeePln(PromotionTier.spotlight, 30), 99);
     // equipment 30d + Glow 1m = 128; equipment 90d + Spotlight 1m = 198; resto 90d + Glow 2w = 198
-    expect(c.totalListingPlusPromo(listing: ListingDurationKey.d30, tier: PromotionTier.glow, promoDuration: PromotionDurationKey.month1), 128);
-    expect(c.totalListingPlusPromo(listing: ListingDurationKey.d90, tier: PromotionTier.spotlight, promoDuration: PromotionDurationKey.month1), 198);
-    expect(c.totalRestaurantPlusPromo(listing: RestaurantDurationKey.d90, tier: PromotionTier.glow, promoDuration: PromotionDurationKey.week2), 198);
+    expect(c.totalListingPlusPromo(listing: 30, tier: PromotionTier.glow, promoDuration: 30), 128);
+    expect(c.totalListingPlusPromo(listing: 90, tier: PromotionTier.spotlight, promoDuration: 30), 198);
+    expect(c.totalRestaurantPlusPromo(listing: 90, tier: PromotionTier.glow, promoDuration: 14), 198);
   });
 
   test('per-day label uses comma decimal', () {
@@ -35,7 +35,7 @@ void main() {
       c.upgradeCostPln(
         from: PromotionTier.bold,
         to: PromotionTier.glow,
-        duration: PromotionDurationKey.week2,
+        duration: 14,
         remainingDays: 7,
         totalDays: 14,
       ),
@@ -49,7 +49,7 @@ void main() {
       kind: PromotionTargetKind.listing,
       targetRef: 'x1',
       tier: PromotionTier.bold,
-      durationKey: PromotionDurationKey.week2,
+      durationDays: 14,
       pricePln: 15,
       source: PromotionSource.paid,
       listingEndsAt: DateTime.now().add(const Duration(days: 60)),

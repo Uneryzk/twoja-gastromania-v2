@@ -17,6 +17,8 @@ import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
+import 'package:twoja_gastromania/tg_services/admin_console_service.dart';
+import 'package:twoja_gastromania/tg_services/verification_service.dart';
 
 abstract final class TGAdminNav {
   static const queue = '/admin';
@@ -29,10 +31,21 @@ abstract final class TGAdminNav {
   static const revenueConfig = '/admin/revenue-config';
   static const priority = '/admin/priority';
   static const founders = '/admin/founders';
-  static const audits = '/admin/audits';
   static const sponsorSlots = '/admin/sponsor-slots';
   static const ads = '/admin/ads';
+  static const verified = '/admin/verified';
+  static const watermark = '/admin/watermark';
   static const projectReviews = '/admin/deals?queue=project_reviews';
+  static const today = '/admin/today';
+  static const users = '/admin/users';
+  static const payments = '/admin/payments';
+  static const conversations = '/admin/conversations';
+  static const nip = '/admin/nip';
+  static const goLive = '/admin/go-live';
+  static String userPath(String userId) => '$users/${Uri.encodeComponent(userId)}';
+
+  /// Sections a moderator may not open (payments / refunds, go-live, templates).
+  static const adminOnlySections = {'templates', 'payments', 'golive'};
   static String soCasePath(String requestNo) => '$specialOrders/$requestNo';
   static String soQueuePath(TGSoAdminQueue queue) =>
       queue == TGSoAdminQueue.needsMatching ? specialOrders : '$specialOrders?queue=${queue.name}';
@@ -93,6 +106,7 @@ class _AdminShellState extends State<AdminShell> {
     super.initState();
     ModerationService.instance.ensureSeeded();
     DealModerationService.instance.ensureSeeded();
+    TGAdminConsoleService.instance.ensureSeeded();
   }
 
   @override
@@ -108,7 +122,7 @@ class _AdminShellState extends State<AdminShell> {
     final auth = context.watch<FakeAuthState>();
     final mod = context.watch<ModerationService>();
     if (!auth.canModerate) return const AdminForbiddenPage();
-    if (widget.section == 'templates' && !auth.isAdmin) return const AdminForbiddenPage();
+    if (TGAdminNav.adminOnlySections.contains(widget.section) && !auth.isAdmin) return const AdminForbiddenPage();
 
     final w = MediaQuery.sizeOf(context).width;
     final showSidebar = w >= TGBreakpoints.desktop;
@@ -229,7 +243,15 @@ class _AdminTopBarState extends State<AdminTopBar> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                if (narrow)
+                  IconButton(
+                    key: const Key('admin-menu'),
+                    tooltip: context.t('adm_menu'),
+                    onPressed: () => showAdminSectionsMenu(context),
+                    icon: const Icon(Icons.menu, size: 20),
+                  )
+                else
+                  const SizedBox(width: 8),
                 const AdminLangSwitcher(),
                 if (!narrow) ...[
                   const SizedBox(width: 8),
@@ -247,6 +269,49 @@ class _AdminTopBarState extends State<AdminTopBar> {
       ),
     );
   }
+}
+
+/// Phone (< 700 px) section list, opened from the top bar.
+Future<void> showAdminSectionsMenu(BuildContext context) {
+  final isAdmin = context.read<FakeAuthState>().isAdmin;
+  final items = <(String, IconData, String, String)>[
+    ('today', Icons.today_outlined, 'adm_nav_today', TGAdminNav.today),
+    ('queue', Icons.inbox_outlined, 'ui_admin_queue', TGAdminNav.queue),
+    ('users', Icons.people_outline, 'adm_nav_users', TGAdminNav.users),
+    ('conversations', Icons.forum_outlined, 'adm_nav_conversations', TGAdminNav.conversations),
+    ('nip', Icons.business_outlined, 'adm_nav_nip', TGAdminNav.nip),
+    ('deals', Icons.handshake_outlined, 'ui_admin_deals', TGAdminNav.deals),
+    ('special_orders', Icons.precision_manufacturing_outlined, 'ui_so_admin_group', TGAdminNav.specialOrders),
+    if (isAdmin) ('payments', Icons.payments_outlined, 'adm_nav_payments', TGAdminNav.payments),
+    ('audit', Icons.receipt_long_outlined, 'ui_admin_audit', TGAdminNav.audit),
+    if (isAdmin) ('golive', Icons.rocket_launch_outlined, 'adm_nav_golive', TGAdminNav.goLive),
+  ];
+  return Navigator.of(context).push<void>(MaterialPageRoute(
+    fullscreenDialog: true,
+    builder: (ctx) => Scaffold(
+      key: const Key('admin-menu-sheet'),
+      backgroundColor: TGColors.adminBar,
+      appBar: AppBar(
+        backgroundColor: TGColors.adminBar,
+        title: Text(ctx.t('adm_menu')),
+        leading: IconButton(tooltip: ctx.t('ui_close'), icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+      ),
+      body: ListView(
+        children: [
+          for (final (id, icon, label, path) in items)
+            ListTile(
+              key: Key('admin-menu-$id'),
+              leading: Icon(icon),
+              title: Text(ctx.t(label)),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.go(path);
+              },
+            ),
+        ],
+      ),
+    ),
+  ));
 }
 
 class _RoleBadge extends StatelessWidget {
@@ -289,6 +354,7 @@ class AdminSideMenu extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _NavTile(selected: section == 'today', icon: Icons.today_outlined, label: context.t('adm_nav_today'), onTap: () => context.go(TGAdminNav.today)),
                   _NavTile(
                     selected: section == 'queue',
                     icon: Icons.inbox_outlined,
@@ -303,6 +369,21 @@ class AdminSideMenu extends StatelessWidget {
                   ),
                   _NavTile(selected: section == 'listings', icon: Icons.search, label: context.t('ui_admin_listings'), onTap: () => context.go(TGAdminNav.listings)),
                   _NavTile(selected: section == 'sellers', icon: Icons.storefront_outlined, label: context.t('ui_admin_sellers'), onTap: () => context.go(TGAdminNav.sellers)),
+                  _NavTile(selected: section == 'users', icon: Icons.people_outline, label: context.t('adm_nav_users'), onTap: () => context.go(TGAdminNav.users)),
+                  _NavTile(
+                    selected: section == 'conversations',
+                    icon: Icons.forum_outlined,
+                    label: '${context.t('adm_nav_conversations')} (${TGAdminConsoleService.instance.conversationReports(openOnly: true).length})',
+                    onTap: () => context.go(TGAdminNav.conversations),
+                  ),
+                  _NavTile(
+                    selected: section == 'nip',
+                    icon: Icons.business_outlined,
+                    label: '${context.t('adm_nav_nip')} (${TGVerificationService.instance.queue().length})',
+                    onTap: () => context.go(TGAdminNav.nip),
+                  ),
+                  if (isAdmin)
+                    _NavTile(selected: section == 'payments', icon: Icons.payments_outlined, label: context.t('adm_nav_payments'), onTap: () => context.go(TGAdminNav.payments)),
                   const SizedBox(height: 8),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
@@ -319,11 +400,14 @@ class AdminSideMenu extends StatelessWidget {
                   _NavTile(selected: section == 'revenue', icon: Icons.tune_outlined, label: context.t('ui_admin_nav_revenue'), onTap: () => context.go(TGAdminNav.revenueConfig)),
                   _NavTile(selected: section == 'priority', icon: Icons.bolt_outlined, label: context.t('ui_admin_nav_priority'), onTap: () => context.go(TGAdminNav.priority)),
                   _NavTile(selected: section == 'founders', icon: Icons.emoji_events_outlined, label: context.t('ui_admin_nav_founders'), onTap: () => context.go(TGAdminNav.founders)),
-                  _NavTile(selected: section == 'audits', icon: Icons.fact_check_outlined, label: context.t('ui_admin_nav_audits'), onTap: () => context.go(TGAdminNav.audits)),
                   _NavTile(selected: section == 'sponsor_slots', icon: Icons.campaign_outlined, label: context.t('ui_admin_nav_sponsor'), onTap: () => context.go(TGAdminNav.sponsorSlots)),
                   _NavTile(selected: section == 'ads', icon: Icons.view_carousel_outlined, label: context.t('ui_admin_nav_ads'), onTap: () => context.go(TGAdminNav.ads)),
+                  _NavTile(selected: section == 'verified', icon: Icons.verified_user_outlined, label: context.t('ui_admin_nav_verified'), onTap: () => context.go(TGAdminNav.verified)),
+                  _NavTile(selected: section == 'watermark', icon: Icons.branding_watermark_outlined, label: context.t('ui_admin_nav_watermark'), onTap: () => context.go(TGAdminNav.watermark)),
                   const SizedBox(height: 8),
                   _NavTile(selected: section == 'audit', icon: Icons.receipt_long_outlined, label: context.t('ui_admin_audit'), onTap: () => context.go(TGAdminNav.audit)),
+                  if (isAdmin)
+                    _NavTile(selected: section == 'golive', icon: Icons.rocket_launch_outlined, label: context.t('adm_nav_golive'), onTap: () => context.go(TGAdminNav.goLive)),
                   if (isAdmin)
                     _NavTile(selected: section == 'templates', icon: Icons.email_outlined, label: context.t('ui_admin_templates'), onTap: () => context.go(TGAdminNav.templates)),
                 ],
@@ -480,20 +564,28 @@ class _MobileAdminTabs extends StatelessWidget {
         top: false,
         child: SizedBox(
           height: 48,
-          child: Row(
+          child: ListView(
+            scrollDirection: Axis.horizontal,
             children: [
+              _tab(context, 'today', Icons.today_outlined, TGAdminNav.today),
               _tab(context, 'queue', Icons.inbox_outlined, TGAdminNav.queue),
               _tab(context, 'listings', Icons.search, TGAdminNav.listings),
               _tab(context, 'sellers', Icons.storefront_outlined, TGAdminNav.sellers),
+              _tab(context, 'users', Icons.people_outline, TGAdminNav.users),
+              _tab(context, 'conversations', Icons.forum_outlined, TGAdminNav.conversations),
+              _tab(context, 'nip', Icons.business_outlined, TGAdminNav.nip),
+              if (isAdmin) _tab(context, 'payments', Icons.payments_outlined, TGAdminNav.payments),
               _tab(context, 'deals', Icons.handshake_outlined, TGAdminNav.deals),
               _tab(context, 'special_orders', Icons.precision_manufacturing_outlined, TGAdminNav.specialOrders),
               _tab(context, 'revenue', Icons.tune_outlined, TGAdminNav.revenueConfig),
               _tab(context, 'priority', Icons.bolt_outlined, TGAdminNav.priority),
               _tab(context, 'founders', Icons.emoji_events_outlined, TGAdminNav.founders),
-              _tab(context, 'audits', Icons.fact_check_outlined, TGAdminNav.audits),
               _tab(context, 'sponsor_slots', Icons.campaign_outlined, TGAdminNav.sponsorSlots),
               _tab(context, 'ads', Icons.view_carousel_outlined, TGAdminNav.ads),
+              _tab(context, 'verified', Icons.verified_user_outlined, TGAdminNav.verified),
+              _tab(context, 'watermark', Icons.branding_watermark_outlined, TGAdminNav.watermark),
               _tab(context, 'audit', Icons.receipt_long_outlined, TGAdminNav.audit),
+              if (isAdmin) _tab(context, 'golive', Icons.rocket_launch_outlined, TGAdminNav.goLive),
               if (isAdmin) _tab(context, 'templates', Icons.email_outlined, TGAdminNav.templates),
             ],
           ),
@@ -509,11 +601,13 @@ class _MobileAdminTabs extends StatelessWidget {
         (id == 'revenue' && section == 'revenue') ||
         (id == 'priority' && section == 'priority') ||
         (id == 'founders' && section == 'founders') ||
-        (id == 'audits' && section == 'audits') ||
         (id == 'sponsor_slots' && section == 'sponsor_slots') ||
-        (id == 'ads' && section == 'ads');
-    return Expanded(
+        (id == 'ads' && section == 'ads') ||
+        (id == 'verified' && section == 'verified');
+    return SizedBox(
+      width: 52,
       child: InkWell(
+        key: Key('admin-tab-$id'),
         onTap: () => context.go(path),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

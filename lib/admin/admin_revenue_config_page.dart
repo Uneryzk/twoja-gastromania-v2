@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
+import 'package:twoja_gastromania/admin/admin_promo_settings.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
@@ -117,7 +119,6 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
           ('marketInsight', _draft.flags.marketInsight),
           ('bulkBilling', _draft.flags.bulkBilling),
           ('sponsorSlots', _draft.flags.sponsorSlots),
-          ('auditProgram', _draft.flags.auditProgram),
           ('founderProgram', _draft.flags.founderProgram),
           ('bannerAds', _draft.flags.bannerAds),
         ])
@@ -154,9 +155,10 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
         ListTile(
           title: Text(
             context.t('ui_admin_banner_ads_cfg', {
-              'w1': '${PricingConfigService.instance.config.banner.pricePln(BannerDurationKey.w1)}',
-              'w2': '${PricingConfigService.instance.config.banner.pricePln(BannerDurationKey.w2)}',
-              'm1': '${PricingConfigService.instance.config.banner.pricePln(BannerDurationKey.m1)}',
+              'prices': PricingConfigService.instance.config.banner.durations
+                  .map((d) => '${DurationFormatter.daysOf(context, d)} ${PricingConfigService.instance.config.banner.pricePln(d)} PLN')
+                  .join(' · '),
+              'free': '${PricingConfigService.instance.config.banner.enterpriseFreeDays}',
               'inc': '${PricingConfigService.instance.config.banner.enterpriseFreePerMonth}',
               'max': '${PricingConfigService.instance.config.banner.maxSponsoredPerDay}',
             }),
@@ -167,6 +169,14 @@ class _AdminRevenueConfigPageState extends State<AdminRevenueConfigPage> {
                 : context.t('ui_admin_purchase_hidden'),
           ),
         ),
+        const SizedBox(height: 16),
+        const AdminGoLiveChecks(key: ValueKey('admin_golive')),
+        const SizedBox(height: 16),
+        AdminPromotionSettings(confirm: _confirm),
+        if (_draft.flags.sponsorSlots) ...[
+          const SizedBox(height: 16),
+          AdminSponsorSlotPricing(confirm: _confirm),
+        ],
         const SizedBox(height: 16),
         Text(context.t('ui_admin_audit_log_section'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
         for (final a in svc.audit.take(12))

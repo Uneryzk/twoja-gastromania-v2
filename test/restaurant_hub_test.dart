@@ -21,8 +21,8 @@ void main() {
     expect(c.paidPricePln, 149);
     expect(c.paidDays, 90);
     expect(c.renewEarlyDays, 14);
-    expect(c.promote.pln14, 49);
-    expect(c.promote.pln30, 79);
+    expect(c.promote.pricePln(14), 49);
+    expect(c.promote.pricePln(30), 79);
     expect(c.freeStartCapPer12m, 3);
     expect(c.perPremisesMax, 3);
     expect(c.dailyListingCap, 3);

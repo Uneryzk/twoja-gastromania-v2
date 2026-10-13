@@ -62,6 +62,9 @@ class ModerationService extends ChangeNotifier {
   final List<TGProduct> sellerListings = [];
   final Map<String, TGSellerModerationCase> sellerCases = {};
   final Map<String, TGSoldHold> soldHolds = {};
+
+  /// listingNo → seller reply deadline set by [requestInfo].
+  final Map<String, DateTime> infoDueAt = {};
   int storeCreditsRefunded = 0;
   int _publicSeq = 417;
 
@@ -87,6 +90,7 @@ class ModerationService extends ChangeNotifier {
     sellerListings.clear();
     sellerCases.clear();
     soldHolds.clear();
+    infoDueAt.clear();
     storeCreditsRefunded = 0;
     debugNow = null;
     _publicSeq = 417;
@@ -426,6 +430,7 @@ class ModerationService extends ChangeNotifier {
       c.status = TGReportStatus.waitingSeller;
       c.assignedTo ??= actorId;
     }
+    infoDueAt[listingNo] = now.add(Duration(days: days));
     _touchReports(listingNo, TGReportStatus.waitingSeller);
     final mail = _enqueue(
       templateId: 'request_info',
@@ -827,6 +832,18 @@ class ModerationService extends ChangeNotifier {
     return mail;
   }
 
+  /// Admin action outside a listing case (e.g. Verified override / config).
+  void recordAdminAudit({
+    required String actorId,
+    required String actorRole,
+    required String summary,
+    String? reason,
+    Map<String, String> details = const {},
+  }) {
+    _audit(actorId: actorId, actorRole: actorRole, action: TGModerationActionType.other, summary: summary, reason: reason, details: details);
+    notifyListeners();
+  }
+
   void recordRestoDescriptionAudit({
     required String listingNo,
     required String actorId,
@@ -1167,7 +1184,7 @@ class ModerationService extends ChangeNotifier {
         listingNoB: '12938570',
         similarityPercent: 94,
         imageA: 'assets/images/paslanmaz-raflar.jpeg',
-        imageB: 'assets/images/food-prep-table.jpg',
+        imageB: 'assets/images/paslanmaz-raflar.jpeg',
       ),
       TGPhotoMatch(
         listingNoA: '13049281',

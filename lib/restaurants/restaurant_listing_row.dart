@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/listing_images_editor.dart';
+import 'package:twoja_gastromania/dashboard/dash2_widgets.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_renew_sheet.dart';
@@ -13,7 +14,10 @@ import 'package:twoja_gastromania/tg_core/restaurant_config.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
+import 'package:twoja_gastromania/tg_services/listing_stats_service.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
@@ -35,154 +39,170 @@ class RestaurantListingRow extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Material(
-        color: TGColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(TGRadius.card),
-          side: const BorderSide(color: TGColors.border),
-        ),
-        child: InkWell(
-          onTap: () => context.go(r.detailPath),
-          borderRadius: BorderRadius.circular(TGRadius.card),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: SizedBox(
-                        width: 96,
-                        height: 72,
-                        child: TGSmartImage(url: r.imageUrl, fit: BoxFit.cover),
+      child: TGFocusRing(
+        child: Material(
+          color: TGColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TGRadius.card),
+            side: const BorderSide(color: TGColors.border),
+          ),
+          child: InkWell(
+            onTap: () => context.go(r.detailPath),
+            borderRadius: BorderRadius.circular(TGRadius.card),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          width: 96,
+                          height: 72,
+                          child: TGSmartImage(url: r.imageUrl, fit: BoxFit.cover),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
-                          Text('No. ${r.listingNo}', style: theme.bodySmall.override(color: theme.secondaryText)),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              _chip('Restaurant', theme.primaryText),
-                              _chip(_statusLabel(r), amber ? TGColors.rating : theme.primary),
-                              if (free) _chip('FREE', TGColors.cta),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+                            Text('No. ${r.listingNo}', style: theme.bodySmall.override(color: theme.secondaryText)),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                _chip('Restaurant', theme.primaryText),
+                                _chip(_statusLabel(r), amber ? TGColors.rating : theme.primary),
+                                if (free) _chip('FREE', TGColors.cta),
+                                if (r.status == RestaurantListingStatus.active) ListingPromoStatus(restaurant: r),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            _timer(r, free, days, amber, theme),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Views ${r.engagement.views} · Contacts ${r.engagement.uniqueContacts} · Favorites ${r.engagement.uniqueFavorites}',
+                              style: theme.bodySmall.override(fontWeight: FontWeight.w700),
+                            ),
+                            if (r.publishedAt != null) ...[
+                              const SizedBox(height: 4),
+                              ListingMetricsStrip(listingKey: TGListingStatsService.keyOfRestaurant(r)),
                             ],
-                          ),
-                          const SizedBox(height: 8),
-                          _timer(r, free, days, amber, theme),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Views ${r.engagement.views} · Contacts ${r.engagement.uniqueContacts} · Favorites ${r.engagement.uniqueFavorites}',
-                            style: theme.bodySmall.override(fontWeight: FontWeight.w700),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    PopupMenuButton<String>(
-                      onSelected: (v) {
-                        if (v == 'images') {
-                          final fresh = RestaurantService.instance.byId(r.id) ?? r;
-                          showListingImagesEditor(context, restaurant: fresh);
-                        }
-                        if (v == 'transfer') showRestaurantTransferFlow(context, r);
-                        if (v == 'remove') {
-                          showRestaurantTransferFlow(context, r, mode: RestoCloseMode.removeListing);
-                        }
-                        if (v == 'renew') showRestaurantRenewSheet(context, r, early: !expired && canRenew);
-                        if (v == 'promote') showRestaurantRenewSheet(context, r, promoteOnly: true);
-                        if (v == 'banner') context.go('/dashboard/advertising?target=${Uri.encodeComponent(r.detailPath)}');
-                      },
-                      itemBuilder: (_) => [
-                        PopupMenuItem(value: 'images', child: Text(context.t('ui_image_change'))),
-                        if (canRenew || expired) const PopupMenuItem(value: 'renew', child: Text('Renew')),
-                        if (r.status == RestaurantListingStatus.active)
-                          const PopupMenuItem(value: 'promote', child: Text('Promote')),
-                        if (r.status == RestaurantListingStatus.active && AdSlotService.instance.purchaseVisible)
-                          const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
-                        if (r.status == RestaurantListingStatus.active)
-                          const PopupMenuItem(value: 'transfer', child: Text('Mark as transferred')),
-                        const PopupMenuItem(value: 'remove', child: Text('Remove')),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (expired)
-                      TGButton(
-                        onPressed: () => showRestaurantRenewSheet(context, r),
-                        label: 'Renew · ${cfg.paidPricePln} PLN',
-                        height: 40,
-                        borderRadius: BorderRadius.circular(TGRadius.pill),
-                      )
-                    else if (canRenew)
-                      TGButton(
-                        onPressed: () => showRestaurantRenewSheet(context, r, early: true),
-                        label: 'Renew early',
-                        variant: TGButtonVariant.outline,
-                        height: 40,
-                        borderRadius: BorderRadius.circular(TGRadius.pill),
-                      ),
-                    if (r.status == RestaurantListingStatus.active)
                       PopupMenuButton<String>(
-                        tooltip: 'Promote',
+                        key: Key('resto-more-${r.id}'),
                         onSelected: (v) {
+                          TGAnalytics.track('listing_action', {'action': v, 'listingId': r.id, 'kind': 'restaurant'});
+                          if (v == 'insights') {
+                            showListingInsights(
+                              context,
+                              listingKey: TGListingStatsService.keyOfRestaurant(r),
+                              title: r.title,
+                              listingNo: r.listingNo,
+                              liveSince: r.publishedAt,
+                              promotion: PromotionService.instance.effectiveRestaurantPromo(r),
+                            );
+                          }
+                          if (v == 'images') {
+                            final fresh = RestaurantService.instance.byId(r.id) ?? r;
+                            showListingImagesEditor(context, restaurant: fresh);
+                          }
+                          if (v == 'transfer') showRestaurantTransferFlow(context, r);
+                          if (v == 'remove') {
+                            showRestaurantTransferFlow(context, r, mode: RestoCloseMode.removeListing);
+                          }
+                          if (v == 'renew') showRestaurantRenewSheet(context, r, early: !expired && canRenew);
                           if (v == 'promote') showRestaurantRenewSheet(context, r, promoteOnly: true);
                           if (v == 'banner') context.go('/dashboard/advertising?target=${Uri.encodeComponent(r.detailPath)}');
                         },
                         itemBuilder: (_) => [
-                          const PopupMenuItem(value: 'promote', child: Text('Promote listing')),
-                          if (AdSlotService.instance.purchaseVisible)
-                            const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
+                          if (r.publishedAt != null) PopupMenuItem(value: 'insights', child: Text(context.t('dash_insights_open'))),
+                          PopupMenuItem(value: 'images', child: Text(context.t('ui_image_change'))),
+                          if (canRenew || expired) const PopupMenuItem(value: 'renew', child: Text('Renew')),
+                          if (r.status == RestaurantListingStatus.active) const PopupMenuItem(value: 'promote', child: Text('Promote')),
+                          if (r.status == RestaurantListingStatus.active && AdSlotService.instance.purchaseVisible) const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
+                          if (r.status == RestaurantListingStatus.active) const PopupMenuItem(value: 'transfer', child: Text('Mark as transferred')),
+                          const PopupMenuItem(value: 'remove', child: Text('Remove')),
                         ],
-                        child: Container(
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (expired)
+                        TGButton(
+                          onPressed: () => showRestaurantRenewSheet(context, r),
+                          label: 'Renew · ${cfg.paidPricePln} PLN',
                           height: 40,
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(TGRadius.pill)),
-                          child: Text('Promote', style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: theme.primary)),
+                          borderRadius: BorderRadius.circular(TGRadius.pill),
+                        )
+                      else if (canRenew)
+                        TGButton(
+                          onPressed: () => showRestaurantRenewSheet(context, r, early: true),
+                          label: 'Renew early',
+                          variant: TGButtonVariant.outline,
+                          height: 40,
+                          borderRadius: BorderRadius.circular(TGRadius.pill),
                         ),
-                      ),
-                    if (r.status == RestaurantListingStatus.pendingAuthorization)
-                      TGButton(
-                        onPressed: () {
-                          context.read<FakeAuthState>();
-                          showTGAuthProofSheet(context, r);
-                        },
-                        label: 'Authorization needed · upload proof',
-                        height: 40,
-                        borderRadius: BorderRadius.circular(TGRadius.pill),
-                      ),
-                    if (r.status == RestaurantListingStatus.paymentPending)
-                      TGButton(
-                        onPressed: () => context.go('/restaurants/new?resume=${r.id}'),
-                        label: 'Resume',
-                        height: 40,
-                        borderRadius: BorderRadius.circular(TGRadius.pill),
-                      ),
-                    if (r.status == RestaurantListingStatus.draft)
-                      TGButton(
-                        onPressed: () => context.go('/restaurants/new?resume=${r.id}'),
-                        label: 'Continue draft',
-                        variant: TGButtonVariant.outline,
-                        height: 40,
-                        borderRadius: BorderRadius.circular(TGRadius.pill),
-                      ),
-                  ],
-                ),
-              ],
+                      if (r.status == RestaurantListingStatus.active)
+                        PopupMenuButton<String>(
+                          tooltip: 'Promote',
+                          onSelected: (v) {
+                            if (v == 'promote') showRestaurantRenewSheet(context, r, promoteOnly: true);
+                            if (v == 'banner') context.go('/dashboard/advertising?target=${Uri.encodeComponent(r.detailPath)}');
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(value: 'promote', child: Text('Promote listing')),
+                            if (AdSlotService.instance.purchaseVisible) const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
+                          ],
+                          child: Container(
+                            height: 40,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(TGRadius.pill)),
+                            child: Text('Promote', style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: theme.primary)),
+                          ),
+                        ),
+                      if (r.status == RestaurantListingStatus.pendingAuthorization)
+                        TGButton(
+                          onPressed: () {
+                            context.read<FakeAuthState>();
+                            showTGAuthProofSheet(context, r);
+                          },
+                          label: 'Authorization needed · upload proof',
+                          height: 40,
+                          borderRadius: BorderRadius.circular(TGRadius.pill),
+                        ),
+                      if (r.status == RestaurantListingStatus.paymentPending)
+                        TGButton(
+                          onPressed: () => context.go('/restaurants/new?resume=${r.id}'),
+                          label: 'Resume',
+                          height: 40,
+                          borderRadius: BorderRadius.circular(TGRadius.pill),
+                        ),
+                      if (r.status == RestaurantListingStatus.draft)
+                        TGButton(
+                          onPressed: () => context.go('/restaurants/new?resume=${r.id}'),
+                          label: 'Continue draft',
+                          variant: TGButtonVariant.outline,
+                          height: 40,
+                          borderRadius: BorderRadius.circular(TGRadius.pill),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

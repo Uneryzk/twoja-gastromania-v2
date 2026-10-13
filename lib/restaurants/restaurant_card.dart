@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_favorite.dart';
+import 'package:twoja_gastromania/tg_services/favorites_service.dart';
+import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
-import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -43,6 +49,29 @@ class _RestaurantCardState extends State<RestaurantCard> {
   bool _fav = false;
 
   RestaurantListing get r => widget.listing;
+
+  bool get _isFav {
+    final auth = context.read<FakeAuthState>();
+    if (!auth.isLoggedIn) return _fav;
+    return TGFavoritesService.instance.isFavorite(auth.userId, FavoriteKind.restaurant, r.id);
+  }
+
+  void _toggleFav() {
+    final auth = context.read<FakeAuthState>();
+    if (!auth.isLoggedIn) {
+      setState(() => _fav = !_fav);
+      return;
+    }
+    final on = !_isFav;
+    TGFavoritesService.instance.setRestaurant(auth.userId, r, on: on);
+    RestaurantService.instance.recordFavorite(
+      listingId: r.id,
+      userId: auth.userId,
+      on: on,
+      count: auth.userId != r.ownerId && !auth.role.isStaff,
+    );
+    setState(() {});
+  }
 
   PromotionTier? get _tier {
     if (widget.promotionTier != null) return widget.promotionTier;
@@ -179,7 +208,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                    child: TGSmartImage(url: r.imageUrl, cacheWidth: 640),
+                    child: WatermarkedImage(url: r.imageUrl, surface: TGImageSurface.listingGrid, cacheWidth: 640),
                   ),
                   Positioned(
                     left: 10,
@@ -191,14 +220,12 @@ class _RestaurantCardState extends State<RestaurantCard> {
                     top: 8,
                     child: IconButton(
                       tooltip: 'Favourite',
-                      onPressed: () => setState(() => _fav = !_fav),
-                      icon: Icon(_fav ? Icons.favorite : Icons.favorite_border, color: _fav ? const Color(0xFFE91E8C) : Colors.white),
+                      onPressed: _toggleFav,
+                      icon: Icon(_isFav ? Icons.favorite : Icons.favorite_border, color: _isFav ? const Color(0xFFE91E8C) : Colors.white),
                     ),
                   ),
                   if (_tier == PromotionTier.glow || _tier == PromotionTier.spotlight || (r.isPromoted && _tier == null))
                     Positioned(left: 10, bottom: 10, child: _featuredPill(context)),
-                  if (_tier == PromotionTier.bold && PromotionService.instance.config.labelBold)
-                    Positioned(left: 10, bottom: 10, child: _sponsoredChip(context)),
                   Positioned(
                     right: 10,
                     bottom: 10,
@@ -282,7 +309,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: SizedBox(width: 280, height: 210, child: TGSmartImage(url: r.imageUrl, cacheWidth: 560)),
+                child: SizedBox(width: 280, height: 210, child: WatermarkedImage(url: r.imageUrl, surface: TGImageSurface.listingCard, cacheWidth: 560)),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -357,7 +384,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      TGSmartImage(url: r.imageUrl, cacheWidth: 256),
+                      WatermarkedImage(url: r.imageUrl, surface: TGImageSurface.listingCard, cacheWidth: 256),
                       Positioned(
                         left: 6,
                         top: 6,
@@ -557,22 +584,6 @@ class _RestaurantCardState extends State<RestaurantCard> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(color: const Color(0xFFE91E8C), borderRadius: BorderRadius.circular(99)),
         child: Text(label, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 11, fontWeight: FontWeight.w800)),
-      ),
-    );
-  }
-
-  Widget _sponsoredChip(BuildContext context) {
-    final label = context.t('badge.sponsored');
-    return Semantics(
-      label: label,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(99),
-          border: Border.all(color: Colors.white70),
-          color: const Color(0xFF1F1F1F).withValues(alpha: 0.85),
-        ),
-        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
       ),
     );
   }

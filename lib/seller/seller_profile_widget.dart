@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
+import 'package:twoja_gastromania/tg_components/tg_verified_info.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
@@ -670,7 +672,12 @@ class _IdentityBlock extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(profile.name, style: theme.headlineMedium.override(fontSize: 36, lineHeight: 44 / 36, fontWeight: FontWeight.w800)),
-            if (profile.verified) TGVerifiedSellerBadge(tooltip: context.t('ui_verified_store_tip'), pulse: true),
+            if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(profile)))
+              TGVerifiedSellerBadge(
+                tooltip: tgVerifiedTooltip(context, tgSellerFromProfile(profile)),
+                pulse: true,
+                onTap: () => showTGVerifiedInfo(context, tgSellerFromProfile(profile), surface: 'store_header'),
+              ),
           ],
         ),
         const SizedBox(height: 10),
@@ -1038,11 +1045,17 @@ class _PrivateHeader extends StatelessWidget {
                 runSpacing: 6,
                 children: [
                   Text(context.t('ui_private_seller'), style: theme.bodyMedium.override(color: theme.secondaryText, fontWeight: FontWeight.w700)),
+                  if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(profile)))
+                    TGVerifiedSellerBadge(tooltip: tgVerifiedTooltip(context, tgSellerFromProfile(profile))),
                   Text(context.t('ui_member_since', {'y': '${profile.memberSince.year}'})),
                   Text(context.t('ui_active_listings_n', {'n': '${listings.length}'})),
                 ],
               ),
               const SizedBox(height: 12),
+              if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(profile))) ...[
+                TGVerifiedInfoBox(seller: tgSellerFromProfile(profile)),
+                const SizedBox(height: 12),
+              ],
               Text(profile.phone, style: theme.titleSmall.override(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
               Wrap(
@@ -1106,7 +1119,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
                         _Logo(url: profile.logoUrl, name: profile.name, size: 36, ring: false),
                         const SizedBox(width: 10),
                         Flexible(child: Text(profile.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
-                        if (profile.verified) ...[const SizedBox(width: 8), const TGVerifiedSellerBadge()],
+                        if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(profile))) ...[const SizedBox(width: 8), const TGVerifiedSellerBadge()],
                         const SizedBox(width: 16),
                         Expanded(child: _TabList(tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, pendingChecks: pendingChecks, onSelect: onSelect, short: mobile, isStore: profile.isStore)),
                         if (onCall != null)
@@ -1262,13 +1275,6 @@ class _AdminBar extends StatelessWidget {
               TextButton(
                 onPressed: () => showStoreEditFlow(context, profile),
                 child: Text(context.t('ui_edit_store')),
-              ),
-              TextButton(
-                onPressed: () {
-                  context.read<FakeAuthState>().actAsSeller(profile.sellerKey);
-                  showTGToast(context, context.t('ui_act_as_seller'));
-                },
-                child: Text(context.t('ui_act_as_seller')),
               ),
             ],
           ),

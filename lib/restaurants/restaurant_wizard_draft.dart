@@ -61,7 +61,7 @@ class RestaurantWizardDraft extends ChangeNotifier {
   String contactName = '';
   String email = '';
   int promoteDays = 0;
-  RestaurantDurationKey paidDuration = RestaurantDurationKey.d90;
+  int paidDuration = 90;
 
   final Map<String, String> errors = {};
 
@@ -102,7 +102,7 @@ class RestaurantWizardDraft extends ChangeNotifier {
   RestaurantConfig get cfg => RestaurantConfigService.instance.config;
   PricingConfig get pricing => PricingConfigService.instance.config;
 
-  int get listingPeriodDays => canUseFree ? cfg.freeDays : paidDuration.days;
+  int get listingPeriodDays => canUseFree ? cfg.freeDays : paidDuration;
   int get listingFeePln => canUseFree ? 0 : pricing.restaurantFeePln(paidDuration);
   int get promoteFeePln => 0;
   int get totalPln => listingFeePln;

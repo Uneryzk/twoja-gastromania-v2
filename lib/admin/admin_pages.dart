@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_case_page.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
+import 'package:twoja_gastromania/admin/admin_console_pages.dart';
 import 'package:twoja_gastromania/admin/listing_images_editor.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -17,6 +18,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_account.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
@@ -119,7 +121,16 @@ class AdminSellersPage extends StatelessWidget {
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text('${s.seller.name} · ${adminSellerKindL10n(context, s.seller.type, verified: s.seller.verified)}'),
-                subtitle: Text('${s.phone}${s.nip == null ? '' : ' · NIP ${s.nip}'}\n${context.t('ui_past_reports', {'r': '${s.pastReports}', 'm': '${s.pastRemovals}'})} · ${fmt.format(s.accountCreatedAt)}'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      AdminMaskedValue(userId: s.seller.id, field: TGPiiField.phone, value: s.phone),
+                      if (s.nip != null) Text(' · NIP ${s.nip}', style: const TextStyle(fontSize: 12)),
+                    ]),
+                    Text('${context.t('ui_past_reports', {'r': '${s.pastReports}', 'm': '${s.pastRemovals}'})} · ${fmt.format(s.accountCreatedAt)}'),
+                  ],
+                ),
                 trailing: s.suspended ? Text(context.t('ui_suspended'), style: const TextStyle(color: TGColors.error, fontWeight: FontWeight.w900)) : null,
                 onTap: () => TGAdminNav.openCase(context, ModerationService.caseKeyFor(TGReportTarget.seller, s.seller.id)),
               ),
@@ -285,7 +296,7 @@ class AdminSellersHost extends StatelessWidget {
 class AdminAuditHost extends StatelessWidget {
   const AdminAuditHost({super.key});
   @override
-  Widget build(BuildContext context) => const AdminShell(section: 'audit', child: AdminAuditPage());
+  Widget build(BuildContext context) => const AdminShell(section: 'audit', child: AdminAuditLogPage());
 }
 
 class AdminTemplatesHost extends StatelessWidget {

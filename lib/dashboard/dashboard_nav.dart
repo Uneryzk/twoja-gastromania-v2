@@ -5,9 +5,10 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-enum TGDashboardSection { listings, messages, deals }
+enum TGDashboardSection { listings, messages, deals, verification }
 
 class TGDashboardNav extends StatelessWidget {
   const TGDashboardNav({super.key, required this.current});
@@ -46,6 +47,13 @@ class TGDashboardNav extends StatelessWidget {
               selected: current == TGDashboardSection.deals,
               label: context.t('ui_deals'),
               onTap: () => TGNav.dashboardDeals(context),
+            ),
+            _chip(
+              context,
+              theme,
+              selected: current == TGDashboardSection.verification,
+              label: context.t('ui_dashboard_verification'),
+              onTap: () => context.go('/dashboard/verification'),
             ),
           ],
         );

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/products/products_logic.dart';
@@ -140,7 +141,7 @@ class _TGFilterFormState extends State<TGFilterForm> {
           onToggle: () => setState(() => _verifiedOpen = !_verifiedOpen),
           child: _VerifiedCard(
             value: q.verifiedOnly,
-            count: all.where((p) => p.seller.verified).length,
+            count: all.where((p) => tgShowsVerifiedSellerBadge(p.seller)).length,
             onChanged: (v) => _emit(q.copyWith(verifiedOnly: v)),
           ),
         ),

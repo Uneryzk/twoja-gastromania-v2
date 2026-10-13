@@ -19,7 +19,8 @@ import 'package:twoja_gastromania/tg_services/restaurant_inventory_sync_service.
 
 enum SoldFlowMode { markSold, removeListing }
 
-Future<void> showSoldFlow(BuildContext context, TGProduct listing, {SoldFlowMode mode = SoldFlowMode.markSold}) {
+/// [buyerId] preselects the buyer (e.g. "Mark as sold to this person" in messages).
+Future<void> showSoldFlow(BuildContext context, TGProduct listing, {SoldFlowMode mode = SoldFlowMode.markSold, String? buyerId}) {
   TGAnalytics.track('sold_flow_open', {'listingId': listing.id, 'mode': mode.name});
   DealService.instance.ensureSeeded();
   final wide = MediaQuery.sizeOf(context).width >= TGBreakpoints.phone;
@@ -31,7 +32,7 @@ Future<void> showSoldFlow(BuildContext context, TGProduct listing, {SoldFlowMode
       barrierLabel: context.t('ui_close'),
       barrierColor: Colors.black54,
       transitionDuration: tgAnim(context, const Duration(milliseconds: 200)),
-      pageBuilder: (ctx, _, __) => SoldFlowSheet(listing: listing, mode: mode, desktop: true),
+      pageBuilder: (ctx, _, __) => SoldFlowSheet(listing: listing, mode: mode, desktop: true, buyerId: buyerId),
       transitionBuilder: (ctx, anim, _, child) {
         final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
         return FadeTransition(
@@ -50,7 +51,7 @@ Future<void> showSoldFlow(BuildContext context, TGProduct listing, {SoldFlowMode
     sheetAnimationStyle: AnimationStyle(duration: tgAnim(context, const Duration(milliseconds: 250))),
     builder: (ctx) => SizedBox(
       height: MediaQuery.sizeOf(ctx).height * (phone390 ? 1 : 0.9),
-      child: SoldFlowSheet(listing: listing, mode: mode, desktop: false),
+      child: SoldFlowSheet(listing: listing, mode: mode, desktop: false, buyerId: buyerId),
     ),
   );
 }
@@ -58,10 +59,11 @@ Future<void> showSoldFlow(BuildContext context, TGProduct listing, {SoldFlowMode
 enum _SoldStep { reason, platform, buyer, done }
 
 class SoldFlowSheet extends StatefulWidget {
-  const SoldFlowSheet({super.key, required this.listing, required this.mode, required this.desktop});
+  const SoldFlowSheet({super.key, required this.listing, required this.mode, required this.desktop, this.buyerId});
   final TGProduct listing;
   final SoldFlowMode mode;
   final bool desktop;
+  final String? buyerId;
 
   @override
   State<SoldFlowSheet> createState() => _SoldFlowSheetState();
@@ -88,6 +90,7 @@ class _SoldFlowSheetState extends State<SoldFlowSheet> {
     final skip = widget.mode == SoldFlowMode.markSold;
     _reason = skip ? TGSoldReason.sold : null;
     _step = skip ? _SoldStep.platform : _SoldStep.reason;
+    _conversationBuyerId = widget.buyerId;
   }
 
   @override

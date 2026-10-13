@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
+import 'package:twoja_gastromania/special_order/so_consent_widgets.dart';
 import 'package:twoja_gastromania/special_order/so_status_chip.dart';
+import 'package:twoja_gastromania/special_order/special_order_confirm_page.dart';
 import 'package:twoja_gastromania/special_order/special_order_hub_widgets.dart' show SoRecentProjects;
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_components/custom_projects_rating_line.dart';
 import 'package:twoja_gastromania/tg_components/tg_badges.dart';
 import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
@@ -20,9 +24,9 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/special_order/special_review_composer.dart';
-import 'package:twoja_gastromania/tg_components/audited_badge.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
+import 'package:twoja_gastromania/tg_services/special_consent_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 import 'package:twoja_gastromania/tg_services/special_review_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -63,7 +67,10 @@ class _BuyerRequestsPageState extends State<BuyerRequestsPage> {
     final all = svc.forBuyer(auth.userId);
     final filtered = all.where((r) {
       return switch (_tab) {
-        'open' => r.status == TGSpecialRequestStatus.open || r.status == TGSpecialRequestStatus.quoted || r.status == TGSpecialRequestStatus.held,
+        'open' => r.status == TGSpecialRequestStatus.open ||
+            r.status == TGSpecialRequestStatus.quoted ||
+            r.status == TGSpecialRequestStatus.held ||
+            r.status == TGSpecialRequestStatus.awaitingConsent,
         'awarded' => r.status == TGSpecialRequestStatus.awarded,
         'closed' => r.status == TGSpecialRequestStatus.closed || r.status == TGSpecialRequestStatus.expired || r.status == TGSpecialRequestStatus.rejected,
         _ => true,
@@ -162,19 +169,25 @@ class _RequestListTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(request.requestNo, style: const TextStyle(fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 4),
-                      Text(request.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(request.requestNo, style: const TextStyle(fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 4),
+                          Text(request.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                    SoStatusChip(status: request.status, quoteCount: quoteCount, rejectReason: request.rejectReason),
+                  ],
                 ),
-                SoStatusChip(status: request.status, quoteCount: quoteCount, rejectReason: request.rejectReason),
+                _SoConsentActions(request: request),
               ],
             ),
           ),
@@ -215,7 +228,10 @@ class _RequestDetailState extends State<_RequestDetail> {
             const SizedBox(width: 12),
             Text(context.t('ui_so_closes_in', {'n': '$days'}), style: theme.bodyMedium.override(fontWeight: FontWeight.w700)),
             const Spacer(),
-            if (request.status != TGSpecialRequestStatus.awarded && request.status != TGSpecialRequestStatus.closed)
+            if (request.status != TGSpecialRequestStatus.awarded &&
+                request.status != TGSpecialRequestStatus.closed &&
+                request.status != TGSpecialRequestStatus.draft &&
+                request.status != TGSpecialRequestStatus.awaitingConsent)
               TextButton(
                 onPressed: () {
                   svc.closeRequest(request.id);
@@ -225,6 +241,7 @@ class _RequestDetailState extends State<_RequestDetail> {
               ),
           ],
         ),
+        _SoConsentActions(request: request, showViewConsent: true),
         const SizedBox(height: 8),
         Text(request.title, style: theme.titleLarge.override(fontWeight: FontWeight.w900)),
         Text('${request.city} · ${request.voivodeship}', style: theme.bodyMedium.override(color: theme.secondaryText)),
@@ -631,8 +648,7 @@ class _QuoteColumn extends StatelessWidget {
           if (store != null) ...[
             const SizedBox(height: 6),
             Wrap(spacing: 6, runSpacing: 4, children: [
-              if (store.verified) const TGVerifiedSellerBadge(),
-              AuditedManufacturerBadge(sellerId: store.sellerKey, compact: true),
+              if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(store))) const TGVerifiedSellerBadge(),
               TGRatingBadge(rating: store.rating),
             ]),
             const SizedBox(height: 4),
@@ -783,5 +799,59 @@ class _QuoteColumn extends StatelessWidget {
       TGSpecialOrderService.instance.award(request.id, store.sellerKey);
       showTGToast(context, context.t('ui_so_awarded_toast'));
     }
+  }
+}
+
+/// Consent follow-ups: confirm / resume draft, failed-proof "Resend", stored copy.
+class _SoConsentActions extends StatelessWidget {
+  const _SoConsentActions({required this.request, this.showViewConsent = false});
+  final TGSpecialRequest request;
+  final bool showViewConsent;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = request;
+    final hasConsent = TGSpecialConsentService.instance.forRequest(r.id) != null;
+    final action = switch (r.status) {
+      TGSpecialRequestStatus.awaitingConsent => (
+          context.t('so_consent_continue'),
+          '${SpecialOrderConfirmPage.routePath}?draft=${r.id}',
+          Icons.fact_check_outlined,
+        ),
+      TGSpecialRequestStatus.draft => (context.t('so_consent_resume_draft'), '/special-order/new?draft=${r.id}', Icons.edit_outlined),
+      _ => null,
+    };
+    final children = <Widget>[
+      if (action != null)
+        TGFocusRing(
+          radius: TGRadius.pill,
+          child: TGButton(
+            key: Key('so-consent-action-${r.id}'),
+            onPressed: () => context.go(action.$2),
+            label: action.$1,
+            icon: action.$3,
+            height: 36,
+          ),
+        ),
+      if (showViewConsent && hasConsent)
+        TGFocusRing(
+          child: TextButton.icon(
+            key: Key('so-consent-view-${r.id}'),
+            onPressed: () => context.go(TGSpecialConsentService.consentPath(r.requestNo)),
+            icon: const Icon(Icons.verified_user_outlined, size: 18),
+            label: Text(context.t('so_consent_view')),
+          ),
+        ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (children.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: children),
+        ],
+        SoConsentDeliveryBanner(requestId: r.id),
+      ],
+    );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 
 /// What the banner points at — always the buyer's own active content.
@@ -20,7 +21,7 @@ class TGAdSlot {
     required this.startsAt,
     required this.endsAt,
     required this.status,
-    this.duration = BannerDurationKey.w2,
+    this.durationDays = 14,
     this.impressions = 0,
     this.clicks = 0,
     this.pricePln = 0,
@@ -42,7 +43,8 @@ class TGAdSlot {
   final DateTime startsAt;
   final DateTime endsAt;
   final TGAdSlotStatus status;
-  final BannerDurationKey duration;
+  /// Paid period length in days.
+  final int durationDays;
   final int impressions;
   final int clicks;
   final int pricePln;
@@ -95,7 +97,7 @@ class TGAdSlot {
         startsAt: startsAt ?? this.startsAt,
         endsAt: endsAt ?? this.endsAt,
         status: status ?? this.status,
-        duration: duration,
+        durationDays: durationDays,
         impressions: impressions ?? this.impressions,
         clicks: clicks ?? this.clicks,
         pricePln: pricePln,
@@ -116,23 +118,25 @@ class TGAdHold {
     required this.id,
     required this.ownerId,
     required this.startsAt,
-    required this.duration,
+    required this.durationDays,
     required this.expiresAt,
   });
 
   final String id;
   final String ownerId;
   final DateTime startsAt;
-  final BannerDurationKey duration;
+  /// Paid period length in days.
+  final int durationDays;
   final DateTime expiresAt;
 
-  DateTime get endsAt => startsAt.add(Duration(days: duration.days));
+  DateTime get endsAt => DurationService.endOf(startsAt, durationDays);
 }
 
 @immutable
 class TGAdWaitlistEntry {
-  const TGAdWaitlistEntry({required this.ownerId, required this.duration, required this.createdAt});
+  const TGAdWaitlistEntry({required this.ownerId, required this.durationDays, required this.createdAt});
   final String ownerId;
-  final BannerDurationKey duration;
+  /// Paid period length in days.
+  final int durationDays;
   final DateTime createdAt;
 }

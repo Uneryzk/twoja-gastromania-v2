@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_form.dart';
@@ -17,6 +18,8 @@ import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
+import 'package:twoja_gastromania/payment/payment_models.dart';
+import 'package:twoja_gastromania/tg_models/tg_billing.dart';
 
 /// Restaurant post-publish Showcase (Success → Showcase → RESTO-4 Next steps).
 class TGRestaurantShowcaseSection extends StatefulWidget {
@@ -37,7 +40,7 @@ class TGRestaurantShowcaseSection extends StatefulWidget {
 
 class _TGRestaurantShowcaseSectionState extends State<TGRestaurantShowcaseSection> {
   PromotionTier? _tier;
-  PromotionDurationKey _duration = PromotionDurationKey.week2;
+  int _duration = PricingConfigService.instance.config.promotions.defaultDays;
   bool _dismissed = false;
   final _formKey = GlobalKey<PaymentFormState>();
 
@@ -71,7 +74,7 @@ class _TGRestaurantShowcaseSectionState extends State<TGRestaurantShowcaseSectio
         : TGClock.now();
     return PromotionService.instance.promoFitsListing(
       listingEndsAt: ends,
-      promoDays: _duration.days,
+      promoDays: _duration,
       startAt: start,
     );
   }
@@ -96,17 +99,17 @@ class _TGRestaurantShowcaseSectionState extends State<TGRestaurantShowcaseSectio
           const SizedBox(height: 12),
         ],
         if (_tier != null) ...[
-          SegmentedButton<PromotionDurationKey>(
+          SegmentedButton<int>(
             segments: [
-              ButtonSegment(value: PromotionDurationKey.week2, label: Text(context.t('ui_duration_2w'))),
-              ButtonSegment(value: PromotionDurationKey.month1, label: Text(context.t('ui_duration_1m'))),
+              for (final d in PricingConfigService.instance.config.promotions.durations)
+                ButtonSegment(value: d, label: Text(DurationFormatter.daysOf(context, d))),
             ],
             selected: {_duration},
             onSelectionChanged: (s) => setState(() => _duration = s.first),
           ),
           const SizedBox(height: 8),
           Text(
-            '${_paid(auth.userId)} PLN · ${_cfg.perDayLabel(_listPrice, _duration.days)}',
+            '${_paid(auth.userId)} PLN · ${_cfg.perDayLabel(_listPrice, _duration)}',
             style: theme.titleMedium.override(fontWeight: FontWeight.w900),
           ),
           if (PromotionService.instance.isAtCapacity(_tier!))
@@ -122,6 +125,10 @@ class _TGRestaurantShowcaseSectionState extends State<TGRestaurantShowcaseSectio
             PaymentForm(
               key: _formKey,
               amountPln: _paid(auth.userId).toDouble(),
+              billingKind: TGPaymentKind.promotion,
+              billingDescription: tgPromoBillingLabel(_tier!, _duration),
+              billingListingId: widget.listing.id,
+              billingListingNo: widget.listing.listingNo,
               onPaid: () => _buy(auth),
             ),
             if (phone)
@@ -218,7 +225,7 @@ class _TGRestaurantShowcaseSectionState extends State<TGRestaurantShowcaseSectio
       kind: PromotionTargetKind.restaurant,
       targetRef: widget.listing.id,
       tier: tier,
-      durationKey: _duration,
+      durationDays: _duration,
       pricePln: paid,
       source: PromotionSource.paid,
       listingEndsAt: widget.listing.expiresAt,

@@ -50,287 +50,290 @@ class RestaurantFiltersPanel extends StatelessWidget {
           border: Border.all(color: const Color(0xFF2F2F2F)),
         ),
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Text(context.t('ui_filters'), style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
-                const Spacer(),
-                if (query.activeFilterCount > 0)
-                  TextButton(
-                    onPressed: () => _emit(query.clearedFilters()),
-                    child: Text(context.t('ui_clear_all')),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            _section(
-              theme,
-              context.t('ui_verified_seller'),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                title: Text(context.t('ui_verified_only'), style: theme.bodyMedium.override(fontWeight: FontWeight.w600)),
-                activeThumbColor: Colors.greenAccent.shade400,
-                value: query.verifiedOnly,
-                onChanged: (v) => _emit(query.copyWith(verifiedOnly: v)),
-              ),
-            ),
-            _section(
-              theme,
-              context.t('ui_business_type'),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: RestaurantBusinessType.values.map((bt) {
-                  final on = query.businessTypes.contains(bt);
-                  return FilterChip(
-                    label: Text(restoLocalizedBusinessType(context, bt)),
-                    selected: on,
-                    onSelected: (sel) {
-                      final next = {...query.businessTypes};
-                      sel ? next.add(bt) : next.remove(bt);
-                      _emit(query.copyWith(businessTypes: next));
-                    },
-                  );
-                }).toList(),
-              ),
-            ),
-            _section(
-              theme,
-              context.t('ui_location'),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: query.city ?? '',
-                    decoration: InputDecoration(labelText: context.t('ui_city'), isDense: true),
-                    items: [
-                      DropdownMenuItem(value: '', child: Text(context.t('ui_any_city'))),
-                      ...TGGeo.cities.map((c) => DropdownMenuItem(value: c.name, child: Text(c.name))),
-                    ],
-                    onChanged: (v) {
-                      final empty = v == null || v.isEmpty;
-                      _emit(query.copyWith(city: empty ? null : v, cityToNull: empty));
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Text(context.t('ui_radius'), style: theme.bodySmall),
-                  Wrap(
-                    spacing: 6,
-                    children: [0, 10, 25, 50, 100].map((km) {
-                      final on = query.radiusKm == km;
-                      return ChoiceChip(
-                        label: Text(km == 0 ? '+0 km' : '+$km km'),
-                        selected: on,
-                        onSelected: (_) => _emit(query.copyWith(radiusKm: km)),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: const ['Śląskie', 'Małopolskie', 'Mazowieckie'].map((v) {
-                      final on = query.voivodeships.contains(v);
-                      return FilterChip(
-                        label: Text(v),
-                        selected: on,
-                        onSelected: (sel) {
-                          final next = {...query.voivodeships};
-                          sel ? next.add(v) : next.remove(v);
-                          _emit(query.copyWith(voivodeships: next));
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-            _section(
-              theme,
-              context.t('ui_area_m2'),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Row(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: query.areaMin?.toString() ?? '',
-                      decoration: InputDecoration(labelText: context.t('ui_min'), isDense: true),
+                  Text(context.t('ui_filters'), style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+                  const Spacer(),
+                  if (query.activeFilterCount > 0)
+                    TextButton(
+                      onPressed: () => _emit(query.clearedFilters()),
+                      child: Text(context.t('ui_clear_all')),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _section(
+                theme,
+                context.t('ui_verified_seller'),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text(context.t('ui_verified_only'), style: theme.bodyMedium.override(fontWeight: FontWeight.w600)),
+                  activeThumbColor: Colors.greenAccent.shade400,
+                  value: query.verifiedOnly,
+                  onChanged: (v) => _emit(query.copyWith(verifiedOnly: v)),
+                ),
+              ),
+              _section(
+                theme,
+                context.t('ui_business_type'),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: RestaurantBusinessType.values.map((bt) {
+                    final on = query.businessTypes.contains(bt);
+                    return FilterChip(
+                      label: Text(restoLocalizedBusinessType(context, bt)),
+                      selected: on,
+                      onSelected: (sel) {
+                        final next = {...query.businessTypes};
+                        sel ? next.add(bt) : next.remove(bt);
+                        _emit(query.copyWith(businessTypes: next));
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              _section(
+                theme,
+                context.t('ui_location'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: query.city ?? '',
+                      decoration: InputDecoration(labelText: context.t('ui_city'), isDense: true),
+                      items: [
+                        DropdownMenuItem(value: '', child: Text(context.t('ui_any_city'))),
+                        ...TGGeo.cities.map((c) => DropdownMenuItem(value: c.name, child: Text(c.name))),
+                      ],
+                      onChanged: (v) {
+                        final empty = v == null || v.isEmpty;
+                        _emit(query.copyWith(city: empty ? null : v, cityToNull: empty));
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Text(context.t('ui_radius'), style: theme.bodySmall),
+                    Wrap(
+                      spacing: 6,
+                      children: [0, 10, 25, 50, 100].map((km) {
+                        final on = query.radiusKm == km;
+                        return ChoiceChip(
+                          label: Text(km == 0 ? '+0 km' : '+$km km'),
+                          selected: on,
+                          onSelected: (_) => _emit(query.copyWith(radiusKm: km)),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: const ['Śląskie', 'Małopolskie', 'Mazowieckie'].map((v) {
+                        final on = query.voivodeships.contains(v);
+                        return FilterChip(
+                          label: Text(v),
+                          selected: on,
+                          onSelected: (sel) {
+                            final next = {...query.voivodeships};
+                            sel ? next.add(v) : next.remove(v);
+                            _emit(query.copyWith(voivodeships: next));
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              _section(
+                theme,
+                context.t('ui_area_m2'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: query.areaMin?.toString() ?? '',
+                        decoration: InputDecoration(labelText: context.t('ui_min'), isDense: true),
+                        keyboardType: TextInputType.number,
+                        onFieldSubmitted: (v) {
+                          final n = int.tryParse(v);
+                          _emit(query.copyWith(areaMin: n, areaMinToNull: n == null));
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: query.areaMax?.toString() ?? '',
+                        decoration: InputDecoration(labelText: context.t('ui_max'), isDense: true),
+                        keyboardType: TextInputType.number,
+                        onFieldSubmitted: (v) {
+                          final n = int.tryParse(v);
+                          _emit(query.copyWith(areaMax: n, areaMaxToNull: n == null));
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _section(
+                theme,
+                context.t('ui_monthly_rent_pln'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SegmentedButton<RestaurantVatBasis>(
+                      segments: [
+                        ButtonSegment(value: RestaurantVatBasis.netto, label: Text(context.t('ui_netto'))),
+                        ButtonSegment(value: RestaurantVatBasis.brutto, label: Text(context.t('ui_brutto'))),
+                      ],
+                      selected: {query.rentBasis == RestaurantVatBasis.brutto ? RestaurantVatBasis.brutto : RestaurantVatBasis.netto},
+                      onSelectionChanged: (s) => _emit(query.copyWith(rentBasis: s.first)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      initialValue: query.rentMax?.toString() ?? '',
+                      decoration: InputDecoration(labelText: context.t('ui_max_rent'), isDense: true),
                       keyboardType: TextInputType.number,
                       onFieldSubmitted: (v) {
                         final n = int.tryParse(v);
-                        _emit(query.copyWith(areaMin: n, areaMinToNull: n == null));
+                        _emit(query.copyWith(rentMax: n, rentMaxToNull: n == null));
                       },
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: query.areaMax?.toString() ?? '',
-                      decoration: InputDecoration(labelText: context.t('ui_max'), isDense: true),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: query.includeVatUnspecified,
+                      onChanged: (v) => _emit(query.copyWith(includeVatUnspecified: v ?? true)),
+                      title: Text(context.t('ui_include_vat_unspecified'), style: theme.bodySmall),
+                    ),
+                  ],
+                ),
+              ),
+              _section(
+                theme,
+                context.t('ui_transfer_fee_pln'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextFormField(
+                      initialValue: query.feeMax?.toString() ?? '',
+                      decoration: InputDecoration(labelText: context.t('ui_max_fee'), isDense: true),
                       keyboardType: TextInputType.number,
                       onFieldSubmitted: (v) {
                         final n = int.tryParse(v);
-                        _emit(query.copyWith(areaMax: n, areaMaxToNull: n == null));
+                        _emit(query.copyWith(feeMax: n, feeMaxToNull: n == null));
                       },
                     ),
-                  ),
-                ],
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: query.includeNoTransferFee,
+                      onChanged: (v) => _emit(query.copyWith(includeNoTransferFee: v ?? true)),
+                      title: Text(context.t('ui_include_no_fee'), style: theme.bodySmall),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            _section(
-              theme,
-              context.t('ui_monthly_rent_pln'),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SegmentedButton<RestaurantVatBasis>(
-                    segments: [
-                      ButtonSegment(value: RestaurantVatBasis.netto, label: Text(context.t('ui_netto'))),
-                      ButtonSegment(value: RestaurantVatBasis.brutto, label: Text(context.t('ui_brutto'))),
-                    ],
-                    selected: {query.rentBasis == RestaurantVatBasis.brutto ? RestaurantVatBasis.brutto : RestaurantVatBasis.netto},
-                    onSelectionChanged: (s) => _emit(query.copyWith(rentBasis: s.first)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: query.rentMax?.toString() ?? '',
-                    decoration: InputDecoration(labelText: context.t('ui_max_rent'), isDense: true),
-                    keyboardType: TextInputType.number,
-                    onFieldSubmitted: (v) {
-                      final n = int.tryParse(v);
-                      _emit(query.copyWith(rentMax: n, rentMaxToNull: n == null));
-                    },
-                  ),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    value: query.includeVatUnspecified,
-                    onChanged: (v) => _emit(query.copyWith(includeVatUnspecified: v ?? true)),
-                    title: Text(context.t('ui_include_vat_unspecified'), style: theme.bodySmall),
-                  ),
-                ],
+              _section(
+                theme,
+                context.t('ui_lease'),
+                Wrap(
+                  spacing: 6,
+                  children: RestaurantLeaseMin.values.map((m) {
+                    final label = switch (m) {
+                      RestaurantLeaseMin.any => context.t('ui_lease_any'),
+                      RestaurantLeaseMin.m12 => context.t('ui_lease_12mo'),
+                      RestaurantLeaseMin.m24 => context.t('ui_lease_24mo'),
+                      RestaurantLeaseMin.m36 => context.t('ui_lease_36mo'),
+                      RestaurantLeaseMin.indefinite => context.t('ui_indefinite_lease'),
+                    };
+                    return ChoiceChip(
+                      label: Text(label),
+                      selected: query.leaseMin == m,
+                      onSelected: (_) => _emit(query.copyWith(leaseMin: m)),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-            _section(
-              theme,
-              context.t('ui_transfer_fee_pln'),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    initialValue: query.feeMax?.toString() ?? '',
-                    decoration: InputDecoration(labelText: context.t('ui_max_fee'), isDense: true),
-                    keyboardType: TextInputType.number,
-                    onFieldSubmitted: (v) {
-                      final n = int.tryParse(v);
-                      _emit(query.copyWith(feeMax: n, feeMaxToNull: n == null));
-                    },
-                  ),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    value: query.includeNoTransferFee,
-                    onChanged: (v) => _emit(query.copyWith(includeNoTransferFee: v ?? true)),
-                    title: Text(context.t('ui_include_no_fee'), style: theme.bodySmall),
-                  ),
-                ],
+              _section(
+                theme,
+                context.t('ui_features'),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: RestaurantFeature.values.map((f) {
+                    final on = query.features.contains(f);
+                    return FilterChip(
+                      label: Text(featureLabel(f, t: t)),
+                      selected: on,
+                      onSelected: (sel) {
+                        final next = {...query.features};
+                        sel ? next.add(f) : next.remove(f);
+                        _emit(query.copyWith(features: next));
+                      },
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-            _section(
-              theme,
-              context.t('ui_lease'),
-              Wrap(
-                spacing: 6,
-                children: RestaurantLeaseMin.values.map((m) {
-                  final label = switch (m) {
-                    RestaurantLeaseMin.any => context.t('ui_lease_any'),
-                    RestaurantLeaseMin.m12 => context.t('ui_lease_12mo'),
-                    RestaurantLeaseMin.m24 => context.t('ui_lease_24mo'),
-                    RestaurantLeaseMin.m36 => context.t('ui_lease_36mo'),
-                    RestaurantLeaseMin.indefinite => context.t('ui_indefinite_lease'),
-                  };
-                  return ChoiceChip(
-                    label: Text(label),
-                    selected: query.leaseMin == m,
-                    onSelected: (_) => _emit(query.copyWith(leaseMin: m)),
-                  );
-                }).toList(),
+              _section(
+                theme,
+                context.t('ui_available'),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    (RestaurantAvailFilter.any, context.t('ui_avail_any')),
+                    (RestaurantAvailFilter.immediately, context.t('ui_avail_immediately')),
+                    (RestaurantAvailFilter.within1m, context.t('ui_avail_1m')),
+                    (RestaurantAvailFilter.within3m, context.t('ui_avail_3m')),
+                  ].map((e) {
+                    return ChoiceChip(
+                      label: Text(e.$2),
+                      selected: query.avail == e.$1,
+                      onSelected: (_) => _emit(query.copyWith(avail: e.$1)),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-            _section(
-              theme,
-              context.t('ui_features'),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: RestaurantFeature.values.map((f) {
-                  final on = query.features.contains(f);
-                  return FilterChip(
-                    label: Text(featureLabel(f, t: t)),
-                    selected: on,
-                    onSelected: (sel) {
-                      final next = {...query.features};
-                      sel ? next.add(f) : next.remove(f);
-                      _emit(query.copyWith(features: next));
-                    },
-                  );
-                }).toList(),
+              _section(
+                theme,
+                context.t('ui_seller'),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    FilterChip(
+                      label: Text(context.t('resto_poster_owner')),
+                      selected: query.sellerFilters.contains(RestaurantSellerFilter.owner),
+                      onSelected: (sel) {
+                        final next = {...query.sellerFilters};
+                        sel ? next.add(RestaurantSellerFilter.owner) : next.remove(RestaurantSellerFilter.owner);
+                        _emit(query.copyWith(sellerFilters: next));
+                      },
+                    ),
+                    FilterChip(
+                      label: Text(context.t('resto_poster_agent')),
+                      selected: query.sellerFilters.contains(RestaurantSellerFilter.agent),
+                      onSelected: (sel) {
+                        final next = {...query.sellerFilters};
+                        sel ? next.add(RestaurantSellerFilter.agent) : next.remove(RestaurantSellerFilter.agent);
+                        _emit(query.copyWith(sellerFilters: next));
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-            _section(
-              theme,
-              context.t('ui_available'),
-              Wrap(
-                spacing: 6,
-                children: [
-                  (RestaurantAvailFilter.any, context.t('ui_avail_any')),
-                  (RestaurantAvailFilter.immediately, context.t('ui_avail_immediately')),
-                  (RestaurantAvailFilter.within1m, context.t('ui_avail_1m')),
-                  (RestaurantAvailFilter.within3m, context.t('ui_avail_3m')),
-                ].map((e) {
-                  return ChoiceChip(
-                    label: Text(e.$2),
-                    selected: query.avail == e.$1,
-                    onSelected: (_) => _emit(query.copyWith(avail: e.$1)),
-                  );
-                }).toList(),
+              const SizedBox(height: 8),
+              Text(
+                localizedResultsCount(context, countRestaurantResults(all, query)),
+                style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w700),
               ),
-            ),
-            _section(
-              theme,
-              context.t('ui_seller'),
-              Wrap(
-                spacing: 6,
-                children: [
-                  FilterChip(
-                    label: Text(context.t('resto_poster_owner')),
-                    selected: query.sellerFilters.contains(RestaurantSellerFilter.owner),
-                    onSelected: (sel) {
-                      final next = {...query.sellerFilters};
-                      sel ? next.add(RestaurantSellerFilter.owner) : next.remove(RestaurantSellerFilter.owner);
-                      _emit(query.copyWith(sellerFilters: next));
-                    },
-                  ),
-                  FilterChip(
-                    label: Text(context.t('resto_poster_agent')),
-                    selected: query.sellerFilters.contains(RestaurantSellerFilter.agent),
-                    onSelected: (sel) {
-                      final next = {...query.sellerFilters};
-                      sel ? next.add(RestaurantSellerFilter.agent) : next.remove(RestaurantSellerFilter.agent);
-                      _emit(query.copyWith(sellerFilters: next));
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              localizedResultsCount(context, countRestaurantResults(all, query)),
-              style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w700),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

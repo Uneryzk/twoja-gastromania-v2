@@ -13,6 +13,7 @@ import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
+import 'home_manufacturers_strip.dart';
 import 'home_page_model.dart';
 import 'home_resto_strip.dart';
 import 'home_sections.dart';
@@ -128,6 +129,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   )),
                 section(const HomeRestaurantsStrip()),
                 section(const HomeBestSellers()),
+                if (HomeManufacturersStrip.items().isNotEmpty) section(const HomeManufacturersStrip()),
                 section(const HomeStatsSection()),
                 const SizedBox(height: 72),
                 const TGFooter(),

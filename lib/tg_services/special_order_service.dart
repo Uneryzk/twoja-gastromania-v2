@@ -1,16 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
-import 'package:twoja_gastromania/tg_services/audit_service.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/priority_service.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
+import 'package:twoja_gastromania/tg_services/special_consent_service.dart';
 import 'package:twoja_gastromania/tg_services/special_review_service.dart';
 import 'package:twoja_gastromania/tg_services/sponsor_slot_service.dart';
 
@@ -62,6 +65,7 @@ class TGSpecialOrderService extends ChangeNotifier {
     _quoteSeq = 1;
     _auditSeq = 1;
     TGPriorityService.instance.reset();
+    TGSpecialConsentService.instance.reset();
     notifyListeners();
   }
 
@@ -77,8 +81,8 @@ class TGSpecialOrderService extends ChangeNotifier {
     TGPriorityService.instance.onClockAdvanced();
     TGFounderService.instance.onClockAdvanced();
     TGSpecialReviewService.instance.onClockAdvanced();
-    TGAuditService.instance.onClockAdvanced();
     TGSponsorSlotService.instance.onClockAdvanced();
+    _sweepConsentWindows();
     final now = TGClock.now();
     for (var i = 0; i < requests.length; i++) {
       final r = requests[i];
@@ -172,7 +176,24 @@ class TGSpecialOrderService extends ChangeNotifier {
       case TGSpecialSort.fastestResponse:
         list.sort((a, b) => (a.responseHours ?? 99).compareTo(b.responseHours ?? 99));
     }
-    return list;
+    return layerByPromotion(list);
+  }
+
+  /// Paid manufacturer card style (VITRIN-4), or null for organic cards.
+  PromotionTier? promotionTierFor(String sellerKey) =>
+      PromotionService.instance.activeFor(kind: PromotionTargetKind.manufacturer, targetRef: sellerKey)?.tier;
+
+  /// Spotlight → Glow → Bold → organic; keeps the chosen sort inside each layer.
+  List<TGStoreProfile> layerByPromotion(List<TGStoreProfile> list) {
+    int rank(TGStoreProfile p) => switch (promotionTierFor(p.sellerKey)) {
+          PromotionTier.spotlight => 0,
+          PromotionTier.glow => 1,
+          PromotionTier.bold => 2,
+          null => 3,
+        };
+    final indexed = [for (var i = 0; i < list.length; i++) (i: i, p: list[i], r: rank(list[i]))];
+    indexed.sort((a, b) => a.r != b.r ? a.r.compareTo(b.r) : a.i.compareTo(b.i));
+    return [for (final e in indexed) e.p];
   }
 
   int get manufacturerCount => TGSellerProfileService.instance.specialOrderManufacturers.length;
@@ -201,6 +222,7 @@ class TGSpecialOrderService extends ChangeNotifier {
 
   TGSpecialRequest? byRequestNo(String no) {
     ensureSeeded();
+    _sweepConsentWindows();
     final n = no.trim().toUpperCase();
     return requests.where((r) => r.requestNo.toUpperCase() == n || r.id == no).firstOrNull;
   }
@@ -212,6 +234,7 @@ class TGSpecialOrderService extends ChangeNotifier {
 
   List<TGSpecialRequest> forBuyer(String buyerId) {
     ensureSeeded();
+    _sweepConsentWindows();
     return requests.where((r) => r.buyerId == buyerId).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
@@ -221,7 +244,7 @@ class TGSpecialOrderService extends ChangeNotifier {
     final key = '${now.year}-${now.month}-${now.day}';
     return requests.where((r) {
       if (r.buyerId != buyerId) return false;
-      if (r.status == TGSpecialRequestStatus.draft) return false;
+      if (r.status == TGSpecialRequestStatus.draft || r.status == TGSpecialRequestStatus.awaitingConsent) return false;
       final c = r.createdAt;
       return '${c.year}-${c.month}-${c.day}' == key;
     }).length;
@@ -345,57 +368,135 @@ class TGSpecialOrderService extends ChangeNotifier {
     return quoteBlockReason(requestId, sellerId) == null;
   }
 
-  TGSpecialRequest submitRequest(TGSpecialRequest draft) {
+  static const consentWindow = Duration(hours: 24);
+  static const draftRetentionDays = 7;
+
+  /// Step 1 of sending: stores the request as `awaiting_consent`. Nothing is
+  /// distributed and no LeadAccess exists until [confirmConsent].
+  /// [replaceId] reuses a stored draft (resumed wizard).
+  TGSpecialRequest createAwaitingConsent(TGSpecialRequest draft, {String? replaceId}) {
     ensureSeeded();
     final now = TGClock.now();
-    final no = 'SO-2026-${(_reqSeq++).toString().padLeft(6, '0')}';
-    final held = draft.flags.contains('spam');
-    final status = held ? TGSpecialRequestStatus.held : TGSpecialRequestStatus.open;
-    final req = draft.copyWith(
-      status: status,
-      consentAt: now,
-      expiresAt: now.add(const Duration(days: 30)),
-      teamQueued: draft.routingMode != TGSpecialRoutingMode.selected,
-    );
+    final existing = replaceId == null ? -1 : requests.indexWhere((r) => r.id == replaceId && r.buyerId == draft.buyerId);
+    final seq = existing >= 0 ? null : _reqSeq++;
+    final id = existing >= 0 ? requests[existing].id : 'so-req-$seq';
+    final no = existing >= 0 ? requests[existing].requestNo : 'SO-2026-${seq.toString().padLeft(6, '0')}';
     final saved = TGSpecialRequest(
-      id: 'so-req-${requests.length + 1}',
+      id: id,
       requestNo: no,
-      buyerId: req.buyerId,
-      buyerName: req.buyerName,
-      companyName: req.companyName,
-      phone: req.phone,
-      email: req.email,
-      nip: req.nip,
-      projectTypes: req.projectTypes,
-      title: req.title,
-      description: req.description,
-      quantity: req.quantity,
-      widthMm: req.widthMm,
-      depthMm: req.depthMm,
-      heightMm: req.heightMm,
-      dimensionsText: req.dimensionsText,
-      material: req.material,
-      finish: req.finish,
-      budgetMin: req.budgetMin,
-      budgetMax: req.budgetMax,
-      deadline: req.deadline,
-      city: req.city,
-      voivodeship: req.voivodeship,
-      installationNeeded: req.installationNeeded,
-      deliveryNeeded: req.deliveryNeeded,
-      files: req.files,
-      routingMode: req.routingMode,
-      selectedSellerIds: req.selectedSellerIds,
-      contactPref: req.contactPref,
-      consentAt: req.consentAt,
-      status: req.status,
-      quoteLimit: req.quoteLimit,
+      buyerId: draft.buyerId,
+      buyerName: draft.buyerName,
+      companyName: draft.companyName,
+      phone: draft.phone,
+      email: draft.email,
+      nip: draft.nip,
+      projectTypes: draft.projectTypes,
+      title: draft.title,
+      description: draft.description,
+      quantity: draft.quantity,
+      widthMm: draft.widthMm,
+      depthMm: draft.depthMm,
+      heightMm: draft.heightMm,
+      dimensionsText: draft.dimensionsText,
+      material: draft.material,
+      finish: draft.finish,
+      budgetMin: draft.budgetMin,
+      budgetMax: draft.budgetMax,
+      deadline: draft.deadline,
+      city: draft.city,
+      voivodeship: draft.voivodeship,
+      installationNeeded: draft.installationNeeded,
+      deliveryNeeded: draft.deliveryNeeded,
+      files: draft.files,
+      routingMode: draft.routingMode,
+      selectedSellerIds: draft.selectedSellerIds,
+      contactPref: draft.contactPref,
+      consentAt: now,
+      status: TGSpecialRequestStatus.awaitingConsent,
+      quoteLimit: draft.quoteLimit,
       createdAt: now,
-      expiresAt: req.expiresAt,
-      flags: req.flags,
-      teamQueued: req.teamQueued,
+      expiresAt: now.add(const Duration(days: 30)),
+      flags: draft.flags,
+      teamQueued: draft.routingMode != TGSpecialRoutingMode.selected,
+      consentDeadline: now.add(consentWindow),
     );
-    requests.insert(0, saved);
+    if (existing >= 0) {
+      requests[existing] = saved;
+    } else {
+      requests.insert(0, saved);
+    }
+    TGAnalytics.track('so_request_awaiting_consent', {'requestNo': no});
+    notifyListeners();
+    return saved;
+  }
+
+  /// `awaiting_consent` request the buyer may still confirm, or null.
+  TGSpecialRequest? pendingConsent(String id, {required String userId}) {
+    _sweepConsentWindows();
+    final r = byId(id);
+    if (r == null || r.buyerId != userId || r.status != TGSpecialRequestStatus.awaitingConsent) return null;
+    return r;
+  }
+
+  /// Step 2: stores [TGSpecialRequestConsent], then distributes the request
+  /// (LeadAccess, team queue, notifications) and sends the e-mail/SMS proof.
+  TGSpecialRequest confirmConsent(String id, {required String userId, required String locale}) {
+    final pending = pendingConsent(id, userId: userId);
+    if (pending == null) throw StateError('so_consent_not_found');
+    if (!canSubmitToday(userId)) throw StateError('ui_so_daily_limit');
+    final i = requests.indexWhere((r) => r.id == id);
+    final now = TGClock.now();
+    final held = pending.flags.contains('spam');
+    final saved = pending.copyWith(
+      status: held ? TGSpecialRequestStatus.held : TGSpecialRequestStatus.open,
+      consentAt: now,
+      createdAt: now,
+      expiresAt: now.add(const Duration(days: 30)),
+      clearConsentDeadline: true,
+      clearDraftKeepUntil: true,
+    );
+    requests[i] = saved;
+    final consent = TGSpecialConsentService.instance.record(request: saved, userId: userId, locale: locale);
+    _publish(saved);
+    TGSpecialConsentService.instance.sendProof(saved, consent);
+    return saved;
+  }
+
+  /// "Cancel request" on the confirm page: back to draft, kept for 7 days.
+  TGSpecialRequest? cancelConsent(String id, {required String userId}) {
+    final r = pendingConsent(id, userId: userId);
+    if (r == null) return null;
+    final i = requests.indexWhere((e) => e.id == id);
+    requests[i] = _toDraft(r, TGClock.now());
+    TGAnalytics.track('so_consent_cancelled', {'requestNo': r.requestNo});
+    notifyListeners();
+    return requests[i];
+  }
+
+  TGSpecialRequest _toDraft(TGSpecialRequest r, DateTime now) => r.copyWith(
+        status: TGSpecialRequestStatus.draft,
+        clearConsentDeadline: true,
+        draftKeepUntil: DurationService.addDays(now, draftRetentionDays),
+      );
+
+  /// Unconfirmed after 24 h → draft; drafts past their retention → deleted.
+  void _sweepConsentWindows() {
+    final now = TGClock.now();
+    var changed = false;
+    for (var i = 0; i < requests.length; i++) {
+      final r = requests[i];
+      if (r.status == TGSpecialRequestStatus.awaitingConsent && r.consentDeadline != null && !now.isBefore(r.consentDeadline!)) {
+        requests[i] = _toDraft(r, now);
+        changed = true;
+        TGAnalytics.track('so_consent_timeout', {'requestNo': r.requestNo});
+      }
+    }
+    final before = requests.length;
+    requests.removeWhere((r) => r.status == TGSpecialRequestStatus.draft && r.draftKeepUntil != null && !now.isBefore(r.draftKeepUntil!));
+    if (changed || requests.length != before) notifyListeners();
+  }
+
+  void _publish(TGSpecialRequest saved) {
     _grantAccess(saved);
     if (saved.teamQueued) teamQueue.add(saved.id);
 
@@ -420,7 +521,6 @@ class TGSpecialOrderService extends ChangeNotifier {
     _notifyNewLeads(saved);
     TGAnalytics.track('so_request_submit', {'requestNo': saved.requestNo, 'status': saved.status.name});
     notifyListeners();
-    return saved;
   }
 
   bool _sellerMatchesRequest(TGStoreProfile p, TGSpecialRequest r) {
@@ -825,7 +925,7 @@ class TGSpecialOrderService extends ChangeNotifier {
       TGSoAdminQueue.held => requests.where((r) => r.status == TGSpecialRequestStatus.held),
       TGSoAdminQueue.noQuotes => requests.where(_isNoQuotes),
       TGSoAdminQueue.reported => requests.where(_isReported),
-      TGSoAdminQueue.all => requests.where((r) => r.status != TGSpecialRequestStatus.draft),
+      TGSoAdminQueue.all => requests.where((r) => r.status != TGSpecialRequestStatus.draft && r.status != TGSpecialRequestStatus.awaitingConsent),
     };
     final needle = q.trim().toLowerCase();
     if (needle.isNotEmpty) {
@@ -1279,11 +1379,22 @@ class TGSpecialOrderService extends ChangeNotifier {
         closedAt: now.subtract(const Duration(days: 12)),
       ),
     ];
+    // CONSENT-1 mocks: one request still waiting for consent (no LeadAccess).
+    seeds.add(mk(
+      id: 'so-req-consent',
+      no: 'SO-2026-000143',
+      status: TGSpecialRequestStatus.awaitingConsent,
+      title: 'Bakery worktop with undershelf',
+      types: const [TGStoreSpecialty.worktopsTables],
+      sellers: const ['seller_inoxline'],
+      mode: TGSpecialRoutingMode.selected,
+      createdAgo: const Duration(hours: 3),
+    ).copyWith(consentDeadline: now.add(const Duration(hours: 21))));
     requests.addAll(seeds);
-    _reqSeq = 143;
+    _reqSeq = 144;
 
     for (final r in seeds) {
-      if (r.status == TGSpecialRequestStatus.draft) continue;
+      if (r.status == TGSpecialRequestStatus.draft || r.status == TGSpecialRequestStatus.awaitingConsent) continue;
       _grantAccess(r);
       if (r.teamQueued) teamQueue.add(r.id);
     }
@@ -1348,5 +1459,11 @@ class TGSpecialOrderService extends ChangeNotifier {
       installationIncluded: true,
       deliveryIncluded: true,
     ));
+
+    // CONSENT-1 mock: confirmed request whose SMS proof failed all automatic attempts.
+    final failedProof = requests.where((r) => r.id == 'so-req-2').firstOrNull;
+    if (failedProof != null) {
+      TGSpecialConsentService.instance.seedFailedDelivery(failedProof, approvedAt: failedProof.consentAt);
+    }
   }
 }

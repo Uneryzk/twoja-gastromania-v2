@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/products/tg_geo.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_query.dart';
 import 'package:twoja_gastromania/tg_core/promotion_engine.dart';
@@ -83,7 +84,7 @@ bool _availMatches(RestaurantListing r, RestaurantAvailFilter a) {
 List<RestaurantListing> applyRestaurantFilters(Iterable<RestaurantListing> all, RestaurantQueryState q) {
   Iterable<RestaurantListing> it = all.where((r) => r.isPubliclyVisible);
 
-  if (q.verifiedOnly) it = it.where((r) => r.seller.verified);
+  if (q.verifiedOnly) it = it.where((r) => tgShowsVerifiedSellerBadge(r.seller));
   if (q.businessTypes.isNotEmpty) it = it.where((r) => q.businessTypes.contains(r.businessType));
   if (q.voivodeships.isNotEmpty) {
     final wanted = q.voivodeships.map(TGGeo.normalize).toSet();

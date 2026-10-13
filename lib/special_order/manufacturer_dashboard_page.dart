@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
@@ -17,8 +19,9 @@ import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/payment/payment_form.dart';
 import 'package:twoja_gastromania/tg_components/founder_price_row.dart';
-import 'package:twoja_gastromania/tg_services/audit_service.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
+import 'package:twoja_gastromania/tg_components/tg_manufacturer_promote_panel.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/priority_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
@@ -26,6 +29,7 @@ import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 import 'package:twoja_gastromania/tg_services/sponsor_slot_service.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
+import 'package:twoja_gastromania/payment/payment_models.dart';
 
 class ManufacturerDashboardPage extends StatefulWidget {
   const ManufacturerDashboardPage({super.key, this.tab});
@@ -49,7 +53,6 @@ class _ManufacturerDashboardPageState extends State<ManufacturerDashboardPage> w
     TGSpecialOrderService.instance.ensureSeeded();
     TGPriorityService.instance.ensureSeeded();
     TGFounderService.instance.ensureSeeded();
-    TGAuditService.instance.ensureSeeded();
     TGSponsorSlotService.instance.ensureSeeded();
     final flags = TGRevenueConfigService.instance.flags;
     final labels = <String>[
@@ -57,7 +60,7 @@ class _ManufacturerDashboardPageState extends State<ManufacturerDashboardPage> w
       'early',
       'analytics',
       'programs',
-      if (flags.auditProgram) 'audit',
+      'promote',
       if (flags.sponsorSlots) 'sponsor',
     ];
     final want = widget.tab ?? 'overview';
@@ -129,7 +132,7 @@ class _ManufacturerDashboardPageState extends State<ManufacturerDashboardPage> w
                         Tab(text: context.t('ui_mfr_tab_early')),
                         Tab(text: context.t('ui_mfr_tab_analytics')),
                         Tab(text: context.t('ui_mfr_tab_programs')),
-                        if (TGRevenueConfigService.instance.flags.auditProgram) Tab(text: context.t('ui_mfr_tab_audit')),
+                        Tab(text: context.t('ui_mfr_tab_promote')),
                         if (TGRevenueConfigService.instance.flags.sponsorSlots) Tab(text: context.t('ui_mfr_tab_sponsor')),
                       ],
                       onTap: (i) {
@@ -142,13 +145,13 @@ class _ManufacturerDashboardPageState extends State<ManufacturerDashboardPage> w
                       animation: _tabs,
                       builder: (_, __) {
                         final flags = TGRevenueConfigService.instance.flags;
-                        // Map visible tab index → content (Audit/Sponsor tabs omitted when flags off).
+                        // Map visible tab index → content (Sponsor tab omitted when its flag is off).
                         final labels = <String>[
                           'overview',
                           'early',
                           'analytics',
                           'programs',
-                          if (flags.auditProgram) 'audit',
+                          'promote',
                           if (flags.sponsorSlots) 'sponsor',
                         ];
                         final key = _tabs.index < labels.length ? labels[_tabs.index] : 'overview';
@@ -161,7 +164,7 @@ class _ManufacturerDashboardPageState extends State<ManufacturerDashboardPage> w
                               onDays: (d) => setState(() => _analyticsDays = d),
                             ),
                           'programs' => _ProgramsTab(sellerId: sellerId, listings: auth.ownedListings),
-                          'audit' => _AuditTab(sellerId: sellerId),
+                          'promote' => TGManufacturerPromotePanel(sellerId: sellerId),
                           'sponsor' => _SponsorTab(sellerId: sellerId),
                           _ => _OverviewTab(sellerId: sellerId, plan: plan),
                         };
@@ -719,392 +722,6 @@ class _ProgramsTab extends StatelessWidget {
   }
 }
 
-class _AuditTab extends StatefulWidget {
-  const _AuditTab({required this.sellerId});
-  final String sellerId;
-  @override
-  State<_AuditTab> createState() => _AuditTabState();
-}
-
-class _AuditTabState extends State<_AuditTab> {
-  @override
-  Widget build(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-    final svc = TGAuditService.instance;
-    final app = svc.latestFor(widget.sellerId);
-    final err = svc.eligibilityError(widget.sellerId);
-    final reduce = MediaQuery.disableAnimationsOf(context);
-    const stages = ['Applied', 'Paid', 'Documents & video', 'In review', 'Approved/Rejected'];
-    double progressFor(TGAuditApplicationStatus? s) => switch (s) {
-          null => 0,
-          TGAuditApplicationStatus.applied => 0.2,
-          TGAuditApplicationStatus.paid => 0.4,
-          TGAuditApplicationStatus.docs => 0.6,
-          TGAuditApplicationStatus.inReview ||
-          TGAuditApplicationStatus.liveVisitRequested ||
-          TGAuditApplicationStatus.visitScheduled ||
-          TGAuditApplicationStatus.visitDone =>
-            0.8,
-          TGAuditApplicationStatus.approved || TGAuditApplicationStatus.rejected || TGAuditApplicationStatus.revoked => 1.0,
-        };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(context.t('ui_mfr_audit_title'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-        const SizedBox(height: 6),
-        Text(
-          context.t('ui_mfr_audit_pitch', {'fee': '${TGAuditService.feePln}', 'renewal': '${TGAuditService.renewalPln}'}),
-          style: theme.bodySmall,
-        ),
-        const SizedBox(height: 8),
-        Text(context.t('ui_mfr_audit_no_refund'), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
-        for (final line in const [
-          'KRS/NIP verification',
-          'Workshop address',
-          'Workshop and equipment video (file or YouTube/Vimeo link)',
-          'Liability insurance (OC)',
-          '3 references',
-          'Sample project documentation',
-        ])
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(children: [Icon(Icons.check, size: 16, color: theme.primary), const SizedBox(width: 8), Expanded(child: Text(line))]),
-          ),
-        const SizedBox(height: 12),
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: progressFor(app?.status)),
-          duration: Duration(milliseconds: reduce ? 0 : 250),
-          builder: (_, v, __) => LinearProgressIndicator(value: v, minHeight: 8, color: theme.primary, backgroundColor: theme.alternate),
-        ),
-        const SizedBox(height: 6),
-        Text(stages.join(' → '), style: theme.bodySmall),
-        if (app != null) ...[
-          const SizedBox(height: 8),
-          Text('Status: ${app.status.name}${app.validUntil != null ? " · valid until ${TGFounderService.fmtDate(app.validUntil!)}" : ""}', style: const TextStyle(fontWeight: FontWeight.w800)),
-          if (app.decisionNote != null) Text(app.decisionNote!, style: theme.bodySmall),
-          if (app.status == TGAuditApplicationStatus.liveVisitRequested)
-            Text('Please schedule a short verification call (10–15 min, not recorded) within 7 days.', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
-        ],
-        const SizedBox(height: 16),
-        if (err != null)
-          Text(err, style: const TextStyle(color: TGColors.error, fontWeight: FontWeight.w700))
-        else if (app == null || app.status == TGAuditApplicationStatus.rejected)
-          TGButton(
-            onPressed: () => _startApply(context, svc, freeReapply: app?.status == TGAuditApplicationStatus.rejected && !(app?.reapplyUsed ?? false)),
-            label: app?.status == TGAuditApplicationStatus.rejected && !(app?.reapplyUsed ?? false) ? 'Fix and re-apply (free once)' : 'Apply',
-            height: 48,
-          )
-        else if (app.status == TGAuditApplicationStatus.paid || app.status == TGAuditApplicationStatus.docs)
-          TGButton(
-            onPressed: () => _openDocsVideo(context, svc, app),
-            label: 'Documents & workshop video',
-            height: 48,
-          )
-        else if (app.status == TGAuditApplicationStatus.liveVisitRequested)
-          TGButton(
-            onPressed: () {
-              svc.scheduleLiveVisit(app.id, TGClock.now().add(const Duration(days: 2)));
-              setState(() {});
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Visit scheduled (mock calendar)')));
-            },
-            label: 'Schedule video call',
-            height: 48,
-          )
-        else
-          Text('Application in progress.', style: theme.bodyMedium.override(fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-
-  Future<void> _startApply(BuildContext context, TGAuditService svc, {required bool freeReapply}) async {
-    final theme = FlutterFlowTheme.of(context);
-    final created = svc.apply(sellerId: widget.sellerId, freeReapply: freeReapply);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: theme.secondaryBackground,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(ctx).bottom),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(freeReapply ? 'Free re-apply — no refund on later rejection' : 'Audit fee — no refund if rejected', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-            const SizedBox(height: 12),
-            if (freeReapply)
-              TGButton(
-                onPressed: () {
-                  svc.markPaid(created.id);
-                  Navigator.pop(ctx);
-                  _openDocsVideo(context, svc, created);
-                },
-                label: 'Continue (no charge)',
-                height: 48,
-              )
-            else
-              PaymentForm(
-                amountPln: TGAuditService.feePln.toDouble(),
-                onPaid: () {
-                  svc.markPaid(created.id);
-                  Navigator.pop(ctx);
-                  _openDocsVideo(context, svc, created);
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-    setState(() {});
-  }
-
-  Future<void> _openDocsVideo(BuildContext context, TGAuditService svc, TGAuditApplication app) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
-      builder: (ctx) => FractionallySizedBox(
-        heightFactor: 0.92,
-        child: _AuditDocsVideoSheet(
-          application: app,
-          onDone: () {
-            Navigator.pop(ctx);
-            setState(() {});
-          },
-        ),
-      ),
-    );
-    setState(() {});
-  }
-}
-
-class _AuditDocsVideoSheet extends StatefulWidget {
-  const _AuditDocsVideoSheet({required this.application, required this.onDone});
-  final TGAuditApplication application;
-  final VoidCallback onDone;
-
-  @override
-  State<_AuditDocsVideoSheet> createState() => _AuditDocsVideoSheetState();
-}
-
-class _AuditDocsVideoSheetState extends State<_AuditDocsVideoSheet> {
-  TGAuditVideoKind _kind = TGAuditVideoKind.file;
-  final _link = TextEditingController();
-  final _address = TextEditingController();
-  String? _fileUrl;
-  double _uploadProgress = 0;
-  String? _error;
-  bool _uploading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final v = widget.application.workshopVideo;
-    _kind = v?.kind ?? TGAuditVideoKind.file;
-    _link.text = v?.linkUrl ?? '';
-    _fileUrl = v?.fileUrl;
-    _address.text = widget.application.workshopAddress.isEmpty ? 'Workshop address' : widget.application.workshopAddress;
-    if (v == null || !v.challengeValid) {
-      TGAuditService.instance.regenerateCode(widget.application.id);
-    }
-  }
-
-  @override
-  void dispose() {
-    _link.dispose();
-    _address.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-    final svc = TGAuditService.instance;
-    final app = svc.latestFor(widget.application.sellerId) ?? widget.application;
-    final code = app.workshopVideo?.challengeCode ?? '----';
-    final reduce = MediaQuery.disableAnimationsOf(context);
-    final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              children: [
-                Text('Documents & workshop video', style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
-                const SizedBox(height: 8),
-                TextField(controller: _address, decoration: const InputDecoration(labelText: 'Workshop address', border: OutlineInputBorder())),
-                const SizedBox(height: 8),
-                Text('Documents: KRS/CEIDG, OC policy PDF, ≥3 references, sample project (mock attached)', style: theme.bodySmall),
-                const SizedBox(height: 16),
-                Text('Verification code', style: const TextStyle(fontWeight: FontWeight.w800)),
-                AnimatedOpacity(
-                  opacity: 1,
-                  duration: Duration(milliseconds: reduce ? 0 : 150),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(border: Border.all(color: theme.primary, width: 2), borderRadius: BorderRadius.circular(12)),
-                    child: Row(
-                      children: [
-                        Text(code, style: theme.headlineSmall.override(fontWeight: FontWeight.w900, letterSpacing: 4)),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () {
-                            svc.regenerateCode(app.id);
-                            setState(() {});
-                          },
-                          child: const Text('New code'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Text('Valid 72 hours', style: theme.bodySmall),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final chip in const [
-                      'Show the code on paper with today\'s date',
-                      'the building or sign with the company name and street number',
-                      'the workshop interior',
-                      'your main machines (running if possible)',
-                      'a nameplate or serial number',
-                    ])
-                      Chip(label: Text(chip, style: const TextStyle(fontSize: 11))),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text('Don\'t show customer documents. Avoid showing employees\' faces where possible.', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 16),
-                Text('Workshop & equipment video', style: const TextStyle(fontWeight: FontWeight.w800)),
-                RadioListTile<TGAuditVideoKind>(
-                  value: TGAuditVideoKind.file,
-                  groupValue: _kind,
-                  onChanged: (v) => setState(() => _kind = v!),
-                  title: const Text('Upload a video file (recommended)'),
-                  subtitle: const Text('MP4/MOV, 60–180 s, ≤300 MB'),
-                ),
-                RadioListTile<TGAuditVideoKind>(
-                  value: TGAuditVideoKind.link,
-                  groupValue: _kind,
-                  onChanged: (v) => setState(() => _kind = v!),
-                  title: const Text('Add a video link'),
-                  subtitle: const Text('YouTube/Vimeo unlisted/private only. The link must stay available during the review and while the badge is valid.'),
-                ),
-                if (_kind == TGAuditVideoKind.file) ...[
-                  if (phone)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _mockUpload,
-                            icon: const Icon(Icons.videocam_outlined),
-                            label: const Text('Record video'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _mockUpload,
-                            icon: const Icon(Icons.folder_open),
-                            label: const Text('Choose file'),
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    OutlinedButton.icon(onPressed: _mockUpload, icon: const Icon(Icons.upload_file), label: Text(_fileUrl == null ? 'Choose MP4/MOV' : 'Replace video')),
-                  if (_uploading || _fileUrl != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 36,
-                            height: 36,
-                            child: CircularProgressIndicator(value: _uploading ? _uploadProgress : 1, color: theme.primary),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(_uploading ? 'Uploading… ${(_uploadProgress * 100).round()}%' : 'Uploaded (mock)', style: const TextStyle(fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                    ),
-                ] else
-                  TextField(
-                    controller: _link,
-                    decoration: const InputDecoration(labelText: 'YouTube / Vimeo URL', border: OutlineInputBorder()),
-                  ),
-                if (_error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(_error!, style: const TextStyle(color: TGColors.error, fontWeight: FontWeight.w700)),
-                ],
-              ],
-            ),
-          ),
-          TGButton(
-            onPressed: () {
-              try {
-                final video = app.workshopVideo!;
-                if (_kind == TGAuditVideoKind.file) {
-                  if (_fileUrl == null) throw StateError('Please add your workshop video.');
-                  svc.submitDocumentsAndVideo(
-                    app.id,
-                    workshopAddress: _address.text.trim(),
-                    docs: const ['mock://krs.pdf', 'mock://oc.pdf', 'mock://refs.pdf', 'mock://sample.pdf'],
-                    video: video.copyWith(kind: TGAuditVideoKind.file, fileUrl: _fileUrl, durationSec: 120, submittedAt: TGClock.now()),
-                  );
-                } else {
-                  final err = TGAuditService.validateVideoLink(_link.text);
-                  if (err != null) throw StateError(err);
-                  svc.submitDocumentsAndVideo(
-                    app.id,
-                    workshopAddress: _address.text.trim(),
-                    docs: const ['mock://krs.pdf', 'mock://oc.pdf', 'mock://refs.pdf', 'mock://sample.pdf'],
-                    video: video.copyWith(
-                      kind: TGAuditVideoKind.link,
-                      linkUrl: _link.text.trim(),
-                      host: TGAuditService.hostFromLink(_link.text),
-                      submittedAt: TGClock.now(),
-                    ),
-                  );
-                }
-                svc.submitForReview(app.id);
-                widget.onDone();
-              } catch (e) {
-                setState(() => _error = e.toString().replaceFirst('Bad state: ', ''));
-              }
-            },
-            label: 'Submit for review',
-            height: 48,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _mockUpload() async {
-    setState(() {
-      _uploading = true;
-      _uploadProgress = 0;
-      _error = null;
-    });
-    for (var i = 1; i <= 10; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 40));
-      if (!mounted) return;
-      setState(() => _uploadProgress = i / 10);
-    }
-    setState(() {
-      _uploading = false;
-      _fileUrl = 'mock://workshop/${widget.application.workshopVideo?.challengeCode ?? "vid"}.mp4';
-    });
-  }
-}
-
 class _SponsorTab extends StatefulWidget {
   const _SponsorTab({required this.sellerId});
   final String sellerId;
@@ -1115,22 +732,146 @@ class _SponsorTab extends StatefulWidget {
 class _SponsorTabState extends State<_SponsorTab> {
   TGStoreSpecialty? _pickedSpec;
   String? _pickedRegion;
+  int _duration = _sponsorDays;
+  DateTime? _start;
+
+  TGSponsorSlotService get _svc => TGSponsorSlotService.instance;
+
+  void _pickSegment(TGStoreSpecialty spec, String region) {
+    setState(() {
+      _pickedSpec = spec;
+      _pickedRegion = region;
+      _start = _svc.nextAvailableStart(spec, region, _duration, ignoreHoldOf: widget.sellerId);
+    });
+  }
+
+  void _pickDuration(int d) {
+    setState(() {
+      _duration = d;
+      if (_pickedSpec != null && _pickedRegion != null) {
+        final keep = _start != null && _svc.windowFree(_pickedSpec!, _pickedRegion!, _start!, d, ignoreHoldOf: widget.sellerId);
+        if (!keep) _start = _svc.nextAvailableStart(_pickedSpec!, _pickedRegion!, d, ignoreHoldOf: widget.sellerId);
+      }
+    });
+  }
+
+  String _window(BuildContext context, DateTime start) {
+    final fmt = DateFormat('d MMM', Localizations.localeOf(context).languageCode);
+    return '${fmt.format(start)} – ${fmt.format(TGSponsorSlotService.addDays(start, _duration - 1))}';
+  }
+
+  Future<void> _chooseDate() async {
+    final spec = _pickedSpec, region = _pickedRegion;
+    if (spec == null || region == null) return;
+    final today = TGSponsorSlotService.dayOf(TGClock.now());
+    final last = TGSponsorSlotService.addDays(today, _svc.pricing.horizonDays - 1);
+    final initial = _start ?? _svc.nextAvailableStart(spec, region, _duration, ignoreHoldOf: widget.sellerId);
+    if (initial == null) return;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: today,
+      lastDate: last,
+      selectableDayPredicate: (d) => _svc.windowFree(spec, region, d, _duration, ignoreHoldOf: widget.sellerId),
+    );
+    if (picked != null && mounted) setState(() => _start = TGSponsorSlotService.dayOf(picked));
+  }
+
+  Future<void> _holdAndPay() async {
+    final spec = _pickedSpec, region = _pickedRegion, start = _start;
+    if (spec == null || region == null || start == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final TGSponsorHold hold;
+    try {
+      hold = _svc.hold(sellerId: widget.sellerId, specialty: spec, region: region, startsAt: start, durationDays: _duration);
+    } on StateError catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(context.t(e.message))));
+      setState(() => _start = _svc.nextAvailableStart(spec, region, _duration, ignoreHoldOf: widget.sellerId));
+      return;
+    }
+    final theme = FlutterFlowTheme.of(context);
+    final price = _svc.priceForSeller(widget.sellerId, _duration);
+    final timeFmt = DateFormat('d MMM HH:mm', Localizations.localeOf(context).languageCode);
+    var paid = false;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.secondaryBackground,
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewInsetsOf(ctx).bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(context.t('ui_mfr_reserve_slot'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+              ),
+              const SizedBox(height: 6),
+              Text('${context.t('ui_so_spec_${spec.name}')} · $region · ${_window(context, start)}', style: theme.bodySmall),
+              Text(context.t('ui_banner_hold_until', {'time': timeFmt.format(hold.expiresAt)}), style: theme.bodySmall),
+              FounderPriceRow(sellerId: widget.sellerId, listPrice: _svc.priceFor(_duration)),
+              const SizedBox(height: 12),
+              PaymentForm(
+                amountPln: price.toDouble(),
+                billingKind: TGPaymentKind.sponsorSlot,
+                billingDescription: 'Sponsor slot · ${spec.name} · $region · $_duration days',
+                onPaid: () {
+                  try {
+                    _svc.purchase(
+                      sellerId: widget.sellerId,
+                      specialty: spec,
+                      region: region,
+                      startsAt: start,
+                      durationDays: _duration,
+                      title: 'Sponsored ${spec.name} · $region',
+                      imageUrl: 'assets/images/banner-mutfak-ekipmanlari.jpg',
+                    );
+                    paid = true;
+                    Navigator.pop(ctx);
+                    messenger.showSnackBar(SnackBar(content: Text(context.t('ui_mfr_reserved_pending'))));
+                  } on StateError catch (e) {
+                    messenger.showSnackBar(SnackBar(content: Text(context.t(e.message))));
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      if (paid) {
+        _pickedSpec = null;
+        _pickedRegion = null;
+        _start = null;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    final svc = TGSponsorSlotService.instance;
+    final svc = _svc;
+    final cfg = PricingConfigService.instance.config;
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final err = svc.eligibilityError(widget.sellerId);
-    final price = svc.priceForSeller(widget.sellerId);
     final reduce = MediaQuery.disableAnimationsOf(context);
+    final picked = _pickedSpec != null && _pickedRegion != null;
+    final earliest = picked ? svc.nextAvailableStart(_pickedSpec!, _pickedRegion!, _duration, ignoreHoldOf: widget.sellerId) : null;
+    final price = svc.priceForSeller(widget.sellerId, _duration);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(context.t('ui_mfr_sponsor_title'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        Semantics(
+          header: true,
+          child: Text(context.t('ui_mfr_sponsor_title'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
+        ),
         const SizedBox(height: 6),
-        Text(context.t('ui_mfr_sponsor_sub', {'price': '${TGSponsorSlotService.pricePln}'}), style: theme.bodySmall),
+        Text(context.t('ui_mfr_sponsor_sub', {'price': '${svc.priceFor(_sponsorDays)}', 'days': '$_sponsorDays'}), style: theme.bodySmall),
         const SizedBox(height: 12),
         GridView.count(
           shrinkWrap: true,
@@ -1138,56 +879,68 @@ class _SponsorTabState extends State<_SponsorTab> {
           crossAxisCount: phone ? 2 : 4,
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          childAspectRatio: 1.3,
+          childAspectRatio: phone ? 1.15 : 1.3,
           children: [
             for (final seg in svc.segments)
               Builder(builder: (context) {
                 final slot = svc.slotAt(seg.specialty, seg.region);
                 final active = svc.activeFor(seg.specialty, seg.region);
-                final yours = active?.sellerId == widget.sellerId;
+                final yours = slot?.sellerId == widget.sellerId &&
+                    (slot?.status == TGSponsorSlotStatus.active ||
+                        slot?.status == TGSponsorSlotStatus.reserved ||
+                        slot?.status == TGSponsorSlotStatus.contentPending);
                 final selected = _pickedSpec == seg.specialty && _pickedRegion == seg.region;
+                final next = svc.nextAvailableStart(seg.specialty, seg.region, _duration, ignoreHoldOf: widget.sellerId);
                 final String label;
                 if (yours) {
-                  label = context.t('ui_mfr_slot_yours');
-                } else if (active != null) {
-                  label = context.t('ui_mfr_slot_booked', {'d': TGFounderService.fmtDate(active.endsAt!)});
-                } else if (slot?.status == TGSponsorSlotStatus.contentPending) {
-                  label = context.t('ui_mfr_slot_review');
+                  label = slot!.status == TGSponsorSlotStatus.contentPending
+                      ? context.t('ui_mfr_slot_review')
+                      : context.t('ui_mfr_slot_yours');
+                } else if (next == null) {
+                  label = context.t('ui_mfr_slot_full');
+                } else if (active != null || next.isAfter(TGSponsorSlotService.dayOf(TGClock.now()))) {
+                  label = context.t('ui_mfr_slot_from', {'d': TGFounderService.fmtDate(next)});
                 } else {
                   label = context.t('ui_mfr_slot_available');
                 }
-                return InkWell(
-                  onTap: active == null
-                      ? () => setState(() {
-                            _pickedSpec = seg.specialty;
-                            _pickedRegion = seg.region;
-                          })
-                      : null,
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: reduce ? 0 : 150),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: selected ? theme.primary : theme.tertiary, width: selected ? 2 : 1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.t('ui_so_spec_${seg.specialty.name}'),
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(seg.region, style: theme.bodySmall),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Expanded(child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700))),
-                            if (selected) const Icon(Icons.check_circle, size: 18, color: TGColors.cta),
-                          ],
-                        ),
-                      ],
+                final segName = context.t('ui_so_spec_${seg.specialty.name}');
+                return Semantics(
+                  button: next != null,
+                  selected: selected,
+                  label: '$segName, ${seg.region}, $label',
+                  excludeSemantics: true,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: next != null ? () => _pickSegment(seg.specialty, seg.region) : null,
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: reduce ? 0 : 150),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: selected ? theme.primary : theme.tertiary, width: selected ? 2 : 1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(segName,
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
+                          Text(seg.region, style: theme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const Spacer(),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(label,
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                              if (selected) const Icon(Icons.check_circle, size: 18, color: TGColors.cta),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -1195,52 +948,64 @@ class _SponsorTabState extends State<_SponsorTab> {
           ],
         ),
         const SizedBox(height: 16),
+        Semantics(
+          header: true,
+          child: Text(context.t('ui_mfr_slot_duration'), style: theme.labelLarge.override(fontWeight: FontWeight.w800)),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final d in TGSponsorSlotService.instance.pricing.durations)
+              ChoiceChip(
+                selected: _duration == d,
+                onSelected: (_) => _pickDuration(d),
+                label: Text(
+                  '${DurationFormatter.daysOf(context, d)} · ${svc.priceFor(d)} PLN · '
+                  '${cfg.perDayLabel(svc.priceFor(d), d, unit: context.t('ui_pln_per_day'))}',
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
         if (err != null)
           Text(err, style: const TextStyle(color: TGColors.error, fontWeight: FontWeight.w700))
-        else if (_pickedSpec != null && _pickedRegion != null)
-          TGButton(
-            onPressed: () async {
-              await showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: theme.secondaryBackground,
-                builder: (ctx) => Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(ctx).bottom),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(context.t('ui_mfr_reserve_slot'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
-                      FounderPriceRow(sellerId: widget.sellerId, listPrice: TGSponsorSlotService.pricePln),
-                      const SizedBox(height: 12),
-                      PaymentForm(
-                        amountPln: price.toDouble(),
-                        onPaid: () {
-                          try {
-                            svc.reserve(
-                              sellerId: widget.sellerId,
-                              specialty: _pickedSpec!,
-                              region: _pickedRegion!,
-                              title: 'Sponsored ${_pickedSpec!.name} · $_pickedRegion',
-                              imageUrl: 'assets/images/banner-mutfak-ekipmanlari.jpg',
-                            );
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('ui_mfr_reserved_pending'))));
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                          }
-                          setState(() {});
-                        },
-                      ),
-                    ],
+        else if (picked) ...[
+          if (earliest == null)
+            Text(context.t('ui_mfr_slot_no_window'), style: theme.bodySmall)
+          else ...[
+            Text(context.t('ui_banner_next_available', {'window': _window(context, earliest)}), style: theme.bodySmall),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _start == null ? '—' : _window(context, _start!),
+                    style: theme.bodyMedium.override(fontWeight: FontWeight.w800),
                   ),
                 ),
-              );
-              setState(() {});
-            },
-            label: context.t('ui_mfr_reserve_price', {'price': '$price'}),
-            height: 48,
-          ),
+                TextButton.icon(
+                  onPressed: _chooseDate,
+                  icon: const Icon(Icons.event_outlined, size: 18),
+                  label: Text(context.t('ui_mfr_slot_change_date')),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(context.t('ui_mfr_slot_flow'), style: theme.bodySmall),
+            const SizedBox(height: 12),
+            TGButton(
+              onPressed: _start == null ? null : _holdAndPay,
+              label: context.t('ui_mfr_reserve_price', {'price': '$price'}),
+              height: 48,
+            ),
+          ],
+        ] else
+          Text(context.t('ui_mfr_slot_pick_segment'), style: theme.bodySmall),
       ],
     );
   }
 }
+
+int get _sponsorDays => PricingConfigService.instance.config.sponsorSlot.durations.first;

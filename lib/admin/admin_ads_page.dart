@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
@@ -176,7 +177,7 @@ class _AdminAdsPageState extends State<AdminAdsPage> {
                               Text(s.title, style: const TextStyle(fontWeight: FontWeight.w900)),
                               Text('${s.kind.name} · ${s.targetUrl} · ${s.pricePln} PLN', style: theme.bodySmall),
                               Text(
-                                '${fmt.format(s.startsAt)} → ${fmt.format(s.endsAt)} · ${context.t(s.duration.labelKey)} · '
+                                '${fmt.format(s.startsAt)} → ${fmt.format(s.endsAt)} · ${DurationFormatter.daysOf(context, s.durationDays)} · '
                                 '${context.t('ui_admin_ad_corrections', {'n': '${ads.pricing.maxCorrections - s.correctionsUsed}'})}',
                                 style: theme.bodySmall,
                               ),

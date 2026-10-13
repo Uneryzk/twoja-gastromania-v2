@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/nav/nav.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/products/products_filters.dart';
 import 'package:twoja_gastromania/products/products_logic.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
@@ -277,7 +278,7 @@ void main() {
 
       expect(app.location, '/products?verified=1');
       expect(find.text('$expected results'), findsOneWidget);
-      expect(_cards(tester).every((c) => c.product.seller.verified), isTrue);
+      expect(_cards(tester).every((c) => tgShowsVerifiedSellerBadge(c.product.seller)), isTrue);
       _expectNoErrors(app);
     });
 
@@ -753,11 +754,11 @@ void main() {
 
   // =========================================================================
   group('6. Business model surfaces', () {
-    testWidgets('account pill opens the quota sheet: "Free listings: 2 of 3 left"', (tester) async {
+    testWidgets('account avatar opens the quota sheet: "Free listings: 2 of 3 left"', (tester) async {
       final app = await pumpTgApp(tester, location: '/products');
       app.auth.setScenario(TGEntitlementScenario.freeActive);
       await tester.pump();
-      await tester.tap(find.text('2 free left'));
+      await tester.tap(find.byKey(const Key('header-avatar')));
       await pumpFor(tester, const Duration(milliseconds: 700));
       expect(find.text('Free listings: 2 of 3 left'), findsOneWidget);
       expect(find.textContaining("They don't expire"), findsOneWidget);

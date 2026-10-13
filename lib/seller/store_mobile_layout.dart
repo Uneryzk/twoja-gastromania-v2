@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:twoja_gastromania/tg_components/tg_verified_info.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/product_detail/report_listing_sheet.dart';
@@ -62,7 +64,12 @@ class StoreMobileCoverIdentity extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(profile.name, style: theme.headlineMedium.override(fontSize: 24, lineHeight: 30 / 24, fontWeight: FontWeight.w800)),
-                  if (profile.verified) TGVerifiedSellerBadge(tooltip: context.t('ui_verified_store_tip'), pulse: true),
+                  if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(profile)))
+                    TGVerifiedSellerBadge(
+                      tooltip: tgVerifiedTooltip(context, tgSellerFromProfile(profile)),
+                      pulse: true,
+                      onTap: () => showTGVerifiedInfo(context, tgSellerFromProfile(profile), surface: 'store_header'),
+                    ),
                 ],
               ),
               const SizedBox(height: 8),

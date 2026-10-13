@@ -3,27 +3,20 @@ import 'package:flutter/foundation.dart';
 /// Paid / included listing promotion tiers (VITRIN-1).
 enum PromotionTier { bold, glow, spotlight }
 
+/// Product names stay untranslated in every locale.
+extension PromotionTierBrand on PromotionTier {
+  String get brand => switch (this) {
+        PromotionTier.bold => 'Bold',
+        PromotionTier.glow => 'Glow',
+        PromotionTier.spotlight => 'Spotlight',
+      };
+}
+
 enum PromotionTargetKind { listing, restaurant, manufacturer }
 
 enum PromotionStatus { scheduled, active, ended, cancelled, refunded }
 
 enum PromotionSource { paid, proIncluded, enterpriseIncluded, founderCredit, bundle }
-
-enum PromotionDurationKey { week1, week2, month1 }
-
-extension PromotionDurationKeyX on PromotionDurationKey {
-  int get days => switch (this) {
-        PromotionDurationKey.week1 => 7,
-        PromotionDurationKey.week2 => 14,
-        PromotionDurationKey.month1 => 30,
-      };
-
-  String get key => switch (this) {
-        PromotionDurationKey.week1 => '1w',
-        PromotionDurationKey.week2 => '2w',
-        PromotionDurationKey.month1 => '1m',
-      };
-}
 
 /// Admin-editable capacity / placement / pricing (single source of truth).
 @immutable
@@ -37,14 +30,11 @@ class PromotionConfig {
     this.pinnedMaxOnSort = 6,
     this.spotlightRepeatEvery = 12,
     this.spotlightRepeatMax = 2,
-    this.labelBold = true,
+    this.labelBold = false,
     this.prices = const {
-      (PromotionTier.bold, PromotionDurationKey.week2): 15,
-      (PromotionTier.bold, PromotionDurationKey.month1): 25,
-      (PromotionTier.glow, PromotionDurationKey.week2): 49,
-      (PromotionTier.glow, PromotionDurationKey.month1): 79,
-      (PromotionTier.spotlight, PromotionDurationKey.week2): 69,
-      (PromotionTier.spotlight, PromotionDurationKey.month1): 99,
+      PromotionTier.bold: {14: 15, 30: 25},
+      PromotionTier.glow: {14: 49, 30: 79},
+      PromotionTier.spotlight: {14: 69, 30: 99},
     },
   });
 
@@ -56,10 +46,18 @@ class PromotionConfig {
   final int pinnedMaxOnSort;
   final int spotlightRepeatEvery;
   final int spotlightRepeatMax;
+  /// Kept for stored-config compatibility; Bold cards never show a label.
   final bool labelBold;
-  final Map<(PromotionTier, PromotionDurationKey), int> prices;
+  /// `{tier: {durationDays: pricePln}}`.
+  final Map<PromotionTier, Map<int, int>> prices;
 
-  int pricePln(PromotionTier tier, PromotionDurationKey duration) => prices[(tier, duration)] ?? 0;
+  int pricePln(PromotionTier tier, int days) => prices[tier]?[days] ?? 0;
+
+  /// Duration options (days) offered for any tier, ascending.
+  List<int> get durations => {for (final m in prices.values) ...m.keys}.toList()..sort();
+
+  /// Shortest offered promotion period.
+  int get defaultDays => durations.first;
 
   int maxActive(PromotionTier tier) => switch (tier) {
         PromotionTier.spotlight => spotlightMaxActive,
@@ -77,7 +75,7 @@ class PromotionConfig {
     int? spotlightRepeatEvery,
     int? spotlightRepeatMax,
     bool? labelBold,
-    Map<(PromotionTier, PromotionDurationKey), int>? prices,
+    Map<PromotionTier, Map<int, int>>? prices,
   }) =>
       PromotionConfig(
         spotlightMaxActive: spotlightMaxActive ?? this.spotlightMaxActive,
@@ -103,7 +101,7 @@ class Promotion {
     required this.targetKind,
     required this.targetRef,
     required this.tier,
-    required this.durationKey,
+    required this.durationDays,
     required this.startsAt,
     required this.endsAt,
     required this.status,
@@ -118,7 +116,8 @@ class Promotion {
   final PromotionTargetKind targetKind;
   final String targetRef;
   final PromotionTier tier;
-  final PromotionDurationKey durationKey;
+  /// Paid period length in days.
+  final int durationDays;
   final DateTime startsAt;
   final DateTime endsAt;
   final PromotionStatus status;
@@ -143,7 +142,7 @@ class Promotion {
         targetKind: targetKind,
         targetRef: targetRef,
         tier: tier ?? this.tier,
-        durationKey: durationKey,
+        durationDays: durationDays,
         startsAt: startsAt ?? this.startsAt,
         endsAt: endsAt ?? this.endsAt,
         status: status ?? this.status,

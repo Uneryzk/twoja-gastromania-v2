@@ -9,107 +9,6 @@ enum TGSpecialObjectionReason { projectNotCompleted, buyerDidntChooseMe, differe
 
 enum TGPrivateBuyerReportReason { noShow, unresponsive, abusive, other }
 
-enum TGAuditApplicationStatus {
-  applied,
-  paid,
-  docs,
-  inReview,
-  liveVisitRequested,
-  visitScheduled,
-  visitDone,
-  approved,
-  rejected,
-  revoked,
-}
-
-enum TGAuditCheckResult { pass, fail, notProvided }
-
-enum TGAuditVideoKind { file, link }
-
-enum TGAuditCodeMatch { matches, doesntMatch, cantTell }
-
-@immutable
-class TGAuditWorkshopVideo {
-  const TGAuditWorkshopVideo({
-    required this.kind,
-    required this.challengeCode,
-    required this.challengeIssuedAt,
-    this.fileUrl,
-    this.linkUrl,
-    this.host,
-    this.durationSec,
-    this.submittedAt,
-  });
-
-  final TGAuditVideoKind kind;
-  final String? fileUrl;
-  final String? linkUrl;
-  final String? host;
-  final int? durationSec;
-  final String challengeCode;
-  final DateTime challengeIssuedAt;
-  final DateTime? submittedAt;
-
-  bool get challengeValid {
-    final age = TGClock.now().difference(challengeIssuedAt);
-    return age.inHours < 72;
-  }
-
-  bool get isComplete =>
-      submittedAt != null &&
-      ((kind == TGAuditVideoKind.file && (fileUrl?.isNotEmpty ?? false)) ||
-          (kind == TGAuditVideoKind.link && (linkUrl?.isNotEmpty ?? false)));
-
-  TGAuditWorkshopVideo copyWith({
-    TGAuditVideoKind? kind,
-    String? fileUrl,
-    String? linkUrl,
-    String? host,
-    int? durationSec,
-    String? challengeCode,
-    DateTime? challengeIssuedAt,
-    DateTime? submittedAt,
-  }) =>
-      TGAuditWorkshopVideo(
-        kind: kind ?? this.kind,
-        fileUrl: fileUrl ?? this.fileUrl,
-        linkUrl: linkUrl ?? this.linkUrl,
-        host: host ?? this.host,
-        durationSec: durationSec ?? this.durationSec,
-        challengeCode: challengeCode ?? this.challengeCode,
-        challengeIssuedAt: challengeIssuedAt ?? this.challengeIssuedAt,
-        submittedAt: submittedAt ?? this.submittedAt,
-      );
-}
-
-@immutable
-class TGAuditLiveVisit {
-  const TGAuditLiveVisit({
-    required this.requestedAt,
-    required this.requestedBy,
-    required this.reason,
-    required this.scheduleDueAt,
-    this.scheduledAt,
-    this.notes,
-  });
-
-  final DateTime requestedAt;
-  final String requestedBy;
-  final String reason;
-  final DateTime scheduleDueAt;
-  final DateTime? scheduledAt;
-  final String? notes;
-
-  TGAuditLiveVisit copyWith({DateTime? scheduledAt, String? notes}) => TGAuditLiveVisit(
-        requestedAt: requestedAt,
-        requestedBy: requestedBy,
-        reason: reason,
-        scheduleDueAt: scheduleDueAt,
-        scheduledAt: scheduledAt ?? this.scheduledAt,
-        notes: notes ?? this.notes,
-      );
-}
-
 enum TGSponsorSlotStatus { available, reserved, contentPending, active, expired, cancelled }
 
 @immutable
@@ -244,96 +143,6 @@ class TGPrivateBuyerReport {
 }
 
 @immutable
-class TGAuditChecklistItem {
-  const TGAuditChecklistItem({required this.id, required this.label, this.result = TGAuditCheckResult.notProvided, this.note});
-  final String id;
-  final String label;
-  final TGAuditCheckResult result;
-  final String? note;
-
-  TGAuditChecklistItem copyWith({TGAuditCheckResult? result, String? note}) =>
-      TGAuditChecklistItem(id: id, label: label, result: result ?? this.result, note: note ?? this.note);
-}
-
-class TGAuditApplication {
-  TGAuditApplication({
-    required this.id,
-    required this.sellerId,
-    required this.status,
-    required this.createdAt,
-    this.paidAt,
-    this.decidedAt,
-    this.validUntil,
-    this.decisionNote,
-    this.reapplyUsed = false,
-    this.workshopAddress = '',
-    this.visitNote = '',
-    this.docPaths = const [],
-    this.workshopVideo,
-    this.liveVisit,
-    this.codeMatch,
-    this.linkAckChecked = false,
-    this.decisionPath,
-    this.videoDeleteAt,
-    List<TGAuditChecklistItem>? checklist,
-    List<({String viewer, DateTime at})>? viewLog,
-  })  : checklist = checklist ?? defaultChecklist(),
-        viewLog = viewLog ?? [];
-
-  static List<TGAuditChecklistItem> defaultChecklist() => [
-        const TGAuditChecklistItem(id: 'krs', label: 'Registry match (KRS/CEIDG)'),
-        const TGAuditChecklistItem(id: 'address', label: 'Workshop address matches video'),
-        const TGAuditChecklistItem(id: 'oc', label: 'Liability insurance (OC) valid'),
-        const TGAuditChecklistItem(id: 'refs', label: 'References'),
-        const TGAuditChecklistItem(id: 'sample', label: 'Sample project documentation'),
-        const TGAuditChecklistItem(id: 'video', label: 'Workshop video (code + address + equipment)'),
-      ];
-
-  final String id;
-  final String sellerId;
-  TGAuditApplicationStatus status;
-  final DateTime createdAt;
-  DateTime? paidAt;
-  DateTime? decidedAt;
-  DateTime? validUntil;
-  String? decisionNote;
-  bool reapplyUsed;
-  String workshopAddress;
-  String visitNote;
-  List<String> docPaths;
-  TGAuditWorkshopVideo? workshopVideo;
-  TGAuditLiveVisit? liveVisit;
-  TGAuditCodeMatch? codeMatch;
-  bool linkAckChecked;
-  /// `direct` | `after_live_visit`
-  String? decisionPath;
-  DateTime? videoDeleteAt;
-  List<TGAuditChecklistItem> checklist;
-  List<({String viewer, DateTime at})> viewLog;
-
-  bool get badgeActive =>
-      status == TGAuditApplicationStatus.approved && validUntil != null && TGClock.now().isBefore(validUntil!);
-
-  bool get hadLiveVisit =>
-      status == TGAuditApplicationStatus.visitDone ||
-      liveVisit?.scheduledAt != null ||
-      decisionPath == 'after_live_visit';
-
-  bool get allChecklistMarked => checklist.every((c) => c.result != TGAuditCheckResult.notProvided);
-
-  bool get videoChecklistOk {
-    final v = checklist.where((c) => c.id == 'video').firstOrNull;
-    return v != null && v.result == TGAuditCheckResult.pass;
-  }
-
-  bool get canApprove {
-    if (!allChecklistMarked || !videoChecklistOk) return false;
-    if (workshopVideo?.kind == TGAuditVideoKind.link && !linkAckChecked) return false;
-    return true;
-  }
-}
-
-@immutable
 class TGSponsorSlot {
   const TGSponsorSlot({
     required this.id,
@@ -348,6 +157,8 @@ class TGSponsorSlot {
     this.endsAt,
     this.paidAmount,
     this.decisionNote,
+    this.durationDays,
+    this.refundPln,
   });
 
   final String id;
@@ -362,6 +173,8 @@ class TGSponsorSlot {
   final DateTime? endsAt;
   final int? paidAmount;
   final String? decisionNote;
+  final int? durationDays;
+  final int? refundPln;
 
   String get segmentKey => '${specialty.name}|$region';
 
@@ -375,6 +188,7 @@ class TGSponsorSlot {
     DateTime? endsAt,
     int? paidAmount,
     String? decisionNote,
+    int? refundPln,
   }) =>
       TGSponsorSlot(
         id: id,
@@ -389,6 +203,8 @@ class TGSponsorSlot {
         endsAt: endsAt ?? this.endsAt,
         paidAmount: paidAmount ?? this.paidAmount,
         decisionNote: decisionNote ?? this.decisionNote,
+        durationDays: durationDays,
+        refundPln: refundPln ?? this.refundPln,
       );
 }
 

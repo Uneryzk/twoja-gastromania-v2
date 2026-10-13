@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_review.dart';
-import 'package:twoja_gastromania/tg_services/audit_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
@@ -19,7 +19,6 @@ void main() {
     TGRevenueConfigService.instance.reset();
     TGSpecialOrderService.instance.reset();
     TGSpecialReviewService.instance.reset();
-    TGAuditService.instance.reset();
     TGSponsorSlotService.instance.reset();
   });
 
@@ -50,22 +49,6 @@ void main() {
     );
   });
 
-  test('audited manufacturers: workshop video flow, no mandatory live visit', () {
-    final svc = TGAuditService.instance..ensureSeeded();
-    expect(svc.enabled, isTrue);
-    expect(svc.isAudited('seller_gastropl'), isTrue);
-    expect(svc.applications.any((a) => a.workshopVideo?.kind == TGAuditVideoKind.link), isTrue);
-    expect(svc.applications.any((a) => a.codeMatch == TGAuditCodeMatch.doesntMatch), isTrue);
-    expect(svc.applications.any((a) => a.status == TGAuditApplicationStatus.liveVisitRequested), isTrue);
-    expect(svc.applications.any((a) => a.status == TGAuditApplicationStatus.rejected), isTrue);
-    expect(TGRevenueConfigService.instance.config.audit.liveVisitSampleRate, 0);
-    // Direct approve does not require live visit stages
-    final direct = svc.applications.firstWhere((a) => a.id == 'AUD-seed-direct');
-    expect(direct.decisionPath, 'direct');
-    expect(direct.workshopVideo?.isComplete, isTrue);
-    expect(svc.eligibilityError('seller_gastropl'), isNull);
-  });
-
   test('sponsor slots: one active per segment, founder discount path', () {
     final svc = TGSponsorSlotService.instance..ensureSeeded();
     expect(svc.enabled, isTrue);
@@ -73,13 +56,18 @@ void main() {
     final active = svc.activeFor(TGStoreSpecialty.extractionHoods, 'Śląskie');
     expect(active?.sellerId, 'seller_gastropl');
     expect(svc.sponsoredFor(specialty: TGStoreSpecialty.extractionHoods, region: 'Śląskie')?.sellerKey, 'seller_gastropl');
-    expect(() => svc.reserve(
-          sellerId: 'seller_inoxline',
-          specialty: TGStoreSpecialty.extractionHoods,
-          region: 'Śląskie',
-          title: 'Dup',
-          imageUrl: 'x',
-        ), throwsStateError);
+    expect(
+      () => svc.purchase(
+        sellerId: 'seller_inoxline',
+        specialty: TGStoreSpecialty.extractionHoods,
+        region: 'Śląskie',
+        startsAt: TGClock.now(),
+        durationDays: 7,
+        title: 'Dup',
+        imageUrl: 'x',
+      ),
+      throwsStateError,
+    );
   });
 
   test('day-30 prompt and 5-day silence via clock', () {

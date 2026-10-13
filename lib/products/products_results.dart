@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:twoja_gastromania/tg_components/tg_ranking_info.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/products/products_logic.dart';
@@ -173,7 +174,9 @@ class TGResultsToolbar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
+        const TGRankingInfoLink(surface: 'products', compact: true),
+        const SizedBox(width: 4),
         TGSortDropdown(value: query.sort, onChanged: (s) => onChanged(query.copyWith(sort: s, page: 1))),
         const SizedBox(width: 10),
         TGViewToggle(value: query.view, onChanged: (v) => onChanged(query.copyWith(view: v))),

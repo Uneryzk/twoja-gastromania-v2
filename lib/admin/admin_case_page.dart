@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
+import 'package:twoja_gastromania/admin/admin_console_pages.dart';
+import 'package:twoja_gastromania/tg_models/tg_account.dart';
 import 'package:twoja_gastromania/admin/admin_modals.dart';
 import 'package:twoja_gastromania/admin/listing_images_editor.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
@@ -400,7 +402,10 @@ class _RightColumn extends StatelessWidget {
               Text(seller == null ? '' : adminSellerKindL10n(context, seller.type, verified: seller.verified), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Text(context.t('ui_account_age', {'n': '$age'}), style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
-              Text('${context.t('ui_phone')} · ${profile?.phone ?? product?.phone ?? '—'}', style: const TextStyle(fontSize: 12)),
+              Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+                Text('${context.t('ui_phone')} · ', style: const TextStyle(fontSize: 12)),
+                AdminMaskedValue(userId: seller?.id ?? '', field: TGPiiField.phone, value: profile?.phone ?? product?.phone ?? ''),
+              ]),
               Text('NIP · ${profile?.nip ?? '—'}', style: const TextStyle(fontSize: 12)),
               Text(context.t('ui_past_reports', {'r': '${profile?.pastReports ?? 0}', 'm': '${profile?.pastRemovals ?? 0}'}), style: const TextStyle(fontSize: 12)),
               if (profile?.suspended == true) Text(context.t('ui_suspended'), style: const TextStyle(color: TGColors.error, fontWeight: FontWeight.w900)),
@@ -433,7 +438,10 @@ class _RightColumn extends StatelessWidget {
                   ListTile(
                     dense: true,
                     title: Text(s.seller.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                    subtitle: Text('${s.phone} · ${s.nip ?? context.t('ui_no_nip')}', style: const TextStyle(fontSize: 11)),
+                    subtitle: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      AdminMaskedValue(userId: s.seller.id, field: TGPiiField.phone, value: s.phone, style: const TextStyle(fontSize: 11)),
+                      Text(' · ${s.nip ?? context.t('ui_no_nip')}', style: const TextStyle(fontSize: 11)),
+                    ]),
                   )
               else
                 for (final m in matches)

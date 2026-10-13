@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
@@ -11,12 +13,16 @@ import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/admin/listing_images_editor.dart';
 import 'package:twoja_gastromania/dashboard/seller_moderation_sheets.dart';
+import 'package:twoja_gastromania/dashboard/dash2_widgets.dart';
 import 'package:twoja_gastromania/deals/sold_flow_sheet.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
+import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
+import 'package:twoja_gastromania/tg_services/listing_stats_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 
 class ListingRow extends StatelessWidget {
   const ListingRow({super.key, required this.product, this.onRenew, this.onRenewEarly, this.onResume});
@@ -44,6 +50,7 @@ class ListingRow extends StatelessWidget {
           children: [
             _SourceTag(product: product),
             _StatusChip(product: product),
+            if (product.isActive) ListingPromoStatus(product: product),
             if (TGFounderService.instance.evaluateListing(product).qualified) const _FounderQualifyChip(),
             if (ModerationService.instance.sellerCaseFor(product.listingNo)?.replyBy != null)
               _ReplyByChip(at: ModerationService.instance.sellerCaseFor(product.listingNo)!.replyBy!),
@@ -53,6 +60,10 @@ class ListingRow extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         ListingTimer(product: product),
+        if (_hasStats) ...[
+          const SizedBox(height: 6),
+          ListingMetricsStrip(listingKey: TGListingStatsService.keyOfProduct(product)),
+        ],
       ],
     );
     Widget info = Row(
@@ -181,11 +192,15 @@ class ListingRow extends StatelessWidget {
         ],
       );
     }
-    final more = product.status == TGListingStatus.active || product.status == TGListingStatus.expired
+    final canMove = auth.storePlan != null && product.source != TGListingSource.store;
+    final menu = product.status == TGListingStatus.active || product.status == TGListingStatus.expired
         ? PopupMenuButton<String>(
             key: Key('listing-more-${product.id}'),
             tooltip: context.t('ui_more'),
             onSelected: (v) async {
+              TGAnalytics.track('listing_action', {'action': v, 'listingId': product.id});
+              if (v == 'move_store') confirmMoveToStore(context, product);
+              if (v == 'insights') _openInsights(context);
               if (v == 'sold') showSoldFlow(context, product, mode: SoldFlowMode.markSold);
               if (v == 'remove') showSoldFlow(context, product, mode: SoldFlowMode.removeListing);
               if (v == 'banner') {
@@ -198,6 +213,8 @@ class ListingRow extends StatelessWidget {
               }
             },
             itemBuilder: (_) => [
+              PopupMenuItem(value: 'insights', child: Text(context.t('dash_insights_open'))),
+              if (canMove) PopupMenuItem(key: Key('listing-move-store-${product.id}'), value: 'move_store', child: Text(context.t('dash_move_store'))),
               PopupMenuItem(value: 'images', child: Text(context.t('ui_image_change'))),
               if (product.status == TGListingStatus.active && AdSlotService.instance.purchaseVisible)
                 const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
@@ -206,6 +223,20 @@ class ListingRow extends StatelessWidget {
             ],
           )
         : null;
+    final insights = _hasStats
+        ? IconButton(
+            key: Key('listing-insights-${product.id}'),
+            tooltip: context.t('dash_insights_open'),
+            onPressed: () {
+              TGAnalytics.track('listing_action', {'action': 'insights', 'listingId': product.id});
+              _openInsights(context);
+            },
+            icon: const Icon(Icons.insights_outlined, size: 20),
+          )
+        : null;
+    final Widget? more = menu == null && insights == null
+        ? null
+        : Row(mainAxisSize: MainAxisSize.min, children: [if (insights != null) insights, if (menu != null) menu]);
     final narrow = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     if (narrow) {
       return Padding(
@@ -253,19 +284,35 @@ class ListingRow extends StatelessWidget {
         ),
       );
     }
-    return InkWell(
-      onTap: () => context.go(product.detailPath),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: info),
-            if (action != null) ...[const SizedBox(width: 8), action],
-            if (more != null) more,
-          ],
+    return TGFocusRing(
+      radius: 8,
+      child: InkWell(
+        onTap: () => context.go(product.detailPath),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: info),
+              if (action != null) ...[const SizedBox(width: 8), action],
+              if (more != null) more,
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  bool get _hasStats => product.status != TGListingStatus.draft && product.status != TGListingStatus.paymentPending;
+
+  void _openInsights(BuildContext context) {
+    showListingInsights(
+      context,
+      listingKey: TGListingStatsService.keyOfProduct(product),
+      title: product.title,
+      listingNo: product.listingNo,
+      liveSince: product.publishedAt,
+      promotion: PromotionService.instance.effectiveListingPromo(product),
     );
   }
 }
@@ -285,7 +332,9 @@ class ListingTimer extends StatelessWidget {
     final expiring = product.isExpiringSoon;
     final label = expired
         ? context.t('ui_expired_ago', {'n': '$days'})
-        : (days <= 0 ? 'Ends today, ${DateTime.now().difference(product.expiresAt ?? DateTime.now()).inHours.abs()} h' : context.t('ui_days_left_n', {'n': '$days'}));
+        : product.expiresAt == null
+            ? context.t('ui_days_left_n', {'n': '$days'})
+            : DurationFormatter.remaining(product.expiresAt!, FFLocalizations.of(context).languageCode, now: TGClock.now());
     final value = expired ? 0.0 : (product.daysUntilExpiry() / TGPricing.listingPeriodDays).clamp(0.0, 1.0);
     final color = expired
         ? TGColors.border

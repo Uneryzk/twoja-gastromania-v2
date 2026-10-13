@@ -2,15 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/add_product/add_product_draft.dart';
 import 'package:twoja_gastromania/add_product/add_product_fields.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
+import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_invoice.dart';
+import 'package:twoja_gastromania/tg_services/billing_service.dart';
 
 class PaymentForm extends StatefulWidget {
   const PaymentForm({
@@ -22,6 +25,10 @@ class PaymentForm extends StatefulWidget {
     this.onCancelWait,
     this.onWaitingChanged,
     this.showPayButton = true,
+    this.billingKind,
+    this.billingDescription,
+    this.billingListingId,
+    this.billingListingNo,
   });
 
   final double amountPln;
@@ -31,6 +38,13 @@ class PaymentForm extends StatefulWidget {
   final VoidCallback? onCancelWait;
   final ValueChanged<bool>? onWaitingChanged;
   final bool showPayButton;
+
+  /// When set, a successful charge writes a [TGPayment] for the signed-in
+  /// user before [onPaid] runs. Checkout records its own cart payment.
+  final TGPaymentKind? billingKind;
+  final String? billingDescription;
+  final String? billingListingId;
+  final String? billingListingNo;
 
   @override
   State<PaymentForm> createState() => PaymentFormState();
@@ -176,7 +190,7 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
           if (!mounted) return;
           if (outcome == TGBlikOutcome.success) {
             TGAnalytics.emit('payment_success', {'method': 'blik'});
-            widget.onPaid();
+            _succeeded();
           } else if (outcome == TGBlikOutcome.declined) {
             TGAnalytics.emit('payment_failed', {'reason': 'declined'});
             setState(() {
@@ -195,7 +209,7 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
         });
       case TGPayMethod.przelewy24:
         _startWait(() {
-          if (mounted) widget.onPaid();
+          if (mounted) _succeeded();
         }, seconds: 2, delay: const Duration(milliseconds: 1500));
       case TGPayMethod.card:
         _open3ds();
@@ -218,8 +232,59 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
         );
       },
     );
-    if (ok == true && mounted) widget.onPaid();
+    if (ok == true && mounted) _succeeded();
     if (ok == false && mounted) setState(() => _error = context.t('ui_payment_declined'));
+  }
+
+  String get _methodLabel => switch (_method) {
+        TGPayMethod.blik => 'BLIK',
+        TGPayMethod.przelewy24 => 'Przelewy24',
+        TGPayMethod.card => '${switch (cardBrand(_card.text)) {
+            TGCardBrand.visa => 'Visa',
+            TGCardBrand.mastercard => 'Mastercard',
+            TGCardBrand.amex => 'Amex',
+            TGCardBrand.unknown => 'Card',
+          }} •••• $_cardLast4',
+      };
+
+  String get _cardLast4 {
+    final d = _card.text.replaceAll(RegExp(r'\D'), '');
+    return d.length >= 4 ? d.substring(d.length - 4) : d;
+  }
+
+  void _succeeded() {
+    final billing = TGBillingService.instance;
+    String? userId;
+    try {
+      userId = context.read<FakeAuthState>().userId;
+    } on ProviderNotFoundException {
+      userId = null;
+    }
+    if (userId != null && _method == TGPayMethod.card && _saveCard) {
+      final mm = _mm.text.split('/');
+      billing.saveCard(
+        userId: userId,
+        number: _card.text,
+        expMonth: int.tryParse(mm.first) ?? 0,
+        expYear: mm.length > 1 ? int.tryParse(mm[1]) ?? 0 : 0,
+        holder: _holder.text.trim(),
+      );
+    }
+    billing.lastMethod = _method;
+    billing.lastMethodLabel = _methodLabel;
+    final kind = widget.billingKind;
+    if (userId != null && kind != null && widget.amountPln > 0) {
+      billing.recordPayment(
+        userId: userId,
+        kind: kind,
+        description: widget.billingDescription ?? kind.name,
+        grossPln: widget.amountPln,
+        buyer: invoiceBuyer,
+        listingId: widget.billingListingId,
+        listingNo: widget.billingListingNo,
+      );
+    }
+    widget.onPaid();
   }
 
   void _startWait(VoidCallback onDone, {int seconds = 30, Duration delay = const Duration(milliseconds: 1200)}) {

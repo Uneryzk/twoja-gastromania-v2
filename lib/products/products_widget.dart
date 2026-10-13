@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:twoja_gastromania/tg_components/tg_ranking_info.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/products/products_filters.dart';
@@ -637,6 +638,7 @@ class _SortSheet extends StatelessWidget {
                   children: [
                     Text(context.t('ui_sort_by'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
                     const Spacer(),
+                    const Flexible(child: TGRankingInfoLink(surface: 'products', compact: true)),
                     IconButton(
                       tooltip: context.t('ui_close'),
                       icon: Icon(Icons.close, color: theme.secondaryText),

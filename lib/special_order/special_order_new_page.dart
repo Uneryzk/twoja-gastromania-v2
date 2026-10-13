@@ -7,6 +7,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/add_product/wizard_mobile.dart';
+import 'package:twoja_gastromania/special_order/special_order_confirm_page.dart';
 import 'package:twoja_gastromania/special_order/special_order_draft.dart';
 import 'package:twoja_gastromania/special_order/special_order_wizard_steps.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
@@ -41,6 +42,7 @@ class _SpecialOrderNewPageState extends State<SpecialOrderNewPage> {
   late final FakeAuthState _auth;
   Timer? _autosave;
   bool _sending = false;
+  String? _resumedId;
   final _smsKey = GlobalKey<TGSmsGateState>();
 
   List<String> get _steps => [
@@ -74,6 +76,11 @@ class _SpecialOrderNewPageState extends State<SpecialOrderNewPage> {
     draft.buyerName = _auth.displayName;
     draft.email = _auth.isLoggedIn ? (_auth.role == TGUserRole.buyer ? 'marek@example.com' : _auth.mockEmail) : '';
     draft.phone = '+48 (532) 784-074';
+    final stored = TGSpecialOrderService.instance.byId(widget.query['draft'] ?? '');
+    if (stored != null && stored.buyerId == _auth.userId && stored.status == TGSpecialRequestStatus.draft) {
+      draft.loadFrom(stored);
+      _resumedId = stored.id;
+    }
     draft.addListener(_onDraft);
     _autosave = Timer.periodic(const Duration(seconds: 5), (_) {
       if (draft.dirty) {
@@ -204,10 +211,13 @@ class _SpecialOrderNewPageState extends State<SpecialOrderNewPage> {
     }
     setState(() => _sending = true);
     await Future<void>.delayed(TGMotion.of(context, const Duration(milliseconds: 400)));
-    final saved = TGSpecialOrderService.instance.submitRequest(draft.toRequest(buyerId: auth.userId));
+    final pending = TGSpecialOrderService.instance.createAwaitingConsent(
+      draft.toRequest(buyerId: auth.userId),
+      replaceId: _resumedId,
+    );
     if (!mounted) return;
     setState(() => _sending = false);
-    context.go('/special-order/success?no=${saved.requestNo}');
+    context.go('${SpecialOrderConfirmPage.routePath}?draft=${pending.id}');
   }
 
   void _openSummarySheet() {

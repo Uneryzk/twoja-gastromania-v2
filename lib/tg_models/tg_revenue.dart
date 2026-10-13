@@ -16,7 +16,6 @@ class TGRevenueFlags {
     this.marketInsight = false,
     this.bulkBilling = false,
     this.sponsorSlots = false,
-    this.auditProgram = false,
     this.founderProgram = false,
     this.bannerAds = false,
   });
@@ -25,7 +24,6 @@ class TGRevenueFlags {
   final bool marketInsight;
   final bool bulkBilling;
   final bool sponsorSlots;
-  final bool auditProgram;
   final bool founderProgram;
   /// Homepage hero AdSlot purchase (RESTO-5). Phase 2 only.
   final bool bannerAds;
@@ -35,7 +33,6 @@ class TGRevenueFlags {
     bool? marketInsight,
     bool? bulkBilling,
     bool? sponsorSlots,
-    bool? auditProgram,
     bool? founderProgram,
     bool? bannerAds,
   }) =>
@@ -44,7 +41,6 @@ class TGRevenueFlags {
         marketInsight: marketInsight ?? this.marketInsight,
         bulkBilling: bulkBilling ?? this.bulkBilling,
         sponsorSlots: sponsorSlots ?? this.sponsorSlots,
-        auditProgram: auditProgram ?? this.auditProgram,
         founderProgram: founderProgram ?? this.founderProgram,
         bannerAds: bannerAds ?? this.bannerAds,
       );
@@ -58,7 +54,6 @@ class TGRevenueFlags {
             founderProgram: true,
             bulkBilling: true,
             sponsorSlots: true,
-            auditProgram: true,
             bannerAds: true,
           ),
       };
@@ -379,16 +374,6 @@ class TGQualifiedListingInfo {
 }
 
 @immutable
-class TGAuditConfig {
-  const TGAuditConfig({this.liveVisitSampleRate = 0.0});
-  /// Fraction of in-review apps randomly suggested for live visit (admin still decides).
-  final double liveVisitSampleRate;
-
-  TGAuditConfig copyWith({double? liveVisitSampleRate}) =>
-      TGAuditConfig(liveVisitSampleRate: liveVisitSampleRate ?? this.liveVisitSampleRate);
-}
-
-@immutable
 class TGRevenueConfig {
   const TGRevenueConfig({
     this.phase = 2,
@@ -399,14 +384,12 @@ class TGRevenueConfig {
       founderProgram: true,
       bulkBilling: true,
       sponsorSlots: true,
-      auditProgram: true,
       bannerAds: true,
     ),
     this.priority = const TGPriorityConfig(),
     this.waves = const TGWaveConfig(),
     this.quietMonthThreshold = 3,
     this.founder = const TGFounderConfig(),
-    this.audit = const TGAuditConfig(),
     this.bannerAds = const TGBannerAdsConfig(),
   });
 
@@ -417,7 +400,6 @@ class TGRevenueConfig {
   final TGWaveConfig waves;
   final int quietMonthThreshold;
   final TGFounderConfig founder;
-  final TGAuditConfig audit;
   final TGBannerAdsConfig bannerAds;
 
   TGRevenueConfig copyWith({
@@ -428,7 +410,6 @@ class TGRevenueConfig {
     TGWaveConfig? waves,
     int? quietMonthThreshold,
     TGFounderConfig? founder,
-    TGAuditConfig? audit,
     TGBannerAdsConfig? bannerAds,
   }) =>
       TGRevenueConfig(
@@ -439,7 +420,6 @@ class TGRevenueConfig {
         waves: waves ?? this.waves,
         quietMonthThreshold: quietMonthThreshold ?? this.quietMonthThreshold,
         founder: founder ?? this.founder,
-        audit: audit ?? this.audit,
         bannerAds: bannerAds ?? this.bannerAds,
       );
 

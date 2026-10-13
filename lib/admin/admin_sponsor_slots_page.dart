@@ -65,7 +65,14 @@ class _AdminSponsorSlotsPageState extends State<AdminSponsorSlotsPage> {
           for (final s in pending)
             ListTile(
               title: Text(s.title ?? s.id, style: const TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: Text('${s.specialty.name} · ${s.region} · ${TGSellerProfileService.instance.bySellerKey(s.sellerId ?? "")?.name ?? s.sellerId}'),
+              subtitle: Text(
+                '${context.t('ui_so_spec_${s.specialty.name}')} · ${s.region} · '
+                '${TGSellerProfileService.instance.bySellerKey(s.sellerId ?? "")?.name ?? s.sellerId}\n'
+                '${s.startsAt == null ? '' : TGFounderService.fmtDate(s.startsAt!)}'
+                '${s.endsAt == null ? '' : ' – ${TGFounderService.fmtDate(s.endsAt!.subtract(const Duration(days: 1)))}'}'
+                '${s.paidAmount == null ? '' : ' · ${s.paidAmount} PLN'}',
+              ),
+              isThreeLine: true,
               trailing: Wrap(
                 children: [
                   TextButton(
@@ -109,13 +116,15 @@ class _AdminSponsorSlotsPageState extends State<AdminSponsorSlotsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(seg.specialty.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(context.t('ui_so_spec_${seg.specialty.name}'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                       Text(seg.region, style: theme.bodySmall),
                       const Spacer(),
                       Text(
                         active != null
                             ? context.t('ui_admin_active_until', {'d': TGFounderService.fmtDate(active.endsAt!)})
-                            : (slot?.status.name ?? context.t('ui_admin_available')),
+                            : slot?.status == TGSponsorSlotStatus.reserved && slot?.startsAt != null
+                                ? context.t('ui_admin_slot_scheduled', {'d': TGFounderService.fmtDate(slot!.startsAt!)})
+                                : (slot?.status.name ?? context.t('ui_admin_available')),
                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                       if (active != null)

@@ -93,7 +93,7 @@ class AddProductDraft extends ChangeNotifier {
 
   // 5 — duration only (promote via Showcase after publish).
   AddProductPromote promote = AddProductPromote.none;
-  ListingDurationKey listingDuration = ListingDurationKey.d30;
+  int listingDuration = 30;
   int reviewTab = 0;
 
   /// RESTO-4: separate sale link back to restaurant inventory.
@@ -186,7 +186,7 @@ class AddProductDraft extends ChangeNotifier {
   int get promoteDays => 0;
 
   int get listingPeriodDays =>
-      auth.listingPlan == TGListingPlan.paid ? listingDuration.days : pricing.freeListingDays;
+      auth.listingPlan == TGListingPlan.paid ? listingDuration : pricing.freeListingDays;
 
   int get listingFeePln =>
       auth.listingPlan == TGListingPlan.paid ? pricing.listingFeePln(listingDuration) : 0;

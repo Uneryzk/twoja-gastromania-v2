@@ -5,6 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_models/tg_favorite.dart';
+import 'package:twoja_gastromania/tg_services/favorites_service.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
@@ -21,7 +25,6 @@ import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
-import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_components/tg_special_order_band.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
@@ -238,6 +241,9 @@ class _RestoBodyState extends State<_RestoBody> {
 
   Future<void> _bootstrap() async {
     final auth = context.read<FakeAuthState>();
+    if (auth.isLoggedIn) {
+      _favorite = TGFavoritesService.instance.isFavorite(auth.userId, FavoriteKind.restaurant, r.id);
+    }
     final count = auth.isLoggedIn
         ? (auth.userId != r.ownerId && !auth.role.isStaff)
         : true;
@@ -387,6 +393,7 @@ class _RestoBodyState extends State<_RestoBody> {
       return;
     }
     setState(() => _favorite = !_favorite);
+    TGFavoritesService.instance.setRestaurant(auth.userId, r, on: _favorite);
     RestaurantService.instance.recordFavorite(
       listingId: r.id,
       userId: auth.userId,
@@ -1016,8 +1023,9 @@ class _RestoBodyState extends State<_RestoBody> {
                 controller: _galleryController,
                 itemCount: imgs.length,
                 onPageChanged: (i) => setState(() => _index = i),
-                itemBuilder: (_, i) => TGSmartImage(
+                itemBuilder: (_, i) => WatermarkedImage(
                   url: imgs[i],
+                  surface: TGImageSurface.listingDetail,
                   fit: BoxFit.contain,
                   fallback: (_) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.white54, size: 48)),
                 ),
@@ -1045,7 +1053,7 @@ class _RestoBodyState extends State<_RestoBody> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      TGSmartImage(url: imgs[i], fit: BoxFit.cover),
+                      WatermarkedImage(url: imgs[i], surface: TGImageSurface.listingDetail, fit: BoxFit.cover),
                       if (editPhotos && i == 0)
                         Align(
                           alignment: Alignment.bottomCenter,

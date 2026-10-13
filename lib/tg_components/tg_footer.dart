@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:twoja_gastromania/tg_components/tg_ranking_info.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
@@ -280,6 +281,11 @@ class _PlatformLinks extends StatelessWidget {
         _FooterLink(label: context.t('ui_for_sellers'), onTap: () => TGNav.addProduct(context)),
         _FooterLink(label: context.t('ui_verified_sellers'), onTap: () => TGNav.verifiedSellers(context)),
         _FooterLink(
+          key: const Key('ranking-info-link-footer'),
+          label: context.t('ranking_info_link'),
+          onTap: () => showTGRankingInfo(context, surface: 'footer'),
+        ),
+        _FooterLink(
           label: context.t('ui_help'),
           onTap: () => openExternalUrl(
             context,
@@ -301,7 +307,7 @@ class _PlatformLinks extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _FooterLink extends StatefulWidget {
-  const _FooterLink({required this.label, required this.onTap});
+  const _FooterLink({super.key, required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;

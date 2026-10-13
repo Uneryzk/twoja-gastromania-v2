@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_models/tg_deal.dart';
+import 'package:twoja_gastromania/tg_services/notification_prefs_service.dart';
 
 class NotificationService extends ChangeNotifier {
   NotificationService._();
@@ -43,7 +44,11 @@ class NotificationService extends ChangeNotifier {
     return n;
   }
 
-  List<TGAppNotification> forUser(String userId) => items.where((n) => n.userId == userId).toList();
+  /// Notifications the user sees in-app (their in-app preference is honoured;
+  /// locked categories always show).
+  List<TGAppNotification> forUser(String userId) => items
+      .where((n) => n.userId == userId && TGNotificationPrefsService.instance.showsInApp(userId, n.type))
+      .toList();
 
   int unreadCount(String userId) => forUser(userId).where((n) => n.unread).length;
 

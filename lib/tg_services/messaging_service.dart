@@ -4,11 +4,16 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
+import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/tg_exif.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_models/tg_listing_stats.dart';
 import 'package:twoja_gastromania/tg_models/tg_message.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/listing_stats_service.dart';
 import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/profanity_filter.dart';
+import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 
 class MessagingService extends ChangeNotifier {
   MessagingService._();
@@ -32,6 +37,8 @@ class MessagingService extends ChangeNotifier {
   void reset() {
     threads.clear();
     moderationFlags.clear();
+    _blocked.clear();
+    _templates.clear();
     _loaded = false;
     dockThreadId = null;
     dockInboxOpen = false;
@@ -98,6 +105,8 @@ class MessagingService extends ChangeNotifier {
       buyerName: isSeller ? FakeAuthState.mockOwnerSeller.name : senderName,
       sellerName: product.seller.name,
       updatedAt: DateTime.now(),
+      sellerPhone: product.phone.isEmpty ? null : product.phone,
+      listingCity: product.city,
     );
     threads.insert(0, thread);
     _persist();
@@ -129,10 +138,80 @@ class MessagingService extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<TGChatThread> inboxFor(String userId) {
-    final list = threads.where((t) => t.buyerId == userId || t.sellerId == userId).toList()
+  /// Production Mode hides seeded mock conversations. Archived threads are
+  /// listed only with [archived] = true.
+  List<TGChatThread> inboxFor(String userId, {bool archived = false}) {
+    final hideMock = TGRevenueConfigService.instance.productionMode;
+    final list = threads
+        .where((t) =>
+            (t.buyerId == userId || t.sellerId == userId) &&
+            !(hideMock && t.isMock) &&
+            t.isArchivedFor(userId) == archived)
+        .toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return list;
+  }
+
+  void setArchived(String threadId, String userId, bool archived) {
+    final t = byId(threadId);
+    if (t == null) return;
+    if (archived ? !t.archivedBy.add(userId) : !t.archivedBy.remove(userId)) return;
+    TGAnalytics.track('msg_archive', {'threadId': threadId, 'archived': archived});
+    _persist();
+    notifyListeners();
+  }
+
+  final Map<String, Set<String>> _blocked = {};
+
+  bool hasBlocked(String userId, String otherId) => _blocked[userId]?.contains(otherId) ?? false;
+
+  Set<String> blockedOf(String userId) => Set.unmodifiable(_blocked[userId] ?? const <String>{});
+
+  bool isBlockedBetween(String a, String b) => hasBlocked(a, b) || hasBlocked(b, a);
+
+  void setBlocked(String userId, String otherId, bool blocked) {
+    final set = _blocked.putIfAbsent(userId, () => {});
+    if (blocked ? !set.add(otherId) : !set.remove(otherId)) return;
+    TGAnalytics.track('msg_block', {'blocked': blocked});
+    notifyListeners();
+  }
+
+  void markSoldTo(String threadId) {
+    final t = byId(threadId);
+    if (t == null || t.soldToBuyer) return;
+    t.soldToBuyer = true;
+    _persist();
+    notifyListeners();
+  }
+
+  final List<TGMessageTemplate> _templates = [];
+
+  List<TGMessageTemplate> templatesFor(String userId) =>
+      _templates.where((t) => t.userId == userId).toList(growable: false);
+
+  /// Returns an i18n error key, or null when saved.
+  String? addTemplate(String userId, {required String title, required String body}) {
+    if (title.trim().isEmpty || body.trim().isEmpty) return 'msg_err_template_empty';
+    if (templatesFor(userId).length >= MessagingLimits.maxTemplates) return 'msg_err_template_limit';
+    _templates.add(TGMessageTemplate(
+      id: 'tpl_${DateTime.now().microsecondsSinceEpoch}_${_templates.length}',
+      userId: userId,
+      title: title.trim(),
+      body: body.trim(),
+    ));
+    notifyListeners();
+    return null;
+  }
+
+  void removeTemplate(String id) {
+    _templates.removeWhere((t) => t.id == id);
+    notifyListeners();
+  }
+
+  void addMockThread(TGChatThread thread) {
+    if (byId(thread.id) != null) return;
+    threads.add(thread);
+    notifyListeners();
   }
 
   int unreadTotal(String userId) => inboxFor(userId).fold(0, (n, t) => n + t.unreadFor(userId));
@@ -146,6 +225,59 @@ class MessagingService extends ChangeNotifier {
 
   String threadIdFor(TGProduct product, String buyerId) => 't_${product.id}_$buyerId';
 
+  /// Conversations [senderId] opened (sent the first message of) today.
+  int newConversationsToday(String senderId, {DateTime? now}) {
+    final t = now ?? TGClock.now();
+    return threads.where((th) {
+      if (th.messages.isEmpty) return false;
+      final first = th.messages.first;
+      return first.senderId == senderId &&
+          first.timestamp.year == t.year &&
+          first.timestamp.month == t.month &&
+          first.timestamp.day == t.day;
+    }).length;
+  }
+
+  static String _normalize(String s) => s.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  /// Identical messages [senderId] sent in the last hour, across all threads.
+  int duplicatesInWindow(String senderId, String body, {DateTime? now}) {
+    final t = now ?? TGClock.now();
+    final since = t.subtract(MessagingLimits.duplicateWindow);
+    final norm = _normalize(body);
+    if (norm.isEmpty) return 0;
+    var n = 0;
+    for (final th in threads) {
+      for (final m in th.messages) {
+        if (m.senderId == senderId && m.timestamp.isAfter(since) && _normalize(m.body) == norm) n++;
+      }
+    }
+    return n;
+  }
+
+  /// Validates and cleans photos: max 3, ≤ 5 MB each, JPEG / PNG / WebP only,
+  /// EXIF removed. Returns the cleaned list or an i18n error key.
+  ({List<TGMessageAttachment> files, String? error}) prepareAttachments(List<TGMessageAttachment> raw) {
+    if (raw.length > MessagingLimits.maxAttachments) return (files: const [], error: 'msg_err_attach_count');
+    final out = <TGMessageAttachment>[];
+    for (final a in raw) {
+      final size = a.bytes?.length ?? a.sizeBytes;
+      if (size > MessagingLimits.maxAttachmentBytes) return (files: const [], error: 'msg_err_attach_size');
+      final mime = a.bytes == null ? a.mimeType : (TGExif.sniffMime(a.bytes!) ?? a.mimeType);
+      if (!MessagingLimits.allowedImageTypes.contains(mime)) return (files: const [], error: 'msg_err_attach_type');
+      final clean = a.bytes == null ? null : TGExif.strip(a.bytes!);
+      out.add(TGMessageAttachment(
+        id: a.id,
+        fileName: a.fileName,
+        mimeType: mime,
+        sizeBytes: clean?.length ?? a.sizeBytes,
+        bytes: clean,
+        exifStripped: clean != null,
+      ));
+    }
+    return (files: out, error: null);
+  }
+
   TGSendResult send({
     required TGProduct product,
     required String senderId,
@@ -155,13 +287,37 @@ class MessagingService extends ChangeNotifier {
     String? listingPath,
     int? quotePln,
     String ipAddress = mockIp,
+    List<TGMessageAttachment> attachments = const [],
   }) {
     final trimmed = body.trim();
-    if (trimmed.isEmpty) return const TGSendResult(ok: false);
-    if (filter.isBlocked(trimmed)) {
+    if (trimmed.isEmpty && attachments.isEmpty) return const TGSendResult(ok: false);
+    if (trimmed.isNotEmpty && filter.isBlocked(trimmed)) {
       TGAnalytics.emit('message_blocked', {'listingId': product.id, 'reason': 'profanity'});
-      return const TGSendResult(ok: false, blocked: true);
+      return const TGSendResult(ok: false, blocked: true, reason: 'ui_message_blocked');
     }
+    final now = TGClock.now();
+    final sellerId = product.seller.id;
+    final existingBuyer = senderId == sellerId ? (_existingBuyer(product, sellerId) ?? senderId) : senderId;
+    final existing = byId(threadIdFor(product, existingBuyer));
+    final receiverGuess = senderId == sellerId ? existingBuyer : sellerId;
+    if (isBlockedBetween(senderId, receiverGuess)) {
+      TGAnalytics.emit('message_blocked', {'listingId': product.id, 'reason': 'blocked_user'});
+      return TGSendResult(ok: false, blocked: true, threadId: existing?.id, reason: 'msg_err_blocked');
+    }
+    final opening = existing == null || existing.messages.isEmpty;
+    if (opening && newConversationsToday(senderId, now: now) >= MessagingLimits.maxNewConversationsPerDay) {
+      TGAnalytics.emit('message_blocked', {'listingId': product.id, 'reason': 'daily_new_limit'});
+      return const TGSendResult(ok: false, blocked: true, reason: 'msg_err_daily_limit');
+    }
+    if (trimmed.isNotEmpty && duplicatesInWindow(senderId, trimmed, now: now) >= MessagingLimits.duplicateSpamCount - 1) {
+      final flagged = existing?.id ?? threadIdFor(product, existingBuyer);
+      moderationFlags.add(TGModerationFlag(threadId: flagged, reporterId: 'system', createdAt: now, reason: 'spam_duplicate'));
+      TGAnalytics.emit('message_blocked', {'listingId': product.id, 'reason': 'spam_duplicate'});
+      notifyListeners();
+      return TGSendResult(ok: false, blocked: true, threadId: existing?.id, reason: 'msg_err_spam');
+    }
+    final prepared = prepareAttachments(attachments);
+    if (prepared.error != null) return TGSendResult(ok: false, threadId: existing?.id, reason: prepared.error);
 
     final thread = ensureThread(product: product, senderId: senderId, senderName: senderName);
 
@@ -170,14 +326,31 @@ class MessagingService extends ChangeNotifier {
       id: 'm_${DateTime.now().microsecondsSinceEpoch}',
       senderId: senderId,
       receiverId: receiverId,
-      timestamp: DateTime.now(),
+      timestamp: now,
       ipAddress: ipAddress,
       body: trimmed,
       kind: kind,
       listingPath: listingPath,
       quotePln: quotePln,
+      attachments: prepared.files,
     );
     thread.messages.add(message);
+    thread.archivedBy.remove(receiverId);
+    if (opening && senderId == thread.buyerId) {
+      TGListingStatsService.instance.record(
+        listingKey: TGListingStatsService.productKey(thread.listingId),
+        kind: ListingStatKind.message,
+        visitorKey: senderId,
+        count: senderId != thread.sellerId,
+        at: now,
+      );
+    }
+    TGAnalytics.track('msg_send', {
+      'threadId': thread.id,
+      'kind': kind.name,
+      'attachments': prepared.files.length,
+      'opening': opening,
+    });
     thread.updatedAt = message.timestamp;
     if (senderId == thread.buyerId) {
       thread.unreadSeller += 1;
@@ -194,12 +367,12 @@ class MessagingService extends ChangeNotifier {
         type: 'new_message',
         dealId: thread.id,
         title: 'new_message',
-        body: trimmed,
+        body: trimmed.isEmpty ? '📷 ${prepared.files.length}' : trimmed,
         deepLink: '/dashboard/messages?thread=${thread.id}',
         params: {
           'title': thread.listingTitle,
           'name': senderName,
-          'preview': trimmed,
+          'preview': trimmed.isEmpty ? '📷 ${prepared.files.length}' : trimmed,
         },
       );
     }
@@ -243,6 +416,7 @@ class MessagingService extends ChangeNotifier {
       reason: reason,
     ));
     TGAnalytics.emit('conversation_reported', {'threadId': threadId, 'reporterId': reporterId});
+    TGAnalytics.track('msg_report', {'threadId': threadId, 'reason': reason});
     notifyListeners();
     _persist();
   }
@@ -264,6 +438,9 @@ class MessagingService extends ChangeNotifier {
         sellerName: 'PrimeGastro',
         updatedAt: now.subtract(const Duration(minutes: 18)),
         unreadBuyer: 1,
+        isMock: true,
+        sellerPhone: '+48 (532) 784-074',
+        listingCity: 'Katowice',
         messages: [
           TGChatMessage(
             id: 'm_seed_1',

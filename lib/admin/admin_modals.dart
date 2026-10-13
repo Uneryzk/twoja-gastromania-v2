@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
+import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/listing_image_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -590,6 +593,8 @@ class _CompareDialogState extends State<_CompareDialog> {
           }),
           Slider(value: _t, onChanged: (v) => setState(() => _t = v)),
           const SizedBox(height: 8),
+          _OriginalMatchLine(match: match, a: widget.a, b: widget.b),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(child: Text('A ${match.listingNoA}\n${widget.a?.seller.name ?? ''} · ${widget.a?.publishedAt?.toIso8601String().split('T').first ?? ''}', style: const TextStyle(fontSize: 12))),
@@ -602,6 +607,72 @@ class _CompareDialogState extends State<_CompareDialog> {
   }
 
   Widget _img(String src) => Image.asset(src, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.surfaceHover));
+}
+
+/// pHash match computed on the ORIGINALS (staff only), never on watermarked variants.
+class _OriginalMatchLine extends StatelessWidget {
+  const _OriginalMatchLine({required this.match, required this.a, required this.b});
+  final TGPhotoMatch match;
+  final TGProduct? a;
+  final TGProduct? b;
+
+  String _key(String no, String image, TGProduct? p) {
+    final svc = TGListingImageService.instance;
+    final key = TGListingImageService.listingNoKey(no);
+    final seller = p?.seller;
+    svc.sync(
+      listingKey: key,
+      urls: [image, ...?p?.gallery],
+      uploadedById: seller?.id ?? '',
+      uploadedByName: seller?.name ?? no,
+      uploadedAt: p?.publishedAt ?? p?.createdAt ?? TGClock.now(),
+    );
+    return key;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final role = context.watch<FakeAuthState>().role;
+    String text;
+    Color color = theme.secondaryText;
+    if (!role.isStaff) {
+      text = context.t('wm_match_staff_only');
+    } else {
+      final r = TGListingImageService.instance.compareOriginals(_key(match.listingNoA, match.imageA, a), _key(match.listingNoB, match.imageB, b), role);
+      if (r == null) {
+        text = context.t('wm_match_pending');
+      } else if (r.isMatch) {
+        final e = r.earlier;
+        text = context.t('wm_match_original', {
+          'account': e.uploadedById.isEmpty ? e.uploadedByName : '${e.uploadedByName} (${e.uploadedById})',
+          'date': e.uploadedAt.toIso8601String().split('T').first,
+          'd': '${r.distance}',
+          'pct': '${r.similarityPercent}',
+        });
+        color = TGColors.error;
+      } else {
+        text = context.t('wm_match_none', {'d': '${r.distance}', 'pct': '${r.similarityPercent}'});
+      }
+    }
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        key: const Key('wm-original-match'),
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: TGColors.surfaceHover, borderRadius: BorderRadius.circular(TGRadius.input)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(text, style: theme.bodySmall.override(color: color, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 2),
+            Text(context.t('wm_match_basis'), style: theme.labelSmall.override(color: theme.secondaryText)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _LangToggle extends StatelessWidget {

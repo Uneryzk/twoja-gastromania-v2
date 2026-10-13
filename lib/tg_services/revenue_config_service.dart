@@ -70,7 +70,6 @@ class TGRevenueConfigService extends ChangeNotifier {
       'marketInsight' => f.copyWith(marketInsight: value),
       'bulkBilling' => f.copyWith(bulkBilling: value),
       'sponsorSlots' => f.copyWith(sponsorSlots: value),
-      'auditProgram' => f.copyWith(auditProgram: value),
       'founderProgram' => f.copyWith(founderProgram: value),
       'bannerAds' => f.copyWith(bannerAds: value),
       _ => f,
@@ -110,6 +109,12 @@ class TGRevenueConfigService extends ChangeNotifier {
     final gate = _config.priority.gate;
     final regionOk = gate.openRegions.any((r) => r.toLowerCase() == region.toLowerCase());
     return matchingRequests30d >= gate.minRequests30d && regionOk;
+  }
+
+  /// Audit entry for pricing / promotion edits made on /admin/revenue-config.
+  void logPricingChange({required String actorId, required String action, String? detail}) {
+    _log(actorId: actorId, action: action, detail: detail);
+    notifyListeners();
   }
 
   void _log({required String actorId, required String action, String? reason, String? detail}) {

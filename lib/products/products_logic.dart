@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/products/tg_geo.dart';
 import 'package:twoja_gastromania/tg_core/promotion_engine.dart';
@@ -70,7 +71,7 @@ List<TGProduct> applyFilters(Iterable<TGProduct> all, TGProductsQueryState q) {
   Iterable<TGProduct> it = publicActiveOnly(all);
 
   if (q.listingType != null) it = it.where((p) => p.listingType == q.listingType);
-  if (q.verifiedOnly) it = it.where((p) => p.seller.verified);
+  if (q.verifiedOnly) it = it.where((p) => tgShowsVerifiedSellerBadge(p.seller));
   if (q.conditions.isNotEmpty) it = it.where((p) => q.conditions.contains(p.condition));
   if (q.categories.isNotEmpty) it = it.where((p) => q.categories.contains(p.category));
   if (q.voivodeships.isNotEmpty) {

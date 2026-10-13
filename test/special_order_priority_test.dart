@@ -76,7 +76,9 @@ void main() {
       createdAt: now,
       expiresAt: now.add(const Duration(days: 30)),
     );
-    final saved = svc.submitRequest(draft);
+    final pending = svc.createAwaitingConsent(draft);
+    expect(svc.accessFor(pending.id), isEmpty);
+    final saved = svc.confirmConsent(pending.id, userId: draft.buyerId, locale: 'en');
     final metal = svc.accessRow(saved.id, 'seller_metalgast');
     expect(metal?.via, TGLeadAccessVia.proPool);
     expect(metal!.visibleFrom!.isAfter(now), isTrue);

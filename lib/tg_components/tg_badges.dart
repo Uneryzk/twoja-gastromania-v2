@@ -49,10 +49,13 @@ class TGPromotedBadge extends StatelessWidget {
 }
 
 class TGVerifiedSellerBadge extends StatelessWidget {
-  const TGVerifiedSellerBadge({super.key, this.tooltip, this.pulse = false});
+  const TGVerifiedSellerBadge({super.key, this.tooltip, this.pulse = false, this.onTap});
 
   final String? tooltip;
   final bool pulse;
+
+  /// Opens the basis info box (Semantics button when set).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +78,14 @@ class TGVerifiedSellerBadge extends StatelessWidget {
     );
     if (pulse && !(MediaQuery.maybeOf(context)?.disableAnimations ?? false)) {
       badge = _OncePulse(child: badge);
+    }
+    if (onTap != null) {
+      badge = Semantics(
+        button: true,
+        label: tooltip ?? context.t('ui_verified_seller'),
+        excludeSemantics: true,
+        child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(theme.designToken.radius.chip), child: badge),
+      );
     }
     if (tooltip != null && tooltip!.trim().isNotEmpty) {
       badge = Tooltip(message: tooltip!, child: badge);

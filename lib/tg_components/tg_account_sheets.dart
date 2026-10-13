@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_services/review_verified_service.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
@@ -9,6 +10,8 @@ import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
+import 'package:twoja_gastromania/tg_services/billing_service.dart';
+import 'package:twoja_gastromania/tg_services/dash2_mock_data.dart';
 import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
@@ -19,6 +22,11 @@ import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_inventory_sync_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_post_publish_service.dart';
+import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
+import 'package:twoja_gastromania/tg_core/account_capabilities.dart';
+
+/// Mock personas / clock controls exist only outside production mode.
+bool get tgDevSwitchEnabled => !TGRevenueConfigService.instance.productionMode;
 
 Future<void> _showTGSheet(BuildContext context, WidgetBuilder builder) {
   return showModalBottomSheet<void>(
@@ -68,6 +76,7 @@ void _devAdvanceClock(int days) {
   RestaurantPostPublishService.instance.onClockAdvanced();
   RestaurantInventorySyncService.instance.onClockAdvanced();
   AdSlotService.instance.onClockAdvanced();
+  TGReviewVerifiedService.instance.onClockAdvanced();
 }
 
 void _devAdvanceBusinessDays(int days) {
@@ -87,6 +96,7 @@ void _devAdvanceBusinessDays(int days) {
   RestaurantPostPublishService.instance.onClockAdvanced();
   RestaurantInventorySyncService.instance.onClockAdvanced();
   AdSlotService.instance.onClockAdvanced();
+  TGReviewVerifiedService.instance.onClockAdvanced();
 }
 
 /// Applies a Dev Switcher pick: updates [FakeAuthState], then navigates via [router].
@@ -95,6 +105,36 @@ void _devAdvanceBusinessDays(int days) {
 /// rebuilds the header and can dispose the widget that opened the menu — so
 /// `context.mounted` was false and `/admin` never ran.
 void applyTGDevSwitchPick(GoRouter router, FakeAuthState auth, Object picked) {
+  if (!tgDevSwitchEnabled) return;
+  if (picked is DashboardDevPick) {
+    switch (picked) {
+      case DashboardDevPick.newUser:
+        auth.actAsNewUser();
+      case DashboardDevPick.sellerBuyer:
+        DealService.instance.ensureSeeded();
+        auth.actAsSellerBuyer();
+      case DashboardDevPick.busySeller:
+        auth.actAsBusySeller();
+        Dash2Mocks.seedBusySeller(auth);
+      case DashboardDevPick.favoritesBuyer:
+        auth.actAsFavoritesBuyer();
+        Dash2Mocks.seedFavoritesBuyer(auth.userId);
+      case DashboardDevPick.historySeller:
+        auth.actAsHistorySeller();
+        Dash2Mocks.seedHistorySeller(auth);
+      case DashboardDevPick.billingStore:
+        auth.actAsStoreOwner(StoreOwnerDevPick.gastroPro);
+        TGBillingService.instance.seedMocks(auth);
+    }
+    router.go(switch (picked) {
+      DashboardDevPick.busySeller => '/dashboard/messages',
+      DashboardDevPick.favoritesBuyer => '/dashboard/favorites',
+      DashboardDevPick.historySeller => '/dashboard/insights',
+      DashboardDevPick.billingStore => '/dashboard/billing',
+      _ => '/dashboard',
+    });
+    return;
+  }
   if (picked is TGUserRole) {
     auth.setRole(picked); // notifyListeners → UI refresh
     if (picked == TGUserRole.admin || picked == TGUserRole.moderator) {
@@ -170,6 +210,7 @@ String _devClockLabel(BuildContext context, int days) {
 
 /// Debug long-press Dev Switcher — labels follow the selected app language.
 Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
+  if (!tgDevSwitchEnabled) return;
   final box = context.findRenderObject();
   if (box is! RenderBox || !box.hasSize || !box.attached) return;
   // Capture router before the menu — header may rebuild/dispose [context] on pick.
@@ -185,6 +226,14 @@ Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
     items: [
       _devSection(context, t('ui_dev_sec_visitor')),
       PopupMenuItem(value: TGUserRole.visitor, child: Text(t('ui_dev_visitor_anon'), style: itemStyle)),
+      const PopupMenuDivider(),
+      _devSection(context, t('ui_dev_sec_dash')),
+      PopupMenuItem(value: DashboardDevPick.newUser, child: Text(t('ui_dev_new_user'), style: itemStyle)),
+      PopupMenuItem(value: DashboardDevPick.sellerBuyer, child: Text(t('ui_dev_seller_buyer'), style: itemStyle)),
+      PopupMenuItem(value: DashboardDevPick.busySeller, child: Text(t('ui_dev_busy_seller'), style: itemStyle)),
+      PopupMenuItem(value: DashboardDevPick.favoritesBuyer, child: Text(t('ui_dev_fav_buyer'), style: itemStyle)),
+      PopupMenuItem(value: DashboardDevPick.historySeller, child: Text(t('ui_dev_history_seller'), style: itemStyle)),
+      PopupMenuItem(value: DashboardDevPick.billingStore, child: Text(t('ui_dev_billing_store'), style: itemStyle)),
       const PopupMenuDivider(),
       _devSection(context, t('ui_dev_sec_staff')),
       PopupMenuItem(value: TGUserRole.admin, child: Text(t('ui_dev_admin'), style: itemStyle)),
@@ -580,12 +629,46 @@ class _AccountSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final auth = context.watch<FakeAuthState>();
+    final caps = AccountCapabilities.of(auth);
+    final dev = tgDevSwitchEnabled;
 
     return _SheetFrame(
       title: context.t('ui_your_account'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: TGButton(
+                  key: const Key('account-open-dashboard'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    context.go('/dashboard');
+                  },
+                  label: context.t('dash_open_dashboard'),
+                  icon: Icons.space_dashboard_outlined,
+                  variant: TGButtonVariant.outline,
+                  height: 46,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TGButton(
+                  key: const Key('account-open-actions'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    context.go('/dashboard/actions');
+                  },
+                  label: context.t('dash_actions'),
+                  icon: Icons.task_alt,
+                  variant: TGButtonVariant.outline,
+                  height: 46,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           _QuotaCard(auth: auth),
           const SizedBox(height: 14),
           Row(
@@ -646,7 +729,7 @@ class _AccountSheet extends StatelessWidget {
             variant: TGButtonVariant.outline,
             height: 46,
           ),
-          if (auth.role == TGUserRole.buyer) ...[
+          if (auth.role == TGUserRole.buyer || caps.isBuyerActive) ...[
             const SizedBox(height: 10),
             TGButton(
               onPressed: () {
@@ -672,6 +755,7 @@ class _AccountSheet extends StatelessWidget {
               height: 46,
             ),
           ],
+          if (dev) ...[
           const SizedBox(height: 18),
           Text(
             context.t('ui_demo_role'),
@@ -719,6 +803,7 @@ class _AccountSheet extends StatelessWidget {
               ],
             ),
           ),
+          ],
           const SizedBox(height: 10),
           TGButton(
             onPressed: () {

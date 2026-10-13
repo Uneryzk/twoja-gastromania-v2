@@ -1,3 +1,4 @@
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -68,6 +69,9 @@ class FFLocalizations {
     final map = kTranslationsMap[key] ?? const <String, String>{};
     final code = locale.languageCode;
     var text = map[locale.toString()] ?? map[code] ?? map['en'] ?? map['pl'] ?? '';
+    if (text.contains(', plural,')) {
+      return DurationFormatter.formatIcu(text, code, {...?params});
+    }
     if (params != null) {
       params.forEach((name, value) {
         text = text.replaceAll('{$name}', value);

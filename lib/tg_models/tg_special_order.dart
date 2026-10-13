@@ -12,7 +12,15 @@ enum TGStoreSpecialty {
   other,
 }
 
-enum TGSpecialRequestStatus { draft, held, open, quoted, awarded, closed, expired, rejected }
+enum TGSpecialRequestStatus { draft, awaitingConsent, held, open, quoted, awarded, closed, expired, rejected }
+
+extension TGSpecialRequestStatusWire on TGSpecialRequestStatus {
+  /// Persisted value (`awaiting_consent` for [TGSpecialRequestStatus.awaitingConsent]).
+  String get wire => this == TGSpecialRequestStatus.awaitingConsent ? 'awaiting_consent' : name;
+
+  static TGSpecialRequestStatus? fromWire(String? v) =>
+      TGSpecialRequestStatus.values.where((s) => s.wire == v).firstOrNull;
+}
 
 enum TGProjectCompletionStatus { inProgress, completed, notCompleted }
 
@@ -192,6 +200,8 @@ class TGSpecialRequest {
     this.reportedAt,
     this.reporterSellerId,
     this.reportReason,
+    this.consentDeadline,
+    this.draftKeepUntil,
   });
 
   final String id;
@@ -243,6 +253,12 @@ class TGSpecialRequest {
   final DateTime? reportedAt;
   final String? reporterSellerId;
   final String? reportReason;
+
+  /// `awaiting_consent` requests fall back to draft after this instant.
+  final DateTime? consentDeadline;
+
+  /// Unsent drafts are deleted after this instant.
+  final DateTime? draftKeepUntil;
 
   bool get shareContact => contactPref == TGSpecialContactPref.share;
 
@@ -304,6 +320,11 @@ class TGSpecialRequest {
     bool clearReported = false,
     String? reporterSellerId,
     String? reportReason,
+    DateTime? consentDeadline,
+    bool clearConsentDeadline = false,
+    DateTime? draftKeepUntil,
+    bool clearDraftKeepUntil = false,
+    DateTime? createdAt,
   }) =>
       TGSpecialRequest(
         id: id,
@@ -338,7 +359,7 @@ class TGSpecialRequest {
         consentAt: consentAt ?? this.consentAt,
         status: status ?? this.status,
         quoteLimit: quoteLimit ?? this.quoteLimit,
-        createdAt: createdAt,
+        createdAt: createdAt ?? this.createdAt,
         expiresAt: expiresAt ?? this.expiresAt,
         awardedSellerId: clearAwarded ? null : (awardedSellerId ?? this.awardedSellerId),
         awardedAt: clearAwarded ? null : (awardedAt ?? this.awardedAt),
@@ -355,6 +376,8 @@ class TGSpecialRequest {
         reportedAt: clearReported ? null : (reportedAt ?? this.reportedAt),
         reporterSellerId: clearReported ? null : (reporterSellerId ?? this.reporterSellerId),
         reportReason: clearReported ? null : (reportReason ?? this.reportReason),
+        consentDeadline: clearConsentDeadline ? null : (consentDeadline ?? this.consentDeadline),
+        draftKeepUntil: clearDraftKeepUntil ? null : (draftKeepUntil ?? this.draftKeepUntil),
       );
 
   int buyerAccountAgeDays(DateTime now) {

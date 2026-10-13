@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 
 /// Off unless a later prompt turns saved-BLIK on.
@@ -9,6 +10,31 @@ enum TGPayMethod { blik, przelewy24, card }
 enum TGBlikOutcome { success, incorrect, declined, noConfirmation }
 
 enum TGCheckoutKind { listing, renew, renewBulk, store, restaurantListing, restaurantRenew }
+
+/// Stored payment record kind. Values are persisted by name — never rename or remove.
+enum TGPaymentKind {
+  listing,
+  renew,
+  store,
+  restaurant,
+  promotion,
+  banner,
+  sponsorSlot,
+  priority,
+
+  /// Legacy "Audited Manufacturer" fee. Kept only so historical records still
+  /// parse; the audit program is discontinued and no new audit sales exist.
+  audit;
+
+  bool get sellable => this != TGPaymentKind.audit;
+
+  static TGPaymentKind? fromName(String name) {
+    for (final k in values) {
+      if (k.name == name) return k;
+    }
+    return null;
+  }
+}
 
 class TGCheckoutLine {
   const TGCheckoutLine(this.label, this.amountPln);
@@ -57,8 +83,8 @@ class TGCheckoutCart {
   }) {
     final days = listingDays ?? 30;
     final feeLabel = listingNo == null || listingNo.isEmpty
-        ? 'Listing · $days days'
-        : 'Listing fee · $days days · No. $listingNo';
+        ? 'Listing · ${DurationFormatter.days(days, 'en')}'
+        : 'Listing fee · ${DurationFormatter.days(days, 'en')} · No. $listingNo';
     final lines = <TGCheckoutLine>[
       if (listingFee > 0) TGCheckoutLine(feeLabel, listingFee.toDouble()),
       if (promoteFee > 0) TGCheckoutLine(promoteLabel ?? 'Promotion', promoteFee.toDouble()),
@@ -83,7 +109,7 @@ class TGCheckoutCart {
   }) {
     final days = listingDays ?? 30;
     final lines = <TGCheckoutLine>[
-      TGCheckoutLine(early ? 'Renew early · $days days' : 'Renew · $days days', listingFee.toDouble()),
+      TGCheckoutLine(early ? 'Renew early · ${DurationFormatter.days(days, 'en')}' : 'Renew · ${DurationFormatter.days(days, 'en')}', listingFee.toDouble()),
       if (promoteFee > 0) TGCheckoutLine(promoteLabel ?? 'Promotion', promoteFee.toDouble()),
     ];
     return TGCheckoutCart(
@@ -102,7 +128,7 @@ class TGCheckoutCart {
       kind: TGCheckoutKind.renewBulk,
       listingIds: ids,
       listingDays: days,
-      lines: [TGCheckoutLine('Renew ${ids.length} listings · $days days each', (unitFee * ids.length).toDouble())],
+      lines: [TGCheckoutLine('Renew ${ids.length} listings · ${DurationFormatter.days(days, 'en')} each', (unitFee * ids.length).toDouble())],
     );
   }
 
@@ -117,7 +143,7 @@ class TGCheckoutCart {
   }) {
     final days = listingDays ?? 90;
     final lines = <TGCheckoutLine>[
-      if (listingFee > 0) TGCheckoutLine('Restaurant listing · $days days', listingFee.toDouble()),
+      if (listingFee > 0) TGCheckoutLine('Restaurant listing · ${DurationFormatter.days(days, 'en')}', listingFee.toDouble()),
       if (promoteFee > 0) TGCheckoutLine(promoteLabel ?? 'Promotion', promoteFee.toDouble()),
     ];
     return TGCheckoutCart(
@@ -140,7 +166,7 @@ class TGCheckoutCart {
     final lines = <TGCheckoutLine>[
       TGCheckoutLine(early ? 'Renew early' : 'Renew', listingFee.toDouble()),
       if (promoteFee > 0)
-        TGCheckoutLine(promoteDays == 30 ? 'Promote 30 days' : 'Promote 14 days', promoteFee.toDouble()),
+        TGCheckoutLine('Promote ${DurationFormatter.days(promoteDays, 'en')}', promoteFee.toDouble()),
     ];
     return TGCheckoutCart(
       kind: TGCheckoutKind.restaurantRenew,

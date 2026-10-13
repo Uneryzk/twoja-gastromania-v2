@@ -14,6 +14,7 @@ class SoStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, icon, fg, bg, outline) = switch (status) {
       TGSpecialRequestStatus.draft => (context.t('ui_so_status_draft'), Icons.edit_outlined, const Color(0xFFBDBDBD), const Color(0xFF2A2A2A), false),
+      TGSpecialRequestStatus.awaitingConsent => (context.t('ui_so_status_awaiting_consent'), Icons.pending_actions_outlined, const Color(0xFFFFB74D), Colors.transparent, true),
       TGSpecialRequestStatus.held => (context.t('ui_so_status_check'), Icons.shield_moon_outlined, const Color(0xFFFFB74D), const Color(0x332A1F00), false),
       TGSpecialRequestStatus.open || TGSpecialRequestStatus.quoted => (
           context.t('ui_so_status_open', {'n': '$quoteCount'}),

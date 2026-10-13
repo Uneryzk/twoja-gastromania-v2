@@ -10,7 +10,8 @@ import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 
 const _seller = TGSeller(id: 's1', name: 'Seller', type: TGSellerType.store, verified: false, rating: 4.0);
-const _verifiedSeller = TGSeller(id: 's2', name: 'Verified', type: TGSellerType.store, verified: true, rating: 4.9);
+// NIP-verified store with an active plan in the seller-profile seed (company_registry).
+const _verifiedSeller = TGSeller(id: 'seller_gastropl', name: 'Verified', type: TGSellerType.store, verified: true, rating: 4.9);
 
 TGProduct _p(
   String id, {

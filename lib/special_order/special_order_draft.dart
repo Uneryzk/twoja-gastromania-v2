@@ -126,6 +126,45 @@ class SpecialOrderDraft extends ChangeNotifier {
     }
   }
 
+  /// Restores a stored (cancelled or timed-out) request into the wizard.
+  void loadFrom(TGSpecialRequest r) {
+    projectTypes
+      ..clear()
+      ..addAll(r.projectTypes);
+    title = r.title;
+    description = r.description;
+    widthMm = r.widthMm;
+    depthMm = r.depthMm;
+    heightMm = r.heightMm;
+    quantity = r.quantity;
+    material = r.material;
+    finish = r.finish;
+    budgetMin = r.budgetMin;
+    budgetMax = r.budgetMax;
+    budgetUnsure = r.budgetMin == null && r.budgetMax == null;
+    deadline = r.deadline;
+    installationNeeded = r.installationNeeded;
+    deliveryNeeded = r.deliveryNeeded;
+    city = r.city;
+    voivodeship = r.voivodeship;
+    files
+      ..clear()
+      ..addAll(r.files);
+    routingMode = r.routingMode;
+    selectedSellerIds
+      ..clear()
+      ..addAll(r.selectedSellerIds);
+    buyerName = r.buyerName;
+    companyName = r.companyName;
+    nip = r.nip ?? '';
+    phone = r.phone;
+    email = r.email;
+    contactPref = r.contactPref;
+    consent = true;
+    step = 4;
+    notifyListeners();
+  }
+
   TGSpecialRequest toRequest({required String buyerId}) {
     final now = TGClock.now();
     return TGSpecialRequest(

@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/dashboard/ads_center_tabs.dart';
+import 'package:twoja_gastromania/dashboard/dash3_widgets.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
+import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_services/promotion_service.dart';
+import 'package:twoja_gastromania/tg_services/sponsor_slot_service.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/payment/payment_form.dart';
@@ -24,15 +30,19 @@ import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
+import 'package:twoja_gastromania/payment/payment_models.dart';
 
-/// `/dashboard/advertising` — hero banner purchase (VITRIN-3) + reporting.
+/// `/dashboard/advertising?tab=promotions|banners|sponsor|credits` — promotion
+/// and ad centre. `?target=` opens the hero banner purchase (VITRIN-3).
 class AdvertisingPage extends StatefulWidget {
-  const AdvertisingPage({super.key, this.prefillTarget});
+  const AdvertisingPage({super.key, this.prefillTarget, this.tab});
 
   static const routeName = 'Advertising';
   static const routePath = '/dashboard/advertising';
+  static const tabs = ['promotions', 'banners', 'sponsor', 'credits'];
 
   final String? prefillTarget;
+  final String? tab;
 
   @override
   State<AdvertisingPage> createState() => _AdvertisingPageState();
@@ -46,20 +56,34 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
   String _imageUrl = TGListingImages.heroSlide(2);
   String? _targetUrl;
   TGAdSlotKind _kind = TGAdSlotKind.listing;
-  BannerDurationKey _duration = BannerDurationKey.w1;
+  int _duration = AdSlotService.instance.pricing.durations.first;
   DateTime? _startsAt;
   bool _useEntitlement = false;
   bool _paying = false;
   final _formKey = GlobalKey<PaymentFormState>();
   TGAdSlot? _submitted;
 
+  Map<String, TGProduct> _catalogue = const {};
+
   AdSlotService get _ads => AdSlotService.instance;
+
+  String get _tab {
+    if (AdvertisingPage.tabs.contains(widget.tab)) return widget.tab!;
+    return widget.prefillTarget != null ? 'banners' : 'promotions';
+  }
 
   @override
   void initState() {
     super.initState();
     _ads.ensureSeeded();
     _ads.addListener(_onAds);
+    PromotionService.instance.ensureSeeded();
+    TGSponsorSlotService.instance.ensureSeeded();
+    PromotionService.instance.addListener(_onAds);
+    TGSponsorSlotService.instance.addListener(_onAds);
+    TGProductService.instance.getAll().then((all) {
+      if (mounted) setState(() => _catalogue = {for (final p in all) p.id: p});
+    });
     final pre = widget.prefillTarget;
     if (pre != null && pre.startsWith('/')) {
       _targetUrl = pre;
@@ -78,12 +102,14 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
   @override
   void dispose() {
     _ads.removeListener(_onAds);
+    PromotionService.instance.removeListener(_onAds);
+    TGSponsorSlotService.instance.removeListener(_onAds);
     _title.dispose();
     super.dispose();
   }
 
   int _price(String ownerId) =>
-      _useEntitlement && _ads.canUseEnterpriseEntitlement(ownerId) && _duration == _ads.pricing.enterpriseFreeDuration
+      _useEntitlement && _ads.canUseEnterpriseEntitlement(ownerId) && _duration == _ads.pricing.enterpriseFreeDays
           ? 0
           : _ads.priceFor(_duration);
 
@@ -95,28 +121,20 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final theme = FlutterFlowTheme.of(context);
 
-    if (!_ads.purchaseVisible) {
-      return TGPageScaffold(
-        body: Column(
-          children: [
-            const TGTopNav(),
-            Expanded(
-              child: Center(
-                child: TextButton(
-                  onPressed: () => context.go('/dashboard/listings'),
-                  child: Text(context.t('ui_ads_back_listings')),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (phone && _step == _Step.dates) return _phoneDatesScreen(theme, auth);
+    final tab = _tab;
+    final banners = tab == 'banners';
+    if (banners && _ads.purchaseVisible && phone && _step == _Step.dates) return _phoneDatesScreen(theme, auth);
 
     final owned = _ads.ownedBy(auth.userId);
-    final Widget main = switch (_step) {
+    final Widget main = !_ads.purchaseVisible
+        ? Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => context.go('/dashboard/listings'),
+              child: Text(context.t('ui_ads_back_listings')),
+            ),
+          )
+        : switch (_step) {
       _Step.content => _contentStep(theme, auth),
       _Step.preview => _previewStep(theme, phone: phone),
       _Step.dates => _datesStep(theme, auth, phone: false),
@@ -124,7 +142,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
       _Step.done => _doneStep(theme),
     };
 
-    final body = phone
+    final Widget bannerBody = phone
         ? main
         : Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,15 +172,32 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
                           child: Text(context.t('ui_ads_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
                         ),
                         const SizedBox(height: 6),
-                        Text(context.t('ui_ads_reach_note'), style: theme.bodyMedium.override(color: theme.secondaryText)),
+                        const DashReachNote(),
                         const SizedBox(height: 12),
-                        _stepDots(theme),
+                        DashTabBar(
+                          keyPrefix: 'ads',
+                          semanticsLabel: context.t('ui_ads_title'),
+                          current: tab,
+                          tabs: [for (final t in AdvertisingPage.tabs) (t, context.t('ads_tab_$t'))],
+                          onSelect: (t) => context.go('${AdvertisingPage.routePath}?tab=$t'),
+                        ),
                         const SizedBox(height: 18),
-                        body,
-                        if (phone && owned.isNotEmpty && _step == _Step.content) ...[
-                          const SizedBox(height: 28),
-                          _reportPanel(theme, auth, owned),
-                        ],
+                        if (banners) ...[
+                          if (_ads.purchaseVisible) ...[
+                            _stepDots(theme),
+                            const SizedBox(height: 18),
+                          ],
+                          bannerBody,
+                          if (phone && owned.isNotEmpty && (_step == _Step.content || !_ads.purchaseVisible)) ...[
+                            const SizedBox(height: 28),
+                            _reportPanel(theme, auth, owned),
+                          ],
+                        ] else
+                          switch (tab) {
+                            'sponsor' => AdsSponsorTab(userId: auth.userId),
+                            'credits' => DashCreditsPanel(userId: auth.userId),
+                            _ => AdsPromotionsTab(targets: AdsTargets(auth, _catalogue)),
+                          },
                       ],
                     ),
                   ),
@@ -300,30 +335,30 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
         const SizedBox(height: 4),
         Text(context.t('ui_longer_cheaper'), style: theme.bodySmall.override(color: theme.secondaryText)),
         const SizedBox(height: 8),
-        for (final key in BannerDurationKey.values)
-          RadioListTile<BannerDurationKey>(
+        for (final key in AdSlotService.instance.pricing.durations)
+          RadioListTile<int>(
             dense: true,
             contentPadding: EdgeInsets.zero,
             value: key,
             groupValue: _duration,
             onChanged: _useEntitlement ? null : (v) => setState(() => _duration = v!),
             title: Text(
-              '${context.t(key.labelKey)} · ${cfg.pricePln(key)} PLN',
+              '${DurationFormatter.daysOf(context, key)} · ${cfg.pricePln(key)} PLN',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
             subtitle: Text(
-              PricingConfigService.instance.config.perDayLabel(cfg.pricePln(key), key.days, unit: context.t('ui_pln_per_day')),
+              PricingConfigService.instance.config.perDayLabel(cfg.pricePln(key), key, unit: context.t('ui_pln_per_day')),
             ),
           ),
         if (entitlementLeft > 0)
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(context.t('ui_ads_use_entitlement', {'n': '$entitlementLeft'})),
-            subtitle: Text(context.t('ui_banner_entitlement_week')),
+            subtitle: Text(context.t('ui_banner_entitlement_week', {'days': '${cfg.enterpriseFreeDays}'})),
             value: _useEntitlement,
             onChanged: (v) => setState(() {
               _useEntitlement = v;
-              if (v) _duration = cfg.enterpriseFreeDuration;
+              if (v) _duration = cfg.enterpriseFreeDays;
             }),
           ),
       ],
@@ -342,7 +377,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
       return;
     }
     try {
-      _ads.reserve(ownerId: auth.userId, startsAt: s, duration: _duration);
+      _ads.reserve(ownerId: auth.userId, startsAt: s, durationDays: _duration);
       _go(_Step.pay);
     } on StateError catch (e) {
       showTGToast(context, context.t(e.message));
@@ -371,7 +406,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
         const SizedBox(height: 16),
         TGBannerCalendar(
           ownerId: auth.userId,
-          duration: _duration,
+          durationDays: _duration,
           selectedStart: _startsAt,
           onSelect: (d) => setState(() => _startsAt = d),
         ),
@@ -456,7 +491,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
         Text(
           free
               ? context.t('ui_ads_confirm_entitlement')
-              : context.t('ui_banner_payment', {'price': '$price', 'duration': context.t(_duration.labelKey)}),
+              : context.t('ui_banner_payment', {'price': '$price', 'duration': DurationFormatter.daysOf(context, _duration)}),
           style: theme.titleMedium.override(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 6),
@@ -484,6 +519,8 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
           PaymentForm(
             key: _formKey,
             amountPln: price.toDouble(),
+            billingKind: TGPaymentKind.banner,
+            billingDescription: 'Hero banner · $_duration days',
             onWaitingChanged: (v) => setState(() => _paying = v),
             onPaid: () => _submit(auth),
           ),
@@ -509,7 +546,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
         title: _title.text.trim(),
         imageUrl: _imageUrl,
         startsAt: _startsAt!,
-        duration: _duration,
+        durationDays: _duration,
         useEnterpriseEntitlement: _useEntitlement,
       );
       setState(() {
@@ -603,6 +640,12 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
     showTGToast(context, context.t(err ?? 'ui_banner_cancelled'));
   }
 
+  bool _canStop(TGAdSlot s) {
+    final now = TGClock.now();
+    return s.endsAt.isAfter(now) &&
+        (s.status == TGAdSlotStatus.live || (s.status == TGAdSlotStatus.approved && !now.isBefore(s.startsAt)));
+  }
+
   Widget _reportPanel(FlutterFlowTheme theme, FakeAuthState auth, List<TGAdSlot> owned) {
     final locale = Localizations.localeOf(context).languageCode;
     final fmt = DateFormat('d MMM', locale);
@@ -618,8 +661,6 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
               header: true,
               child: Text(context.t('ui_ads_your_banners'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
             ),
-            const SizedBox(height: 6),
-            Text(context.t('ui_ads_reach_note'), style: theme.bodySmall.override(color: theme.secondaryText)),
             const SizedBox(height: 12),
             if (owned.isEmpty)
               Text(context.t('ui_ads_none'), style: theme.bodySmall)
@@ -638,7 +679,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
                       ),
                       Text(
                         context.t('ui_ads_stats', {
-                          'status': context.t(s.duration.labelKey),
+                          'status': DurationFormatter.daysOf(context, s.durationDays),
                           'impressions': '${s.impressions}',
                           'clicks': '${s.clicks}',
                         }),
@@ -648,10 +689,20 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
                         Text(context.t('ui_banner_refunded', {'price': '${s.refundPln}'}), style: theme.bodySmall),
                       if (s.status == TGAdSlotStatus.rejected && (s.rejectReason ?? '').isNotEmpty)
                         Text(s.rejectReason!, style: theme.bodySmall.override(color: TGColors.error)),
-                      if (s.status == TGAdSlotStatus.changesRequested || _ads.canCancel(s))
+                      if (s.status == TGAdSlotStatus.changesRequested || _ads.canCancel(s) || _canStop(s))
                         Wrap(
                           spacing: 8,
                           children: [
+                            if (_canStop(s))
+                              TextButton(
+                                key: Key('ads-banner-stop-${s.id}'),
+                                onPressed: () async {
+                                  if (!await confirmStopEarly(context)) return;
+                                  final err = _ads.stopByOwner(s.id, ownerId: auth.userId);
+                                  if (mounted) showTGToast(context, context.t(err ?? 'ads_stopped'));
+                                },
+                                child: Text(context.t('ads_stop_cta'), style: const TextStyle(color: TGColors.error)),
+                              ),
                             if (s.status == TGAdSlotStatus.changesRequested)
                               TextButton(onPressed: () => _resubmitDialog(s, auth), child: Text(context.t('ui_banner_fix_cta'))),
                             if (_ads.canCancel(s))

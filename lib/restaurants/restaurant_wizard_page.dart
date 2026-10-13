@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermark_preview.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart';
@@ -1076,6 +1078,8 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
           ),
         ],
         Text(context.t('ui_wiz_photos_n', {'n': '${draft.photos.length}'}), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        TGWatermarkUploadPreview(photos: draft.photos, surface: 'restaurant'),
         _err('photos'),
       ],
     );
@@ -1150,16 +1154,16 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                   context.t('ui_wiz_free_extension', {
                     'free': '${cfg.freeDays}',
                     'extra': '${cfg.freeExtensionDays}',
-                    'price': '${draft.pricing.restaurantFeePln(RestaurantDurationKey.d90)}',
-                    'paid': '${RestaurantDurationKey.d90.days}',
+                    'price': '${draft.pricing.restaurantFeePln(90)}',
+                    'paid': '${90}',
                   }),
                   style: theme.bodySmall,
                 )
               else ...[
                 Text(draft.freeStartBlockReasonSafe(), style: theme.bodySmall),
                 const SizedBox(height: 10),
-                for (final key in RestaurantDurationKey.values)
-                  RadioListTile<RestaurantDurationKey>(
+                for (final key in PricingConfigService.instance.config.restaurantDurations)
+                  RadioListTile<int>(
                     value: key,
                     groupValue: draft.paidDuration,
                     onChanged: (v) {
@@ -1169,12 +1173,12 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                     },
                     title: Text(
                       context.t('ui_duration_days_price', {
-                        'days': '${key.days}',
+                        'days': '${key}',
                         'fee': '${draft.pricing.restaurantFeePln(key)}',
                       }),
                     ),
                     subtitle: Text(
-                      '${draft.pricing.perDayLabel(draft.pricing.restaurantFeePln(key), key.days)} · ${context.t('ui_longer_cheaper')}',
+                      '${draft.pricing.perDayLabel(draft.pricing.restaurantFeePln(key), key)} · ${context.t('ui_longer_cheaper')}',
                     ),
                   ),
               ],

@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/favorites_service.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -252,6 +255,12 @@ class SpecialOrderBuyerDevPick {
 /// Sentinel for Dev Switcher → Devren İlan Sahibi.
 enum DevrenSellerDevPick { listingOwner }
 
+/// DASH-1 Dev Switcher personas: an account with no data at all, and a buyer
+/// (Marek, real deals/reviews/evidence) who also publishes his own listings.
+/// DASH-2 adds a seller with many conversations, a buyer with many favorites
+/// and a store seller with six months of listing history.
+enum DashboardDevPick { newUser, sellerBuyer, busySeller, favoritesBuyer, historySeller, billingStore }
+
 /// Dev Switcher: restaurant (dükkan) seller personas.
 enum RestoSellerDevPick {
   ownerFreeAvailable,
@@ -312,7 +321,7 @@ class FakeAuthState extends ChangeNotifier {
   List<TGProduct> ownedListings = const [];
   TGCheckoutCart? checkoutCart;
 
-  int get freeListingsTotal => TGPricing.freeListingQuota;
+  int get freeListingsTotal => PricingConfigService.instance.config.freeListingQuota;
   int get freeListingsLeft => (freeListingsTotal - freeSlotsUsed).clamp(0, freeListingsTotal);
 
   static const String mockOwnerId = 'seller_tg';
@@ -587,6 +596,13 @@ class FakeAuthState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Settings → Profile: public name ("Marek K.") and avatar initials.
+  void updatePublicName(String name, String initials) {
+    displayName = name;
+    userInitials = initials;
+    notifyListeners();
+  }
+
   void markPhoneVerified() {
     phoneVerified = true;
     notifyListeners();
@@ -628,6 +644,64 @@ class FakeAuthState extends ChangeNotifier {
 
   /// Mock auth: Special Order request owner (Jan / Piotr / Tomasz).
   void actAsSpecialOrderBuyer(SpecialOrderBuyerDevPick pick) => actAsBuyer(pick.asBuyer);
+
+  static const String newUserId = 'user_new';
+
+  /// Mock auth: freshly registered account — no listings, deals, requests or threads.
+  void actAsNewUser() {
+    setScenario(TGEntitlementScenario.noListings, notify: false);
+    _isLoggedIn = true;
+    role = TGUserRole.seller;
+    sellerType = TGSellerType.private;
+    userId = newUserId;
+    userInitials = 'NU';
+    displayName = 'New user';
+    phoneVerified = false;
+    storePlan = null;
+    checkoutCart = null;
+    notifyListeners();
+  }
+
+  /// Mock auth: Marek keeps his buyer history (deals, reviews, evidence request)
+  /// and also sells two items of his own.
+  void actAsSellerBuyer() {
+    const pick = BuyerDevPick.marek;
+    const seller = TGSeller(id: 'buyer_marek', name: 'Marek K.', type: TGSellerType.private, verified: false, rating: 0);
+    setScenario(TGEntitlementScenario.noListings, notify: false);
+    _isLoggedIn = true;
+    role = TGUserRole.seller;
+    sellerType = TGSellerType.private;
+    userId = pick.userId;
+    userInitials = pick.initials;
+    displayName = pick.displayName;
+    phoneVerified = pick.phoneVerified;
+    storePlan = null;
+    freeSlotsUsed = 2;
+    ownedListings = [
+      _own(
+        id: 'own_sb1',
+        title: 'Ekspres kolbowy 2-grupowy',
+        listingNo: '45381920',
+        publishedAgo: const Duration(days: 9),
+        expiresIn: const Duration(days: 21),
+        slot: 1,
+        seller: seller,
+        ownerId: pick.userId,
+      ),
+      _own(
+        id: 'own_sb2',
+        title: 'Szafa chłodnicza 600L',
+        listingNo: '46492031',
+        publishedAgo: const Duration(days: 28),
+        expiresIn: const Duration(days: 2),
+        slot: 2,
+        seller: seller,
+        ownerId: pick.userId,
+      ),
+    ];
+    TGListingNo.reserveAll(ownedListings.map((p) => p.listingNo));
+    notifyListeners();
+  }
 
   /// Mock auth: restaurant / cafe business-transfer seller (Devren).
   void actAsDevrenSeller() {
@@ -689,11 +763,112 @@ class FakeAuthState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Mock auth: TG Demo with the expired-listings scenario; the DASH-2 mock
+  /// data adds many buyer conversations on top.
+  void actAsBusySeller() {
+    _isLoggedIn = true;
+    role = TGUserRole.seller;
+    setScenario(TGEntitlementScenario.hasExpired, notify: false);
+    displayName = 'TG Demo';
+    phoneVerified = true;
+    notifyListeners();
+  }
+
+  /// Mock auth: Anna (buyer); the DASH-2 mock data adds her favorites.
+  void actAsFavoritesBuyer() => actAsBuyer(BuyerDevPick.anna);
+
+  static const historySellerId = 'seller_technica';
+
+  /// Mock auth: Technica Pro (Basic Store) with six months of mixed listings:
+  /// FREE, PAID, STORE, sold, expired and a fresh one with too little data.
+  void actAsHistorySeller() {
+    actAsStoreOwner(StoreOwnerDevPick.technica);
+    final now = DateTime.now();
+    storeRenewsOn = DateTime(now.year, now.month, now.day + 18);
+    storeActiveUsed = 1;
+    storeActiveLimit = 15;
+    freeSlotsUsed = 3;
+    const seller = TGSeller(id: historySellerId, name: 'Technica Pro', type: TGSellerType.store, verified: true, rating: 4.7);
+    TGProduct own(
+      String id,
+      String title,
+      String no, {
+      Duration? ago,
+      Duration? left,
+      Duration? expiredAgo,
+      TGListingStatus? status,
+      TGListingSource source = TGListingSource.paid,
+      int? slot,
+      int price = 2500,
+      DateTime? expiresAt,
+    }) =>
+        _own(
+          id: id,
+          title: title,
+          listingNo: no,
+          publishedAgo: ago,
+          expiresIn: left,
+          expiredAgo: expiredAgo,
+          status: status,
+          slot: slot,
+          seller: seller,
+          ownerId: historySellerId,
+          source: source,
+          price: price,
+          expiresAt: expiresAt,
+        );
+    ownedListings = [
+      own('hs_store1', 'Zmywarka kapturowa Winterhalter PT-M', '51200481', ago: const Duration(days: 172), source: TGListingSource.store, price: 18900, expiresAt: storeRenewsOn),
+      own('hs_paid1', 'Piec konwekcyjny Rational iCombi 6-1/1', '51200492', ago: const Duration(days: 50), left: const Duration(days: 40), price: 32500),
+      own('hs_free1', 'Frytownica elektryczna 2x8L', '51200503', ago: const Duration(days: 20), left: const Duration(days: 40), source: TGListingSource.free, slot: 1, price: 1450),
+      own('hs_new1', 'Stół chłodniczy 3-drzwiowy', '51200514', ago: const Duration(days: 3), left: const Duration(days: 27), price: 4200),
+      own('hs_exp1', 'Szatkownica Robot Coupe CL50', '51200525', ago: const Duration(days: 102), expiredAgo: const Duration(days: 12), price: 6900),
+      own('hs_exp2', 'Kuchnia gazowa 6-palnikowa', '51200536', ago: const Duration(days: 65), expiredAgo: const Duration(days: 5), source: TGListingSource.free, slot: 2, price: 3800),
+      own('hs_sold1', 'Ekspres Nuova Simonelli Appia II', '51200547', ago: const Duration(days: 120), left: const Duration(days: 1), status: TGListingStatus.sold, price: 9800),
+      _own(id: 'hs_draft1', title: 'Szkic: szafa mroźnicza 700L', draft: true, seller: seller, ownerId: historySellerId),
+    ];
+    TGListingNo.reserveAll(ownedListings.map((p) => p.listingNo));
+    notifyListeners();
+  }
+
+  int get storeSlotsUsed {
+    final store = ownedActive.where((p) => p.source == TGListingSource.store).length;
+    return store > storeActiveUsed ? store : storeActiveUsed;
+  }
+
+  bool get storeHasFreeSlot => storePlan != null && storeSlotsUsed < storeActiveLimit;
+
+  /// Moves an owned FREE / PAID listing onto the store plan: spends one store
+  /// slot and aligns expiry with the subscription end ([storeRenewsOn]). The
+  /// FREE slot already spent is not refunded. Returns an i18n error key.
+  String? moveToStorePlan(String id) {
+    if (storePlan == null) return 'dash_move_err_no_store';
+    final i = ownedListings.indexWhere((p) => p.id == id);
+    if (i < 0) return 'dash_move_err_missing';
+    final p = ownedListings[i];
+    if (p.source == TGListingSource.store) return 'dash_move_err_already';
+    if (!p.isActive && p.status != TGListingStatus.expired) return 'dash_move_err_status';
+    if (!storeHasFreeSlot) return 'dash_move_err_quota';
+    if (!storeRenewsOn.isAfter(DateTime.now())) return 'dash_move_err_renewal';
+    storeActiveUsed = storeSlotsUsed + 1;
+    final next = [...ownedListings];
+    next[i] = p.copyWith(source: TGListingSource.store, status: TGListingStatus.active, expiresAt: storeRenewsOn);
+    ownedListings = next;
+    notifyListeners();
+    return null;
+  }
+
   /// Inserts or replaces an owned listing. Drafts do not consume a free slot.
+  /// A price edit on a live listing is recorded in [TGPriceHistoryService].
   void upsertOwned(TGProduct listing) {
     final next = [...ownedListings];
     final i = next.indexWhere((p) => p.id == listing.id);
     if (i >= 0) {
+      final old = next[i].price;
+      final now = listing.price;
+      if (old != null && now != null && old != now && listing.status == TGListingStatus.active) {
+        TGPriceHistoryService.instance.record(listingId: listing.id, oldPln: old, newPln: now);
+      }
       next[i] = listing;
     } else {
       next.insert(0, listing);
@@ -725,15 +900,15 @@ class FakeAuthState extends ChangeNotifier {
     } else {
       source = TGListingSource.paid;
     }
-    final days = periodDays ?? TGPricing.listingPeriodDays;
+    final days = periodDays ?? PricingConfigService.instance.config.defaultListingDays;
     final published = listing.copyWith(
       status: TGListingStatus.active,
       publishedAt: now,
-      expiresAt: now.add(Duration(days: days)),
+      expiresAt: DurationService.addDays(now, days),
       source: source,
       freeSlotIndex: slot,
       isPromoted: promoteDays > 0,
-      promotedUntil: promoteDays > 0 ? now.add(Duration(days: promoteDays)) : null,
+      promotedUntil: promoteDays > 0 ? DurationService.addDays(now, promoteDays) : null,
       ownerId: userId,
       listingNo: listing.listingNo ?? TGListingNo.allocate(),
     );
@@ -757,14 +932,14 @@ class FakeAuthState extends ChangeNotifier {
     final base = early && listing.expiresAt != null && listing.expiresAt!.isAfter(now)
         ? listing.expiresAt!
         : now;
-    final days = periodDays ?? TGPricing.listingPeriodDays;
+    final days = periodDays ?? PricingConfigService.instance.config.defaultListingDays;
     final published = listing.copyWith(
       status: TGListingStatus.active,
       publishedAt: listing.publishedAt ?? now,
-      expiresAt: base.add(Duration(days: days)),
+      expiresAt: DurationService.addDays(base, days),
       source: TGListingSource.paid,
       isPromoted: promoteDays > 0,
-      promotedUntil: promoteDays > 0 ? now.add(Duration(days: promoteDays)) : null,
+      promotedUntil: promoteDays > 0 ? DurationService.addDays(now, promoteDays) : null,
       ownerId: userId,
     );
     upsertOwned(published);
@@ -827,6 +1002,11 @@ TGProduct _own({
   int? slot,
   bool draft = false,
   TGListingStatus? status,
+  TGSeller seller = FakeAuthState.mockOwnerSeller,
+  String ownerId = FakeAuthState.mockOwnerId,
+  TGListingSource source = TGListingSource.free,
+  int price = 2500,
+  DateTime? expiresAt,
 }) {
   final now = DateTime.now();
   final created = now.subtract(publishedAgo ?? Duration.zero);
@@ -839,14 +1019,14 @@ TGProduct _own({
       expires = now.subtract(expiredAgo);
     } else {
       resolved = status ?? TGListingStatus.active;
-      expires = now.add(expiresIn ?? const Duration(days: TGPricing.listingPeriodDays));
+      expires = expiresAt ?? now.add(expiresIn ?? const Duration(days: TGPricing.listingPeriodDays));
     }
   }
   if (listingNo != null) TGListingNo.reserve(listingNo);
   return TGProduct(
     id: id,
     title: title,
-    price: 2500,
+    price: price,
     priceUnit: TGPriceUnit.oneTime,
     priceBasis: TGPriceBasis.netto,
     negotiable: false,
@@ -858,7 +1038,7 @@ TGProduct _own({
     warrantyMonths: 3,
     delivery: true,
     pickup: true,
-    seller: FakeAuthState.mockOwnerSeller,
+    seller: seller,
     city: 'Katowice',
     voivodeship: 'Śląskie',
     phone: '+48 (532) 784-074',
@@ -871,9 +1051,9 @@ TGProduct _own({
     status: resolved,
     publishedAt: published,
     expiresAt: expires,
-    source: TGListingSource.free,
-    freeSlotIndex: slot,
-    ownerId: FakeAuthState.mockOwnerId,
+    source: source,
+    freeSlotIndex: source == TGListingSource.free ? slot : null,
+    ownerId: ownerId,
     listingNo: draft ? null : listingNo,
   );
 }

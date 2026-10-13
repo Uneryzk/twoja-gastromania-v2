@@ -56,6 +56,10 @@ class MyApp extends StatefulWidget {
 
   static _MyAppState of(BuildContext context) =>
       context.findAncestorStateOfType<_MyAppState>()!;
+
+  /// Like [setAppLanguage] but a no-op outside [MyApp] (e.g. widget tests).
+  static void trySetLocale(BuildContext context, String language) =>
+      context.findAncestorStateOfType<_MyAppState>()?.setLocale(language);
 }
 
 class MyAppScrollBehavior extends MaterialScrollBehavior {

@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
+import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/tg_core/restaurant_config.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
@@ -142,9 +144,9 @@ class RestaurantLifecycleService extends ChangeNotifier {
       status: RestaurantListingStatus.active,
       isHidden: false,
       publishedAt: now,
-      expiresAt: now.add(Duration(days: days)),
+      expiresAt: DurationService.addDays(now, days),
       source: source,
-      promotedUntil: promoteDays > 0 ? now.add(Duration(days: promoteDays)) : listing.promotedUntil,
+      promotedUntil: promoteDays > 0 ? DurationService.addDays(now, promoteDays) : listing.promotedUntil,
     );
     RestaurantService.instance.replace(next);
     TGAnalytics.track('resto_publish', {
@@ -173,9 +175,9 @@ class RestaurantLifecycleService extends ChangeNotifier {
     final next = cur.copyWith(
       status: RestaurantListingStatus.active,
       isHidden: false,
-      expiresAt: base.add(Duration(days: periodDays ?? cfg.paidDays)),
+      expiresAt: DurationService.addDays(base, periodDays ?? cfg.paidDays),
       source: RestaurantListingSource.paid,
-      promotedUntil: promoteDays > 0 ? now.add(Duration(days: promoteDays)) : cur.promotedUntil,
+      promotedUntil: promoteDays > 0 ? DurationService.addDays(now, promoteDays) : cur.promotedUntil,
     );
     RestaurantService.instance.replace(next);
     TGAnalytics.track('renew_success', {
@@ -192,7 +194,7 @@ class RestaurantLifecycleService extends ChangeNotifier {
     final cur = RestaurantService.instance.byId(listingId);
     if (cur == null || promoteDays <= 0) return null;
     if (promoteDays > cur.daysUntilExpiry(TGClock.now())) return null;
-    final next = cur.copyWith(promotedUntil: TGClock.now().add(Duration(days: promoteDays)));
+    final next = cur.copyWith(promotedUntil: DurationService.addDays(TGClock.now(), promoteDays));
     RestaurantService.instance.replace(next);
     TGAnalytics.track('resto_promote_selected', {'listingNo': next.listingNo, 'days': promoteDays, 'mode': 'standalone'});
     notifyListeners();
@@ -237,7 +239,7 @@ class RestaurantLifecycleService extends ChangeNotifier {
         final e = r.engagement;
         if (e.uniqueContacts == 0 && e.uniqueFavorites == 0) {
           final extended = r.copyWith(
-            expiresAt: now.add(Duration(days: cfg.freeExtensionDays)),
+            expiresAt: DurationService.addDays(now, cfg.freeExtensionDays),
             freeExtensionGranted: true,
           );
           RestaurantService.instance.replace(extended);
@@ -280,7 +282,7 @@ class RestaurantLifecycleService extends ChangeNotifier {
         _notify(
           r,
           'ends_day_$ageDays',
-          'Your free period ends in $nLeft days',
+          'Your free period ends in ${DurationFormatter.days(nLeft, 'en')}',
           'Check performance and renew options.',
           deep: true,
         );
@@ -290,7 +292,7 @@ class RestaurantLifecycleService extends ChangeNotifier {
           r,
           'decision_30',
           'Day 30 decision',
-          'Your free period ends today. Renew for ${cfg.paidPricePln} PLN / ${cfg.paidDays} days, or wait for the automatic extension check.',
+          'Your free period ends today. Renew for ${cfg.paidPricePln} PLN / ${DurationFormatter.days(cfg.paidDays, 'en')}, or wait for the automatic extension check.',
           deep: true,
         );
       }
@@ -300,8 +302,8 @@ class RestaurantLifecycleService extends ChangeNotifier {
           _notify(
             r,
             'paid_ends_$d',
-            'Listing ends in $d days',
-            'Renew for ${cfg.paidPricePln} PLN / ${cfg.paidDays} days.',
+            'Listing ends in ${DurationFormatter.days(d, 'en')}',
+            'Renew for ${cfg.paidPricePln} PLN / ${DurationFormatter.days(cfg.paidDays, 'en')}.',
             deep: true,
           );
         }
@@ -322,14 +324,14 @@ class RestaurantLifecycleService extends ChangeNotifier {
     final e = r.engagement;
     final lowViews = e.views < cfg.lowViewsHint;
     final tips = lowViews
-        ? 'Suggestions: 1) Promote (+${cfg.promote.pln14} / +${cfg.promote.pln30} PLN, one tap). 2) Add photos and additional information.'
+        ? 'Suggestions: 1) Promote (${cfg.promote.durations.map((d) => '+${cfg.promote.pricePln(d)} PLN / ${DurationFormatter.days(d, 'en')}').join(', ')}, one tap). 2) Add photos and additional information.'
         : 'Suggestions: 1) Review the price, transfer fee and photos. 2) Fill in additional information. 3) Promote.';
     final median = _medianSimilarRentHint(r);
     _notify(
       r,
       'extension',
       'We\'ve added ${cfg.freeExtensionDays} more free days.',
-      '${e.views} views, ${e.uniqueContacts} contacts, ${e.uniqueFavorites} favorites in ${cfg.freeDays} days. $tips$median '
+      '${e.views} views, ${e.uniqueContacts} contacts, ${e.uniqueFavorites} favorites in ${DurationFormatter.days(cfg.freeDays, 'en')}. $tips$median '
       'Advisory only — the platform makes no valuation and promises no result.',
       deep: true,
     );
@@ -370,12 +372,11 @@ class RestaurantLifecycleService extends ChangeNotifier {
     if (days <= 0) return;
     final cur = RestaurantService.instance.byId(listingId);
     if (cur?.expiresAt == null) return;
-    RestaurantService.instance.replace(cur!.copyWith(expiresAt: cur.expiresAt!.add(Duration(days: days))));
+    RestaurantService.instance.replace(cur!.copyWith(expiresAt: DurationService.addDays(cur.expiresAt!, days)));
   }
 
   int renewPlusPromoteTotal(int promoteDays) {
-    if (promoteDays == 14) return cfg.paidPricePln + cfg.promote.pln14;
-    if (promoteDays == 30) return cfg.paidPricePln + cfg.promote.pln30;
+    if (cfg.promote.prices.containsKey(promoteDays)) return cfg.paidPricePln + cfg.promote.pricePln(promoteDays);
     return cfg.paidPricePln;
   }
 

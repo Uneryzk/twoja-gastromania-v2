@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/add_product/add_product_fields.dart';
+import 'package:twoja_gastromania/dashboard/dash2_widgets.dart';
 import 'package:twoja_gastromania/dashboard/dashboard_nav.dart';
 import 'package:twoja_gastromania/dashboard/listing_row.dart';
 import 'package:twoja_gastromania/dashboard/promotions_panel.dart';
@@ -57,7 +60,7 @@ int compareDashboardListings(TGProduct a, TGProduct b) {
 }
 
 class ListingsDashboardPage extends StatefulWidget {
-  const ListingsDashboardPage({super.key, this.filter, this.renewId, this.renewedId, this.soldId});
+  const ListingsDashboardPage({super.key, this.filter, this.renewId, this.renewedId, this.soldId, this.type, this.query});
 
   static const routeName = 'ListingsDashboard';
   static const routePath = '/dashboard/listings';
@@ -67,11 +70,57 @@ class ListingsDashboardPage extends StatefulWidget {
   final String? renewedId;
   final String? soldId;
 
+  /// `equipment` | `restaurant`; null shows both.
+  final String? type;
+
+  /// `?q=` — title or listing No. contains.
+  final String? query;
+
+  static const tabs = ['all', 'active', 'expiring', 'expired', 'drafts', 'review', 'sold', 'promotions'];
+
   @override
   State<ListingsDashboardPage> createState() => _ListingsDashboardPageState();
 }
 
 class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
+  late final _search = TextEditingController(text: widget.query ?? '');
+  Timer? _debounce;
+
+  String get _tab {
+    final f = widget.filter ?? '';
+    return f.isEmpty ? 'all' : f;
+  }
+
+  String get _q => _search.text.trim();
+
+  /// Rewrites the URL, keeping every other listings query param.
+  void _go({String? tab, String? type, String? q}) {
+    final t = tab ?? _tab;
+    final ty = type ?? widget.type ?? '';
+    final qq = q ?? _q;
+    TGAnalytics.track('listings_filter', {'tab': t, 'type': ty.isEmpty ? 'all' : ty, 'q': qq.isNotEmpty});
+    final parts = <String>[
+      if (t != 'all') 'filter=$t',
+      if (ty.isNotEmpty) 'type=$ty',
+      if (qq.isNotEmpty) 'q=${Uri.encodeQueryComponent(qq)}',
+    ];
+    context.go('${ListingsDashboardPage.routePath}${parts.isEmpty ? '' : '?${parts.join('&')}'}');
+  }
+
+  void _onSearch(String v) {
+    setState(() {});
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _go(q: v.trim());
+    });
+  }
+
+  bool _matches(String title, String? no) {
+    final q = _q.toLowerCase();
+    if (q.isEmpty) return true;
+    return title.toLowerCase().contains(q) || (no ?? '').contains(q);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -86,12 +135,16 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
   @override
   void dispose() {
     RestaurantService.instance.removeListener(_onResto);
+    _debounce?.cancel();
+    _search.dispose();
     super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant ListingsDashboardPage old) {
     super.didUpdateWidget(old);
+    final q = widget.query ?? '';
+    if (old.query != widget.query && q != _q) _search.text = q;
     if (old.renewId != widget.renewId || old.renewedId != widget.renewedId || old.soldId != widget.soldId) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _handleQuery());
     }
@@ -138,7 +191,8 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
     context.watch<ModerationService>();
     ModerationService.instance.ensureSeeded();
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
-    final tab = widget.filter ?? 'all';
+    final tab = _tab;
+    final type = widget.type ?? '';
     var items = [...auth.ownedListings, ...ModerationService.instance.sellerListings];
     items.sort(compareDashboardListings);
     items = switch (tab) {
@@ -146,7 +200,8 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
       'expiring' => items.where((p) => p.isExpiringSoon).toList(),
       'active' => items.where((p) => p.isActive).toList(),
       'review' => items.where((p) => p.status == TGListingStatus.underReview).toList(),
-      'drafts' => items.where((p) => p.status == TGListingStatus.draft).toList(),
+      'drafts' => items.where((p) => p.status == TGListingStatus.draft || p.status == TGListingStatus.paymentPending).toList(),
+      'sold' => items.where((p) => p.status == TGListingStatus.sold).toList(),
       _ => items,
     };
     var restos = RestaurantService.instance.ownedBy(auth.userId);
@@ -156,9 +211,17 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
       'active' => restos.where((r) => r.status == RestaurantListingStatus.active).toList(),
       'review' => restos.where((r) => r.status == RestaurantListingStatus.underReview || r.status == RestaurantListingStatus.pendingAuthorization).toList(),
       'drafts' => restos.where((r) => r.status == RestaurantListingStatus.draft || r.status == RestaurantListingStatus.paymentPending).toList(),
+      'sold' => restos.where((r) => r.status == RestaurantListingStatus.sold).toList(),
       _ => restos,
     };
+    if (type == 'restaurant') items = const [];
+    if (type == 'equipment') restos = const [];
+    items = items.where((p) => _matches(p.title, p.listingNo)).toList();
+    restos = restos.where((r) => _matches(r.title, r.listingNo)).toList();
     final expiredN = auth.ownedExpired.length;
+    final renewableN = auth.ownedListings
+        .where((p) => p.source != TGListingSource.store && (p.isActive || p.status == TGListingStatus.expired))
+        .length;
 
     return TGPageScaffold(
       body: SingleChildScrollView(
@@ -182,13 +245,25 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                       const SizedBox(height: 16),
                       const TGDashboardNav(current: TGDashboardSection.listings),
                       const SizedBox(height: 12),
-                      _DashboardHeading(phone: phone, filter: widget.filter),
+                      _DashboardHeading(phone: phone, filter: tab == 'all' ? null : _Tabs.label(context, tab)),
                       if (auth.storePlan == null) ...[
                         const SizedBox(height: 10),
                         _FreeSlotsDots(auth: auth),
                       ],
                       const SizedBox(height: 14),
-                      _Tabs(current: tab, attention: auth.ownedNeedsAttention.isNotEmpty, onSelect: (f) => TGNav.dashboardListings(context, filter: f)),
+                      _Tabs(current: tab, onSelect: (f) => _go(tab: f.isEmpty ? 'all' : f)),
+                      const SizedBox(height: 10),
+                      _TypeAndSearch(
+                        type: type,
+                        search: _search,
+                        phone: phone,
+                        onType: (t) => _go(type: t),
+                        onSearch: _onSearch,
+                        onSubmit: (v) {
+                          _debounce?.cancel();
+                          _go(q: v.trim());
+                        },
+                      ),
                       if (tab == 'promotions') ...[
                         const SizedBox(height: 14),
                         const TGPromotionsPanel(),
@@ -196,7 +271,7 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                       if (expiredN > 0) ...[
                         const SizedBox(height: 12),
                         Builder(builder: (context) {
-                          final fee = PricingConfigService.instance.config.listingFeePln(ListingDurationKey.d30);
+                          final fee = PricingConfigService.instance.config.defaultListingFeePln;
                           return TGButton(
                             key: const Key('dashboard-renew-all'),
                             onPressed: () {
@@ -204,7 +279,7 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                                 TGCheckoutCart.renewBulk(
                                   ids: auth.ownedExpired.map((p) => p.id).toList(),
                                   unitFee: fee,
-                                  listingDays: ListingDurationKey.d30.days,
+                                  listingDays: PricingConfigService.instance.config.defaultListingDays,
                                 ),
                               );
                               context.go('/add-product/checkout');
@@ -218,16 +293,18 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                           );
                         }),
                       ],
-                      if (PricingConfigService.instance.config.shouldNudgeBasicStore(
-                        paidBasket30dEqPln: expiredN * PricingConfigService.instance.config.listingFeePln(ListingDurationKey.d30),
-                        listingCount: expiredN,
-                      )) ...[
+                      if (auth.storePlan == null &&
+                          PricingConfigService.instance.config.shouldNudgeBasicStore(
+                            paidBasket30dEqPln: expiredN * PricingConfigService.instance.config.defaultListingFeePln,
+                            listingCount: renewableN,
+                          )) ...[
                         const SizedBox(height: 12),
                         Builder(builder: (context) {
                           final cfg = PricingConfigService.instance.config;
-                          final fee = cfg.listingFeePln(ListingDurationKey.d30);
+                          final fee = cfg.defaultListingFeePln;
                           final n = cfg.storeNudgeMinListings;
                           return WizardCard(
+                            key: const Key('dashboard-basic-store-card'),
                             child: Row(
                               children: [
                                 Expanded(
@@ -246,7 +323,7 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                                     TGAnalytics.emit('basic_store_nudge_click');
                                     context.go('/plans');
                                   },
-                                  label: 'See Basic Store',
+                                  label: context.t('uyum_see_basic_store'),
                                   variant: TGButtonVariant.outline,
                                   height: 40,
                                 ),
@@ -260,7 +337,7 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                       if (items.isEmpty && restos.isEmpty)
                         Text(context.t('ui_no_results'), style: theme.bodyMedium)
                       else ...[
-                        for (final p in items)
+                        for (final p in items) ...[
                           ListingRow(
                             product: p,
                             onRenew: p.status == TGListingStatus.expired
@@ -272,7 +349,7 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                             onRenewEarly: p.isExpiringSoon ? () => showRenewSheet(context, p, early: true) : null,
                             onResume: p.status == TGListingStatus.paymentPending
                                 ? () {
-                                    final fee = PricingConfigService.instance.config.listingFeePln(ListingDurationKey.d30);
+                                    final fee = PricingConfigService.instance.config.defaultListingFeePln;
                                     auth.beginCheckout(
                                       TGCheckoutCart.listing(
                                         listingId: p.id,
@@ -280,14 +357,19 @@ class _ListingsDashboardPageState extends State<ListingsDashboardPage> {
                                         listingFee: fee,
                                         promoteFee: 0,
                                         promoteDays: 0,
-                                        listingDays: ListingDurationKey.d30.days,
+                                        listingDays: PricingConfigService.instance.config.defaultListingDays,
                                       ),
                                     );
                                     context.go('/add-product/checkout');
                                   }
                                 : null,
                           ),
-                        for (final r in restos) RestaurantListingRow(listing: r),
+                          if (tab == 'expired' && p.status == TGListingStatus.expired && auth.ownsListing(p)) RenewOffersCard(product: p),
+                        ],
+                        for (final r in restos) ...[
+                          RestaurantListingRow(listing: r),
+                          if (tab == 'expired' && r.status == RestaurantListingStatus.expired) RenewOffersCard(restaurant: r),
+                        ],
                       ],
                       ], // end non-promotions tab
                     ],
@@ -339,32 +421,106 @@ class _FreeSlotsDots extends StatelessWidget {
 }
 
 class _Tabs extends StatelessWidget {
-  const _Tabs({required this.current, required this.onSelect, this.attention = false});
+  const _Tabs({required this.current, required this.onSelect});
   final String current;
   final ValueChanged<String> onSelect;
-  final bool attention;
+
+  static String label(BuildContext context, String id) => switch (id) {
+        'all' => context.t('ui_all'),
+        'active' => context.t('dash_tab_active'),
+        'expiring' => context.t('ui_filter_expiring'),
+        'expired' => context.t('ui_filter_expired'),
+        'drafts' => context.t('dash_tab_drafts'),
+        'review' => context.t('dash_tab_review'),
+        'sold' => context.t('dash_tab_sold'),
+        'promotions' => context.t('ui_promotions_tab'),
+        _ => id,
+      };
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      ('all', context.t('ui_all')),
-      ('active', 'Active'),
-      ('expired', context.t('ui_filter_expired')),
-      ('promotions', context.t('ui_promotions_tab')),
-      if (attention) ('review', context.t('ui_filter_review')),
-      ('drafts', 'Drafts'),
-    ];
-    final selected = current == 'expiring' ? 'active' : (current.isEmpty ? 'all' : current);
-    return Wrap(
+    final selected = current.isEmpty ? 'all' : current;
+    return Semantics(
+      container: true,
+      label: context.t('dash_listings_tabs_sem'),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final id in ListingsDashboardPage.tabs)
+            ChoiceChip(
+              key: Key('listings-tab-$id'),
+              label: Text(label(context, id)),
+              selected: selected == id,
+              onSelected: (_) => onSelect(id == 'all' ? '' : id),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypeAndSearch extends StatelessWidget {
+  const _TypeAndSearch({
+    required this.type,
+    required this.search,
+    required this.phone,
+    required this.onType,
+    required this.onSearch,
+    required this.onSubmit,
+  });
+
+  final String type;
+  final TextEditingController search;
+  final bool phone;
+  final ValueChanged<String> onType;
+  final ValueChanged<String> onSearch;
+  final ValueChanged<String> onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final e in items)
-          ChoiceChip(
-            label: Text(e.$2),
-            selected: selected == e.$1,
-            onSelected: (_) => onSelect(e.$1 == 'all' ? '' : e.$1),
+        for (final t in const ['equipment', 'restaurant'])
+          FilterChip(
+            key: Key('listings-type-$t'),
+            label: Text(context.t(t == 'equipment' ? 'dash_type_equipment' : 'dash_type_restaurant')),
+            selected: type == t,
+            onSelected: (_) => onType(type == t ? '' : t),
           ),
+      ],
+    );
+    final field = Semantics(
+      textField: true,
+      label: context.t('dash_listings_search'),
+      child: TextField(
+        key: const Key('listings-search'),
+        controller: search,
+        onChanged: onSearch,
+        onSubmitted: onSubmit,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          isDense: true,
+          prefixIcon: const Icon(Icons.search, size: 20),
+          hintText: context.t('dash_listings_search'),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(TGRadius.pill)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(TGRadius.pill),
+            borderSide: const BorderSide(color: TGColors.cta, width: 2),
+          ),
+        ),
+      ),
+    );
+    if (phone) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [chips, const SizedBox(height: 8), field]);
+    }
+    return Row(
+      children: [
+        chips,
+        const SizedBox(width: 16),
+        Expanded(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420), child: field)),
       ],
     );
   }
@@ -383,14 +539,7 @@ class _DashboardHeading extends StatelessWidget {
         ? null
         : Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              filter == 'expired'
-                  ? context.t('ui_filter_expired')
-                  : filter == 'review'
-                      ? context.t('ui_filter_review')
-                      : context.t('ui_filter_expiring'),
-              style: theme.bodySmall.override(color: theme.secondaryText),
-            ),
+            child: Text(filter!, style: theme.bodySmall.override(color: theme.secondaryText)),
           );
     final add = TGButton(
       key: const Key('dashboard-add-product'),

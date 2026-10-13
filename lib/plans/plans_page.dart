@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/add_product/add_product_fields.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
@@ -17,7 +18,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_components/founder_price_row.dart';
-import 'package:twoja_gastromania/tg_services/audit_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
 import 'package:twoja_gastromania/tg_services/priority_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
@@ -137,7 +138,7 @@ class _PlansPageState extends State<PlansPage> {
                     const SizedBox(height: 40),
                     const _PriorityManufacturerSection(),
                     const SizedBox(height: 32),
-                    const _AuditAndSponsorCards(),
+                    const _SponsorSlotCard(),
                   ],
                 ),
               ),
@@ -392,6 +393,8 @@ class _PriorityManufacturerSectionState extends State<_PriorityManufacturerSecti
               const SizedBox(height: 8),
               PaymentForm(
                 amountPln: price.toDouble(),
+                billingKind: TGPaymentKind.priority,
+                billingDescription: 'Priority Manufacturer · ${_billing.name}',
                 onPaid: () {
                   if (founderWins) {
                     final rate = TGFounderService.instance.activeDiscountRate(sellerId);
@@ -421,41 +424,27 @@ class _PriorityManufacturerSectionState extends State<_PriorityManufacturerSecti
   }
 }
 
-class _AuditAndSponsorCards extends StatelessWidget {
-  const _AuditAndSponsorCards();
+class _SponsorSlotCard extends StatelessWidget {
+  const _SponsorSlotCard();
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final flags = TGRevenueConfigService.instance.flags;
-    if (!flags.auditProgram && !flags.sponsorSlots) return const SizedBox.shrink();
+    if (!flags.sponsorSlots) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (flags.auditProgram) ...[
-          Text(context.t('ui_plans_audit_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 6),
-          Text(context.t('ui_plans_audit_desc'), style: theme.bodyMedium),
-          const SizedBox(height: 10),
-          TGButton(
-            onPressed: () => context.go('/dashboard/manufacturer?tab=audit'),
-            label: context.t('ui_plans_open_audit', {'n': '${TGAuditService.feePln}'}),
-            height: 48,
-          ),
-          const SizedBox(height: 28),
-        ],
-        if (flags.sponsorSlots) ...[
-          Text(context.t('ui_plans_sponsor_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 6),
-          Text(context.t('ui_plans_sponsor_desc'), style: theme.bodyMedium),
-          const SizedBox(height: 10),
-          TGButton(
-            onPressed: () => context.go('/dashboard/manufacturer?tab=sponsor'),
-            label: context.t('ui_plans_open_sponsor', {'n': '${TGSponsorSlotService.pricePln}'}),
-            height: 48,
-            variant: TGButtonVariant.outline,
-          ),
-        ],
+        Text(context.t('ui_plans_sponsor_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        Text(context.t('ui_plans_sponsor_desc'), style: theme.bodyMedium),
+        const SizedBox(height: 10),
+        TGButton(
+          onPressed: () => context.go('/dashboard/manufacturer?tab=sponsor'),
+          label: context.t('ui_plans_open_sponsor', {'n': '${TGSponsorSlotService.instance.priceFor(PricingConfigService.instance.config.sponsorSlot.durations.first)}'}),
+          height: 48,
+          variant: TGButtonVariant.outline,
+        ),
       ],
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermark_preview.dart';
 import 'package:twoja_gastromania/add_product/add_product_draft.dart';
 import 'package:twoja_gastromania/add_product/add_product_fields.dart';
 import 'package:twoja_gastromania/add_product/wizard_mobile.dart';
@@ -1270,6 +1271,8 @@ class _AddProductPageState extends State<AddProductPage> {
           ),
         const SizedBox(height: 10),
         WizardHelp(context.t('ui_photos_nameplate')),
+        const SizedBox(height: 10),
+        TGWatermarkUploadPreview(photos: [for (final p in draft.photos) if (p.error == null) p.assetPath]),
       ],
     );
   }
@@ -1463,16 +1466,16 @@ class _AddProductPageState extends State<AddProductPage> {
         if (plan == TGListingPlan.paid) ...[
           const SizedBox(height: 14),
           WizardLabel(context.t('ui_listing_duration')),
-          for (final key in ListingDurationKey.values) ...[
-            if (key != ListingDurationKey.d30) const SizedBox(height: 8),
+          for (final key in PricingConfigService.instance.config.listingDurations) ...[
+            if (key != 30) const SizedBox(height: 8),
             WizardRadioCard(
               selected: draft.listingDuration == key,
               title: context.t('ui_duration_days_price', {
-                'days': '${key.days}',
+                'days': '${key}',
                 'fee': '${draft.pricing.listingFeePln(key)}',
               }),
               subtitle:
-                  '${draft.pricing.perDayLabel(draft.pricing.listingFeePln(key), key.days)} · ${context.t('ui_longer_cheaper')}',
+                  '${draft.pricing.perDayLabel(draft.pricing.listingFeePln(key), key)} · ${context.t('ui_longer_cheaper')}',
               onTap: () => _dirty(() => draft.listingDuration = key),
             ),
           ],
@@ -2002,7 +2005,7 @@ class _PlanBox extends StatelessWidget {
         context.t('ui_free_listing_n', {'n': '1'}),
       TGListingPlan.free => context.t('ui_free_listing_n', {'n': '${auth.freeSlotsUsed + 1}'}),
       TGListingPlan.paid => context.t('ui_standard_listing_n', {
-          'fee': '${PricingConfigService.instance.config.listingFeePln(ListingDurationKey.d30)}',
+          'fee': '${PricingConfigService.instance.config.listingFeePln(30)}',
         }),
       TGListingPlan.store => context.t('ui_included_in_plan', {
           'plan': auth.storePlanLabel,

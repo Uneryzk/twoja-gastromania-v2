@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
+import 'package:twoja_gastromania/tg_components/tg_ranking_info.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/seller/seller_profile_panels.dart' show showStoreProjectLightbox;
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
-import 'package:twoja_gastromania/tg_components/audited_badge.dart';
+import 'package:twoja_gastromania/tg_components/custom_projects_rating_line.dart';
 import 'package:twoja_gastromania/tg_components/tg_badges.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_contact.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:twoja_gastromania/tg_services/sponsor_slot_service.dart';
 
 class SoHero extends StatelessWidget {
   const SoHero({super.key, required this.onRequest, required this.onBrowse});
@@ -386,6 +390,7 @@ class SoFilterBar extends StatelessWidget {
                   },
                 ),
               ),
+              const TGRankingInfoLink(surface: 'special_order', compact: true),
               TextButton(onPressed: onClear, child: Text(context.t('ui_clear'))),
             ],
           ),
@@ -459,10 +464,19 @@ class SoManufacturerGrid extends StatelessWidget {
 }
 
 class SoManufacturerCard extends StatefulWidget {
-  const SoManufacturerCard({super.key, required this.profile, required this.selected, required this.onToggle});
+  const SoManufacturerCard({super.key, required this.profile, required this.selected, required VoidCallback this.onToggle})
+      : compact = false;
+
+  /// Home strip variant: cover, identity, specialties, one quote CTA (VITRIN-4).
+  const SoManufacturerCard.compact({super.key, required this.profile})
+      : selected = false,
+        onToggle = null,
+        compact = true;
+
   final TGStoreProfile profile;
   final bool selected;
-  final VoidCallback onToggle;
+  final VoidCallback? onToggle;
+  final bool compact;
 
   @override
   State<SoManufacturerCard> createState() => _SoManufacturerCardState();
@@ -471,10 +485,135 @@ class SoManufacturerCard extends StatefulWidget {
 class _SoManufacturerCardState extends State<SoManufacturerCard> {
   bool _hover = false;
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _compactCard(BuildContext context, PromotionTier? tier) {
     final theme = FlutterFlowTheme.of(context);
     final p = widget.profile;
+    final neon = tier == PromotionTier.glow || tier == PromotionTier.spotlight;
+    final cover = p.projects.expand((e) => e.photos).firstOrNull ?? p.coverUrl;
+    final specs = p.specialties.take(2).toList();
+    final region = p.serviceRegions.contains('nationwide') ? context.t('ui_nationwide') : p.city;
+    final promoLabel = switch (tier) {
+      PromotionTier.glow || PromotionTier.spotlight => '${context.t('badge.featured')}. ',
+      _ => '',
+    };
+    return Semantics(
+      container: true,
+      label: '$promoLabel${p.name}, ${context.t('ui_reviews_n', {'n': '${p.reviewsCount}'})}, $region',
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: AnimatedContainer(
+          duration: tgAnim(context, const Duration(milliseconds: 180)),
+          transform: Matrix4.translationValues(0, _hover && !tgReduceMotion(context) ? -3 : 0, 0),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1F1F1F),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              width: neon ? 2 : 1,
+              color: neon ? _kPromoPink : (_hover ? TGColors.cta.withValues(alpha: 0.55) : TGColors.border),
+            ),
+            boxShadow: neon ? [BoxShadow(color: _kPromoPink.withValues(alpha: 0.3), blurRadius: 12)] : null,
+          ),
+          child: InkWell(
+            onTap: () {
+              TGAnalytics.track('home_mfr_card_open', {'sellerId': p.sellerKey, 'tier': tier?.name});
+              context.go(p.path);
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (cover != null)
+                        ExcludeSemantics(child: Image.asset(cover, fit: BoxFit.cover))
+                      else
+                        ColoredBox(color: theme.alternate),
+                      if (tier != null) Positioned(left: 8, top: 8, child: SoPromoLabel(tier: tier, compact: true)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          p.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.titleSmall.override(
+                            fontWeight: switch (tier) {
+                              PromotionTier.bold => FontWeight.w700,
+                              null => FontWeight.w500,
+                              _ => FontWeight.w900,
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            TGRatingBadge(rating: p.rating),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                '${context.t('ui_reviews_n', {'n': '${p.reviewsCount}'})} · $region',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final s in specs)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: TGColors.accent, borderRadius: BorderRadius.circular(TGRadius.pill)),
+                                child: Text(
+                                  context.t('ui_so_spec_${s.name}'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 10),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const Spacer(),
+                        TGButton(
+                          onPressed: () => context.go('/special-order/new?seller=${p.publicId}'),
+                          label: context.t('ui_request_quote'),
+                          variant: TGButtonVariant.outline,
+                          height: 40,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tier = TGSpecialOrderService.instance.promotionTierFor(widget.profile.sellerKey);
+    if (widget.compact) return _compactCard(context, tier);
+    final theme = FlutterFlowTheme.of(context);
+    final p = widget.profile;
+    final neon = tier == PromotionTier.glow || tier == PromotionTier.spotlight;
+    final strong = tier == PromotionTier.spotlight;
     final photos = p.projects.expand((e) => e.photos).take(4).toList();
     final specs = p.specialties.take(4).toList();
     final moreSpecs = p.specialties.length - specs.length;
@@ -492,12 +631,27 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
         decoration: BoxDecoration(
           color: const Color(0xFF1F1F1F),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _hover ? TGColors.cta.withValues(alpha: 0.55) : TGColors.border),
-          boxShadow: _hover ? [BoxShadow(color: TGColors.cta.withValues(alpha: 0.22), blurRadius: 18, offset: const Offset(0, 6))] : null,
+          border: Border.all(
+            width: neon ? 2 : 1,
+            color: neon
+                ? (strong ? _kPromoPink : _kPromoPink.withValues(alpha: 0.75))
+                : (_hover ? TGColors.cta.withValues(alpha: 0.55) : TGColors.border),
+          ),
+          boxShadow: [
+            if (neon) ...[
+              BoxShadow(color: _kPromoPink.withValues(alpha: strong ? 0.42 : 0.28), blurRadius: strong ? 18 : 12),
+              BoxShadow(color: _kPromoTeal.withValues(alpha: strong ? 0.26 : 0.16), blurRadius: strong ? 14 : 10),
+            ],
+            if (_hover) BoxShadow(color: TGColors.cta.withValues(alpha: 0.22), blurRadius: 18, offset: const Offset(0, 6)),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (tier != null) ...[
+              SoPromoLabel(tier: tier),
+              const SizedBox(height: 8),
+            ],
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -516,7 +670,17 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
                     children: [
                       InkWell(
                         onTap: () => context.go(p.path),
-                        child: Text(p.name, style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
+                        child: Text(
+                          p.name,
+                          style: theme.titleMedium.override(
+                            fontWeight: switch (tier) {
+                              PromotionTier.bold => FontWeight.w700,
+                              null => FontWeight.w500,
+                              _ => FontWeight.w900,
+                            },
+                            fontSize: tier == PromotionTier.bold || strong ? 19 : null,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Wrap(
@@ -524,8 +688,7 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          if (p.verified) const TGVerifiedSellerBadge(),
-                          AuditedManufacturerBadge(sellerId: p.sellerKey, compact: true),
+                          if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(p))) TGVerifiedSellerBadge(tooltip: context.t('ver_tip_company')),
                           TGRatingBadge(rating: p.rating),
                           Text(context.t('ui_reviews_n', {'n': '${p.reviewsCount}'}), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
                         ],
@@ -542,7 +705,7 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
                       duration: tgAnim(context, const Duration(milliseconds: 150)),
                       child: Checkbox(
                         value: widget.selected,
-                        onChanged: (_) => widget.onToggle(),
+                        onChanged: (_) => widget.onToggle?.call(),
                         activeColor: TGColors.cta,
                       ),
                     ),
@@ -716,39 +879,117 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
   }
 }
 
-class SoSponsoredBanner extends StatelessWidget {
+const _kPromoPink = Color(0xFFE91E8C);
+const _kPromoTeal = Color(0xFF14B8A6);
+
+
+/// FEATURED label for Glow / Spotlight manufacturer cards; Bold has no label.
+class SoPromoLabel extends StatelessWidget {
+  const SoPromoLabel({super.key, required this.tier, this.compact = false});
+  final PromotionTier tier;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    if (tier == PromotionTier.bold) return const SizedBox.shrink();
+    final text = context.t('badge.featured');
+    return Semantics(
+      label: text,
+      excludeSemantics: true,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 10, vertical: compact ? 3 : 5),
+        decoration: BoxDecoration(
+          color: theme.secondary,
+          borderRadius: BorderRadius.circular(TGRadius.pill),
+        ),
+        child: Text(
+          text,
+          style: theme.labelSmall.override(
+            color: theme.primaryText,
+            fontWeight: FontWeight.w800,
+            fontSize: compact ? 9 : 11,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SoSponsoredBanner extends StatefulWidget {
   const SoSponsoredBanner({super.key, required this.profile});
   final TGStoreProfile profile;
 
   @override
+  State<SoSponsoredBanner> createState() => _SoSponsoredBannerState();
+}
+
+class _SoSponsoredBannerState extends State<SoSponsoredBanner> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final c = _counting();
+      if (c != null) TGSponsorSlotService.instance.recordImpression(c.slotId, visitorKey: c.visitor, count: c.count);
+    });
+  }
+
+  ({String slotId, String visitor, bool count})? _counting() {
+    final slot = TGSponsorSlotService.instance.liveSlotOf(widget.profile.sellerKey);
+    if (slot == null) return null;
+    final auth = context.read<FakeAuthState>();
+    final visitor = auth.isLoggedIn ? auth.userId : 'anon';
+    return (slotId: slot.id, visitor: visitor, count: visitor != widget.profile.sellerKey && !auth.role.isStaff);
+  }
+
+  void _open() {
+    final c = _counting();
+    if (c != null) TGSponsorSlotService.instance.recordClick(c.slotId, visitorKey: c.visitor, count: c.count);
+    context.go(widget.profile.path);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 120,
-      width: double.infinity,
-      child: ClipRRect(
+    final profile = widget.profile;
+    return Semantics(
+      button: true,
+      label: '${context.t('ui_sponsored')}. ${profile.name}',
+      excludeSemantics: true,
+      child: InkWell(
+        key: const Key('so-sponsored-banner'),
+        onTap: _open,
         borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(profile.coverUrl ?? 'assets/images/banner-mutfak-ekipmanlari.jpg', fit: BoxFit.cover),
-            Container(color: Colors.black.withValues(alpha: 0.55)),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(TGRadius.pill), border: Border.all(color: Colors.white70)),
-                    child: Text(context.t('ui_sponsored'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11)),
+        child: SizedBox(
+          height: 120,
+          width: double.infinity,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(profile.coverUrl ?? 'assets/images/banner-mutfak-ekipmanlari.jpg', fit: BoxFit.cover),
+                Container(color: Colors.black.withValues(alpha: 0.55)),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(TGRadius.pill), border: Border.all(color: Colors.white70)),
+                        child: Text(context.t('ui_sponsored'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11)),
+                      ),
+                      const Spacer(),
+                      Text(profile.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+                      Text(profile.description, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
                   ),
-                  const Spacer(),
-                  Text(profile.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
-                  Text(profile.description, maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

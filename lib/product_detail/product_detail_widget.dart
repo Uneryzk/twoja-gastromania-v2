@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_components/tg_verified_info.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/dashboard/renew_sheet.dart';
@@ -36,8 +37,12 @@ import 'package:twoja_gastromania/tg_core/tg_robots.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
+import 'package:twoja_gastromania/tg_models/tg_favorite.dart';
+import 'package:twoja_gastromania/tg_models/tg_listing_stats.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/admin/pdp_moderator_bar.dart';
+import 'package:twoja_gastromania/tg_services/favorites_service.dart';
+import 'package:twoja_gastromania/tg_services/listing_stats_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -158,6 +163,28 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
     _cityCtrl = TextEditingController(text: _product.city);
     _editDelivery = _product.delivery;
     _editPickup = _product.pickup;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _recordView());
+  }
+
+  /// Unique per visitor per day; owner and staff views are not counted.
+  void _recordView() {
+    if (!mounted) return;
+    final auth = context.read<FakeAuthState>();
+    if (auth.isLoggedIn) {
+      final fav = TGFavoritesService.instance.isFavorite(auth.userId, FavoriteKind.equipment, _product.id);
+      if (fav != _favorite) setState(() => _favorite = fav);
+    }
+    TGListingStatsService.instance.record(
+      listingKey: TGListingStatsService.keyOfProduct(_product),
+      kind: ListingStatKind.view,
+      visitorKey: auth.isLoggedIn ? auth.userId : 'anon',
+      count: _countable,
+    );
+  }
+
+  bool get _countable {
+    final auth = context.read<FakeAuthState>();
+    return !auth.ownsListing(_product) && !auth.role.isStaff;
   }
 
   @override
@@ -279,7 +306,8 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
       await _askLogin(context.t('ui_login_required'));
       return;
     }
-    setState(() => _favorite = !_favorite);
+    final on = TGFavoritesService.instance.toggleProduct(auth.userId, product, countStat: _countable);
+    setState(() => _favorite = on);
     TGAnalytics.track('favorite_toggle', {...TGAnalytics.listingProps(product), 'on': _favorite});
     if (tgReduceMotion(context)) {
       _favPop.value = _favorite ? 1 : 0;
@@ -330,6 +358,13 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
   Future<void> _call() async {
     if (!product.allowsPublicContact) return;
     TGAnalytics.track('call_click', TGAnalytics.listingProps(product));
+    final auth = context.read<FakeAuthState>();
+    TGListingStatsService.instance.record(
+      listingKey: TGListingStatsService.keyOfProduct(product),
+      kind: ListingStatKind.callTap,
+      visitorKey: auth.isLoggedIn ? auth.userId : 'anon',
+      count: _countable,
+    );
     await copyPhoneNumber(context, product.phone);
     setState(() => _copied = true);
     final dial = product.phone.replaceAll(RegExp(r'[^0-9+]'), '');
@@ -650,7 +685,11 @@ class _InfoColumn extends StatelessWidget {
           runSpacing: 8,
           children: [
             if (product.isPromoted) const TGPromotedBadge(),
-            if (tgShowsVerifiedSellerBadge(product.seller)) const TGVerifiedSellerBadge(),
+            if (tgShowsVerifiedSellerBadge(product.seller))
+              TGVerifiedSellerBadge(
+                tooltip: tgVerifiedTooltip(context, product.seller),
+                onTap: () => showTGVerifiedInfo(context, product.seller, surface: 'pdp'),
+              ),
             if (product.negotiable)
               const _MiniChip(label: 'do negocjacji'),
             if (product.listingType == TGListingType.rent)
@@ -838,7 +877,7 @@ class _SellerStrip extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     final s = product.seller;
     final name = s.type == TGSellerType.private ? context.t('ui_private') : s.name;
-    return InkWell(
+    final strip = InkWell(
       onTap: () => context.push(TGSellerProfileService.instance.pathForSellerId(s.id)),
       borderRadius: BorderRadius.circular(12),
       child: ConstrainedBox(
@@ -866,7 +905,7 @@ class _SellerStrip extends StatelessWidget {
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          if (tgShowsVerifiedSellerBadge(s)) const TGVerifiedSellerBadge(),
+                          if (tgShowsVerifiedSellerBadge(s)) TGVerifiedSellerBadge(tooltip: tgVerifiedTooltip(context, s)),
                           TGRatingStars(rating: s.rating, size: 14),
                         ],
                       ),
@@ -889,6 +928,11 @@ class _SellerStrip extends StatelessWidget {
           },
         ),
       ),
+    );
+    if (!tgShowsVerifiedSellerBadge(s)) return strip;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [strip, const SizedBox(height: 8), TGVerifiedInfoBox(seller: s)],
     );
   }
 }

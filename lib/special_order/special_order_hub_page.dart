@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:twoja_gastromania/tg_components/tg_ranking_info.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/special_order/special_order_hub_widgets.dart';
@@ -302,14 +303,19 @@ class _SpecialOrderHubPageState extends State<SpecialOrderHubPage> {
                         ),
                         const SizedBox(height: 14),
                         if (phone)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TGButton(
-                              onPressed: openFilters,
-                              label: context.t('ui_so_filters'),
-                              variant: TGButtonVariant.outline,
-                              height: 44,
-                            ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              TGButton(
+                                onPressed: openFilters,
+                                label: context.t('ui_so_filters'),
+                                variant: TGButtonVariant.outline,
+                                height: 44,
+                              ),
+                              const TGRankingInfoLink(surface: 'special_order', compact: true),
+                            ],
                           )
                         else
                           SoFilterBar(

@@ -136,6 +136,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           builder: (context, params) => SpecialOrderNewPage(query: params.state.uri.queryParameters),
         ),
         FFRoute(
+          name: SpecialOrderConfirmPage.routeName,
+          path: SpecialOrderConfirmPage.routePath,
+          builder: (context, params) => SpecialOrderConfirmPage(draftId: params.state.uri.queryParameters['draft'] ?? ''),
+        ),
+        FFRoute(
           name: SpecialOrderSuccessPage.routeName,
           path: SpecialOrderSuccessPage.routePath,
           builder: (context, params) => SpecialOrderSuccessPage(requestNo: params.state.uri.queryParameters['no']),
@@ -144,6 +149,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           name: BuyerRequestsPage.routeName,
           path: BuyerRequestsPage.routePath,
           builder: (context, params) => BuyerRequestsPage(tab: params.state.uri.queryParameters['tab']),
+        ),
+        FFRoute(
+          name: SpecialRequestConsentPage.routeName,
+          path: SpecialRequestConsentPage.routePath,
+          builder: (context, params) => SpecialRequestConsentPage(requestNo: params.state.pathParameters['requestNo'] ?? ''),
         ),
         FFRoute(
           name: 'BuyerRequestDetail',
@@ -214,10 +224,12 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           name: ListingsDashboardPage.routeName,
           path: ListingsDashboardPage.routePath,
           builder: (context, params) => ListingsDashboardPage(
-            filter: params.state.uri.queryParameters['filter'],
+            filter: params.state.uri.queryParameters['filter'] ?? params.state.uri.queryParameters['tab'],
             renewId: params.state.uri.queryParameters['renew'],
             renewedId: params.state.uri.queryParameters['renewed'],
             soldId: params.state.uri.queryParameters['sold'],
+            type: params.state.uri.queryParameters['type'],
+            query: params.state.uri.queryParameters['q'],
           ),
         ),
         FFRoute(
@@ -268,7 +280,22 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
         FFRoute(
           name: NotificationsPage.routeName,
           path: NotificationsPage.routePath,
-          builder: (context, params) => const NotificationsPage(),
+          builder: (context, params) => NotificationsPage(tab: params.state.uri.queryParameters['tab']),
+        ),
+        FFRoute(
+          name: SellerVerificationPage.routeName,
+          path: SellerVerificationPage.routePath,
+          builder: (context, params) => SellerVerificationPage(sellerId: params.state.uri.queryParameters['seller']),
+        ),
+        FFRoute(
+          name: AdminVerifiedPage.routeName,
+          path: AdminVerifiedPage.routePath,
+          builder: (context, params) => const AdminVerifiedHost(),
+        ),
+        FFRoute(
+          name: AdminWatermarkPage.routeName,
+          path: AdminWatermarkPage.routePath,
+          builder: (context, params) => const AdminWatermarkHost(),
         ),
         FFRoute(
           name: MessagesPage.routeName,
@@ -315,6 +342,21 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           path: '/admin/audit',
           builder: (context, params) => const AdminAuditHost(),
         ),
+        FFRoute(name: 'AdminToday', path: '/admin/today', builder: (context, params) => const AdminTodayHost()),
+        FFRoute(
+          name: 'AdminUsers',
+          path: '/admin/users',
+          builder: (context, params) => AdminUsersHost(query: params.state.uri.queryParameters['q']),
+        ),
+        FFRoute(
+          name: 'AdminUser360',
+          path: '/admin/users/:userId',
+          builder: (context, params) => AdminUser360Host(userId: params.state.pathParameters['userId'] ?? ''),
+        ),
+        FFRoute(name: 'AdminPayments', path: '/admin/payments', builder: (context, params) => const AdminPaymentsHost()),
+        FFRoute(name: 'AdminConversations', path: '/admin/conversations', builder: (context, params) => const AdminConversationsHost()),
+        FFRoute(name: 'AdminNip', path: '/admin/nip', builder: (context, params) => const AdminNipHost()),
+        FFRoute(name: 'AdminGoLive', path: '/admin/go-live', builder: (context, params) => const AdminGoLiveHost()),
         FFRoute(
           name: 'AdminTemplates',
           path: '/admin/templates',
@@ -371,11 +413,6 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           builder: (context, params) => const AdminFoundersHost(),
         ),
         FFRoute(
-          name: 'AdminAudits',
-          path: '/admin/audits',
-          builder: (context, params) => const AdminAuditsHost(),
-        ),
-        FFRoute(
           name: 'AdminSponsorSlots',
           path: '/admin/sponsor-slots',
           builder: (context, params) => const AdminSponsorSlotsHost(),
@@ -390,6 +427,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           path: AdvertisingPage.routePath,
           builder: (context, params) => AdvertisingPage(
             prefillTarget: params.state.uri.queryParameters['target'],
+            tab: params.state.uri.queryParameters['tab'],
           ),
         ),
         FFRoute(
@@ -402,6 +440,45 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           path: ManufacturerDashboardPage.routePath,
           builder: (context, params) => ManufacturerDashboardPage(tab: params.state.uri.queryParameters['tab']),
         ),
+        FFRoute(
+          name: DashboardOverviewPage.routeName,
+          path: DashboardOverviewPage.routePath,
+          builder: (context, params) => const DashboardOverviewPage(),
+        ),
+        FFRoute(
+          name: DashboardActionsPage.routeName,
+          path: DashboardActionsPage.routePath,
+          builder: (context, params) => const DashboardActionsPage(),
+        ),
+        FFRoute(
+          name: InsightsPage.routeName,
+          path: InsightsPage.routePath,
+          builder: (context, params) => InsightsPage(
+            period: int.tryParse(params.state.uri.queryParameters['period'] ?? ''),
+            listingId: params.state.uri.queryParameters['listing'],
+          ),
+        ),
+        FFRoute(
+          name: FavoritesPage.routeName,
+          path: FavoritesPage.routePath,
+          builder: (context, params) => FavoritesPage(tab: params.state.uri.queryParameters['tab']),
+        ),
+        FFRoute(
+          name: BillingPage.routeName,
+          path: BillingPage.routePath,
+          builder: (context, params) => BillingPage(tab: params.state.uri.queryParameters['tab']),
+        ),
+        FFRoute(
+          name: SettingsPage.routeName,
+          path: SettingsPage.routePath,
+          builder: (context, params) => SettingsPage(tab: params.state.uri.queryParameters['tab']),
+        ),
+        for (final item in DashPlaceholders.all)
+          FFRoute(
+            name: 'Dashboard-${item.id}',
+            path: item.route,
+            builder: (context, params) => DashboardPlaceholderPage(item: item),
+          ),
       ].map((r) => r.toRoute(appStateNotifier)).toList()
         ..add(GoRoute(path: '/checkout', redirect: (_, __) => CheckoutPage.routePath))
         ..add(GoRoute(path: kLegacyHomePath, redirect: (_, __) => HomePageWidget.routePath)),

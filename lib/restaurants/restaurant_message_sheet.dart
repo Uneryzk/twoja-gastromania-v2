@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/tg_models/tg_listing_stats.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
@@ -117,6 +118,7 @@ class _RestoMessageBodyState extends State<_RestoMessageBody> {
       listingId: widget.listing.id,
       sessionKey: auth.isLoggedIn ? auth.userId : 'anon',
       count: count,
+      statKind: ListingStatKind.message,
     );
     TGAnalytics.track('resto_message_sent', {'listingNo': widget.listing.listingNo, 'len': t.length});
     if (!mounted) return;

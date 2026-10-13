@@ -34,12 +34,12 @@ void main() {
     expect(auth.pillKind, TGHeaderPillKind.expiredListings);
   });
 
-  testWidgets('expired pill opens the dashboard filter', (tester) async {
+  testWidgets('expired pill opens the Action center with renew links', (tester) async {
     final app = await pumpTgApp(tester, location: '/');
-    await tester.tap(find.text('2 expired · Renew'));
+    await tester.tap(find.textContaining(' expired · Renew'));
     await pumpFor(tester, const Duration(milliseconds: 600));
-    expect(app.location, '/dashboard/listings?filter=expired');
-    expect(find.text('Expired'), findsWidgets);
+    expect(app.location, '/dashboard/actions');
+    expect(find.byKey(const Key('dash-action-expired-own_f_exp1')), findsOneWidget);
     _expectNoErrors(app);
   });
 

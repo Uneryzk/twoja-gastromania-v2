@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
-import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -370,7 +371,7 @@ class _InventoryMiniCard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: TGSmartImage(url: cover, fit: BoxFit.cover),
+                    child: WatermarkedImage(url: cover, surface: TGImageSurface.listingCard, fit: BoxFit.cover),
                   ),
                   if (badge != null)
                     Positioned(

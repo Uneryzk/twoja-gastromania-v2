@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/admin/admin_chrome.dart';
+import 'package:twoja_gastromania/admin/admin_console_pages.dart';
+import 'package:twoja_gastromania/tg_models/tg_account.dart';
 import 'package:twoja_gastromania/admin/admin_so_modals.dart';
 import 'package:twoja_gastromania/admin/admin_so_queue_page.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
@@ -196,8 +198,8 @@ class _RightPane extends StatelessWidget {
               Text(context.t('ui_buyer'), style: const TextStyle(fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
               Text(request.buyerName, style: const TextStyle(fontWeight: FontWeight.w800)),
-              Text(request.email),
-              Text(request.phone, style: const TextStyle(fontWeight: FontWeight.w800)),
+              AdminMaskedValue(userId: request.buyerId, field: TGPiiField.email, value: request.email, style: const TextStyle(fontSize: 13)),
+              AdminMaskedValue(userId: request.buyerId, field: TGPiiField.phone, value: request.phone, style: const TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               Text(context.t('ui_so_admin_account_age', {'n': '$age'})),
               Text(request.phoneVerified ? context.t('ui_verified') : context.t('ui_so_admin_phone_unverified')),

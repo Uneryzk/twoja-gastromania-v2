@@ -15,6 +15,7 @@ import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_invoice.dart';
+import 'package:twoja_gastromania/tg_services/billing_service.dart';
 import 'package:twoja_gastromania/tg_services/invoicing_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
@@ -170,6 +171,20 @@ Future<void> completeCheckout(BuildContext context, {TGInvoiceBuyer? buyer}) asy
     listingId: cart.listingId,
     listingNo: listing?.listingNo,
   );
+  final payment = TGBillingService.instance.recordPayment(
+    userId: auth.userId,
+    kind: switch (cart.kind) {
+      TGCheckoutKind.listing => TGPaymentKind.listing,
+      TGCheckoutKind.renew || TGCheckoutKind.renewBulk => TGPaymentKind.renew,
+      TGCheckoutKind.store => TGPaymentKind.store,
+      TGCheckoutKind.restaurantListing || TGCheckoutKind.restaurantRenew => TGPaymentKind.restaurant,
+    },
+    description: cart.lines.map((l) => l.label).join(' + '),
+    grossPln: cart.totalPln,
+    buyer: buyer,
+    listingId: cart.listingId,
+    listingNo: listing?.listingNo,
+  );
   switch (cart.kind) {
     case TGCheckoutKind.listing:
       final pending = auth.ownedListings.where((p) => p.id == cart.listingId).firstOrNull;
@@ -205,6 +220,12 @@ Future<void> completeCheckout(BuildContext context, {TGInvoiceBuyer? buyer}) asy
       if (context.mounted) context.go('/dashboard/listings');
     case TGCheckoutKind.store:
       auth.subscribeStore(cart.storePlanId ?? 'basic');
+      TGBillingService.instance.startStoreSubscription(
+        userId: auth.userId,
+        planId: cart.storePlanId ?? 'basic',
+        period: cart.period ?? TGBillingPeriod.monthly,
+        pricePln: payment.grossPln.round(),
+      );
       auth.clearCheckout();
       if (context.mounted) context.go('/dashboard/listings');
     case TGCheckoutKind.restaurantListing:
@@ -292,13 +313,11 @@ class _OrderSummaryState extends State<_OrderSummary> {
 }
 
 String _checkoutLineLabel(BuildContext context, String label) {
+  final promote = RegExp(r'^Promote (\d+) days?$').firstMatch(label);
+  if (promote != null) return context.t('ui_promote_n_days', {'n': promote.group(1)!});
   switch (label) {
     case 'Standard listing':
       return context.t('ui_standard_listing');
-    case 'Promote 14 days':
-      return context.t('ui_promote_n_days', {'n': '14'});
-    case 'Promote 30 days':
-      return context.t('ui_promote_n_days', {'n': '30'});
     case 'Renew':
       return context.t('ui_renew');
     case 'Renew early':

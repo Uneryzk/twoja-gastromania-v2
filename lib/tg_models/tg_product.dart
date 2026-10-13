@@ -1,3 +1,4 @@
+import 'package:twoja_gastromania/tg_models/tg_review_verified.dart';
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 
@@ -89,13 +90,23 @@ class TGSeller {
     required this.type,
     required this.verified,
     required this.rating,
+    this.verifiedBasis,
+    this.verifiedSince,
+    this.reviewStats,
   });
 
   final String id;
   final String name;
   final TGSellerType type;
+
+  /// Legacy listing-snapshot flag; the shield reads [tgVerifiedBasis] instead.
   final bool verified;
   final double rating;
+
+  /// `company_registry` (stores) | `buyer_reviews` (individuals) | null.
+  final TGVerifiedBasis? verifiedBasis;
+  final DateTime? verifiedSince;
+  final TGReviewStats? reviewStats;
 
   TGSeller copyWith({
     String? id,
@@ -103,6 +114,10 @@ class TGSeller {
     TGSellerType? type,
     bool? verified,
     double? rating,
+    TGVerifiedBasis? verifiedBasis,
+    bool clearVerifiedBasis = false,
+    DateTime? verifiedSince,
+    TGReviewStats? reviewStats,
   }) =>
       TGSeller(
         id: id ?? this.id,
@@ -110,6 +125,9 @@ class TGSeller {
         type: type ?? this.type,
         verified: verified ?? this.verified,
         rating: rating ?? this.rating,
+        verifiedBasis: clearVerifiedBasis ? null : (verifiedBasis ?? this.verifiedBasis),
+        verifiedSince: clearVerifiedBasis ? null : (verifiedSince ?? this.verifiedSince),
+        reviewStats: reviewStats ?? this.reviewStats,
       );
 
   Map<String, dynamic> toJson() => {
@@ -118,6 +136,9 @@ class TGSeller {
         'type': type.key,
         'verified': verified,
         'rating': rating,
+        'verifiedBasis': verifiedBasis?.wire,
+        'verifiedSince': verifiedSince?.toIso8601String(),
+        'reviewStats': reviewStats?.toJson(),
       };
 
   static TGSeller fromJson(Map<String, dynamic> json) => TGSeller(
@@ -126,6 +147,9 @@ class TGSeller {
         type: (json['type'] ?? 'store').toString().toSellerType(),
         verified: json['verified'] == true,
         rating: (json['rating'] is num) ? (json['rating'] as num).toDouble() : 0,
+        verifiedBasis: TGVerifiedBasisWire.fromWire(json['verifiedBasis']),
+        verifiedSince: json['verifiedSince'] == null ? null : DateTime.tryParse('${json['verifiedSince']}'),
+        reviewStats: TGReviewStats.fromJson(json['reviewStats']),
       );
 }
 

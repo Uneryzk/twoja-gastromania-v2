@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_core/pl_business_days.dart';
 import 'package:twoja_gastromania/tg_core/restaurant_config.dart';
@@ -6,7 +7,9 @@ import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart' show TGSeller, TGSellerType;
+import 'package:twoja_gastromania/tg_models/tg_listing_stats.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
+import 'package:twoja_gastromania/tg_services/listing_stats_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
 
 /// In-memory restaurant listings. Production Mode hides all mock rows.
@@ -109,7 +112,7 @@ class RestaurantService extends ChangeNotifier {
         final since = _hiddenSince.remove(next.id);
         final days = since == null ? 0 : TGClock.now().difference(since).inDays;
         if (days > 0 && next.expiresAt != null) {
-          toStore = next.copyWith(expiresAt: next.expiresAt!.add(Duration(days: days)));
+          toStore = next.copyWith(expiresAt: DurationService.addDays(next.expiresAt!, days));
         }
       }
       _all[i] = toStore;
@@ -131,11 +134,30 @@ class RestaurantService extends ChangeNotifier {
     final cur = byId(listingId);
     if (cur == null) return false;
     replace(cur.copyWith(engagement: cur.engagement.copyWith(views: cur.engagement.views + 1)));
+    TGListingStatsService.instance.record(
+      listingKey: TGListingStatsService.restaurantKey(listingId),
+      kind: ListingStatKind.view,
+      visitorKey: sessionKey,
+      count: true,
+    );
     return true;
   }
 
-  bool recordContact({required String listingId, required String sessionKey, required bool count}) {
+  /// Unique contacts per listing. [statKind] picks the daily metric the
+  /// contact counts towards (call tap or first message).
+  bool recordContact({
+    required String listingId,
+    required String sessionKey,
+    required bool count,
+    ListingStatKind statKind = ListingStatKind.callTap,
+  }) {
     if (!count) return false;
+    TGListingStatsService.instance.record(
+      listingKey: TGListingStatsService.restaurantKey(listingId),
+      kind: statKind,
+      visitorKey: sessionKey,
+      count: true,
+    );
     final key = 'c:$listingId:$sessionKey';
     if (!_contactKeys.add(key)) return false;
     final cur = byId(listingId);
@@ -151,6 +173,12 @@ class RestaurantService extends ChangeNotifier {
     final cur = byId(listingId);
     if (cur == null) return false;
     replace(cur.copyWith(engagement: cur.engagement.copyWith(uniqueFavorites: cur.engagement.uniqueFavorites + 1)));
+    TGListingStatsService.instance.record(
+      listingKey: TGListingStatsService.restaurantKey(listingId),
+      kind: ListingStatKind.favorite,
+      visitorKey: userId,
+      count: true,
+    );
     return true;
   }
 

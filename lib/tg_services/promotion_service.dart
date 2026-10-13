@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
@@ -38,7 +39,7 @@ class PromotionCredit {
     required this.id,
     required this.ownerId,
     required this.tier,
-    required this.durationKey,
+    required this.durationDays,
     required this.periodKey,
     this.used = false,
   });
@@ -47,7 +48,7 @@ class PromotionCredit {
   final String ownerId;
   /// Always Glow for Pro; Founder free credit = Glow 2 weeks.
   final PromotionTier tier;
-  final PromotionDurationKey durationKey;
+  final int durationDays;
   final String periodKey;
   final bool used;
 
@@ -55,7 +56,7 @@ class PromotionCredit {
         id: id,
         ownerId: ownerId,
         tier: tier,
-        durationKey: durationKey,
+        durationDays: durationDays,
         periodKey: periodKey,
         used: used ?? this.used,
       );
@@ -141,7 +142,7 @@ class PromotionService extends ChangeNotifier {
     if (live != null) return live;
     // Also surface scheduled for owner chrome? No — display only active.
     if (!product.isPromoted) return null;
-    final end = product.promotedUntil ?? t.add(const Duration(days: 14));
+    final end = product.promotedUntil ?? DurationService.addDays(t, _config.defaultDays);
     if (!t.isBefore(end)) return null;
     return Promotion(
       id: 'legacy-${product.id}',
@@ -149,11 +150,11 @@ class PromotionService extends ChangeNotifier {
       targetKind: PromotionTargetKind.listing,
       targetRef: product.id,
       tier: PromotionTier.glow,
-      durationKey: PromotionDurationKey.week2,
+      durationDays: _config.defaultDays,
       startsAt: t.subtract(const Duration(days: 1)),
       endsAt: end,
       status: PromotionStatus.active,
-      pricePln: _config.pricePln(PromotionTier.glow, PromotionDurationKey.week2),
+      pricePln: _config.pricePln(PromotionTier.glow, _config.defaultDays),
       source: PromotionSource.paid,
     );
   }
@@ -164,7 +165,7 @@ class PromotionService extends ChangeNotifier {
     final live = activeFor(kind: PromotionTargetKind.restaurant, targetRef: listing.id, now: t);
     if (live != null) return live;
     if (!listing.isPromoted) return null;
-    final end = listing.promotedUntil ?? t.add(const Duration(days: 14));
+    final end = listing.promotedUntil ?? DurationService.addDays(t, _config.defaultDays);
     if (!t.isBefore(end)) return null;
     return Promotion(
       id: 'legacy-resto-${listing.id}',
@@ -172,11 +173,11 @@ class PromotionService extends ChangeNotifier {
       targetKind: PromotionTargetKind.restaurant,
       targetRef: listing.id,
       tier: PromotionTier.glow,
-      durationKey: PromotionDurationKey.week2,
+      durationDays: _config.defaultDays,
       startsAt: t.subtract(const Duration(days: 1)),
       endsAt: end,
       status: PromotionStatus.active,
-      pricePln: _config.pricePln(PromotionTier.glow, PromotionDurationKey.week2),
+      pricePln: _config.pricePln(PromotionTier.glow, _config.defaultDays),
       source: PromotionSource.paid,
     );
   }
@@ -228,7 +229,7 @@ class PromotionService extends ChangeNotifier {
     DateTime? startAt,
   }) {
     final start = startAt ?? TGClock.now();
-    final promoEnd = start.add(Duration(days: promoDays));
+    final promoEnd = DurationService.addDays(start, promoDays);
     return !promoEnd.isAfter(listingEndsAt.add(const Duration(hours: 1)));
   }
 
@@ -240,6 +241,42 @@ class PromotionService extends ChangeNotifier {
   List<PromotionCredit> unusedCreditList(String ownerId) {
     ensureSeeded();
     return [for (final c in _credits) if (c.ownerId == ownerId && !c.used) c];
+  }
+
+  /// Unused credits of one tier (Pro and Founder credits are Glow).
+  int unusedCreditsOf(String ownerId, PromotionTier tier) =>
+      unusedCreditList(ownerId).where((c) => c.tier == tier).length;
+
+  /// Current-period Pro allowance: credits spent out of [PricingConfig.proCreditsPerPeriod].
+  ({int used, int total}) proCreditUsage(String ownerId, {DateTime? now}) {
+    ensureSeeded();
+    final key = _periodKey(now ?? TGClock.now());
+    final used = _credits.where((c) => c.ownerId == ownerId && c.periodKey == key && c.used).length;
+    final total = pricing.proCreditsPerPeriod;
+    return (used: used.clamp(0, total), total: total);
+  }
+
+  /// Spends one unused credit of [tier] (no payment). Null when none is left.
+  Promotion? redeemCredit({
+    required String ownerId,
+    required PromotionTargetKind kind,
+    required String targetRef,
+    PromotionTier tier = PromotionTier.glow,
+    DateTime? listingEndsAt,
+  }) {
+    final credit = unusedCreditList(ownerId).where((c) => c.tier == tier).firstOrNull;
+    if (credit == null) return null;
+    return purchase(
+      ownerId: ownerId,
+      kind: kind,
+      targetRef: targetRef,
+      tier: tier,
+      durationDays: credit.durationDays,
+      pricePln: 0,
+      source: credit.periodKey == 'founder' ? PromotionSource.founderCredit : PromotionSource.proIncluded,
+      listingEndsAt: listingEndsAt,
+      creditId: credit.id,
+    );
   }
 
   /// Grant Pro period credits (Glow, 1 month). Does not roll over — replaces unused for period.
@@ -254,7 +291,7 @@ class PromotionService extends ChangeNotifier {
         id: 'cred-$ownerId-$key-$i',
         ownerId: ownerId,
         tier: PromotionTier.glow,
-        durationKey: PromotionDurationKey.month1,
+        durationDays: _config.durations.last,
         periodKey: key,
       ));
     }
@@ -268,7 +305,7 @@ class PromotionService extends ChangeNotifier {
       id: 'cred-founder-$ownerId-${TGClock.now().millisecondsSinceEpoch}',
       ownerId: ownerId,
       tier: PromotionTier.glow,
-      durationKey: PromotionDurationKey.week2,
+      durationDays: _config.durations.first,
       periodKey: 'founder',
     ));
     notifyListeners();
@@ -308,7 +345,7 @@ class PromotionService extends ChangeNotifier {
     required PromotionTargetKind kind,
     required String targetRef,
     required PromotionTier tier,
-    required PromotionDurationKey durationKey,
+    required int durationDays,
     required int pricePln,
     required PromotionSource source,
     DateTime? listingEndsAt,
@@ -326,7 +363,7 @@ class PromotionService extends ChangeNotifier {
       start = nextAvailableStart(tier, now: now);
     }
     if (listingEndsAt != null &&
-        !promoFitsListing(listingEndsAt: listingEndsAt, promoDays: durationKey.days, startAt: start)) {
+        !promoFitsListing(listingEndsAt: listingEndsAt, promoDays: durationDays, startAt: start)) {
       throw StateError('Promotion would outlast listing; renew first.');
     }
 
@@ -350,9 +387,9 @@ class PromotionService extends ChangeNotifier {
       targetKind: kind,
       targetRef: targetRef,
       tier: tier,
-      durationKey: durationKey,
+      durationDays: durationDays,
       startsAt: start,
-      endsAt: start.add(Duration(days: durationKey.days)),
+      endsAt: DurationService.addDays(start, durationDays),
       status: status,
       pricePln: pricePln,
       source: source,
@@ -362,7 +399,7 @@ class PromotionService extends ChangeNotifier {
     TGAnalytics.track('promo_purchase', {
       'promotionId': promo.id,
       'tier': tier.name,
-      'duration': durationKey.key,
+      'days': durationDays,
       'pricePln': pricePln,
       'source': source.name,
       'scheduled': status == PromotionStatus.scheduled,
@@ -395,7 +432,7 @@ class PromotionService extends ChangeNotifier {
     final expected = pricing.upgradeCostPln(
       from: cur.tier,
       to: toTier,
-      duration: cur.durationKey,
+      duration: cur.durationDays,
       remainingDays: remaining,
       totalDays: total,
     );
@@ -407,7 +444,7 @@ class PromotionService extends ChangeNotifier {
       targetKind: cur.targetKind,
       targetRef: cur.targetRef,
       tier: toTier,
-      durationKey: cur.durationKey,
+      durationDays: cur.durationDays,
       startsAt: cur.startsAt,
       endsAt: cur.endsAt,
       status: cur.status,
@@ -430,7 +467,7 @@ class PromotionService extends ChangeNotifier {
   /// New period starts at current end (no gap).
   Promotion extend({
     required String promotionId,
-    required PromotionDurationKey durationKey,
+    required int durationDays,
     required int pricePln,
     String? paymentId,
   }) {
@@ -441,14 +478,14 @@ class PromotionService extends ChangeNotifier {
     if (cur.status != PromotionStatus.active && cur.status != PromotionStatus.scheduled) {
       throw StateError('Cannot extend');
     }
-    final newEnd = cur.endsAt.add(Duration(days: durationKey.days));
+    final newEnd = DurationService.addDays(cur.endsAt, durationDays);
     final extended = Promotion(
       id: cur.id,
       ownerId: cur.ownerId,
       targetKind: cur.targetKind,
       targetRef: cur.targetRef,
       tier: cur.tier,
-      durationKey: durationKey,
+      durationDays: durationDays,
       startsAt: cur.startsAt,
       endsAt: newEnd,
       status: cur.status,
@@ -460,7 +497,7 @@ class PromotionService extends ChangeNotifier {
     _items[i] = extended;
     TGAnalytics.track('promo_extend', {
       'promotionId': cur.id,
-      'duration': durationKey.key,
+      'days': durationDays,
       'pricePln': pricePln,
     });
     notifyListeners();
@@ -483,7 +520,7 @@ class PromotionService extends ChangeNotifier {
       targetKind: cur.targetKind,
       targetRef: cur.targetRef,
       tier: cur.tier,
-      durationKey: cur.durationKey,
+      durationDays: cur.durationDays,
       startsAt: cur.startsAt,
       endsAt: cur.endsAt,
       status: refund ? PromotionStatus.refunded : PromotionStatus.cancelled,
@@ -495,6 +532,35 @@ class PromotionService extends ChangeNotifier {
     _items[i] = next;
     notifyListeners();
     return next;
+  }
+
+  /// Owner ends an active promotion now. Unused days are not refunded.
+  String? stopEarly(String promotionId, {required String ownerId}) {
+    ensureSeeded();
+    final i = _items.indexWhere((p) => p.id == promotionId);
+    if (i < 0) return 'ads_err_not_found';
+    final cur = _items[i];
+    if (cur.ownerId != ownerId) return 'ads_err_not_owner';
+    final now = TGClock.now();
+    if (cur.status != PromotionStatus.active || !cur.isActiveAt(now)) return 'ads_err_not_live';
+    _items[i] = Promotion(
+      id: cur.id,
+      ownerId: cur.ownerId,
+      targetKind: cur.targetKind,
+      targetRef: cur.targetRef,
+      tier: cur.tier,
+      durationDays: cur.durationDays,
+      startsAt: cur.startsAt,
+      endsAt: now,
+      status: PromotionStatus.ended,
+      pricePln: cur.pricePln,
+      source: cur.source,
+      paymentId: cur.paymentId,
+      upgradedFrom: cur.upgradedFrom,
+    );
+    TGAnalytics.track('promo_stop_early', {'promotionId': promotionId});
+    notifyListeners();
+    return null;
   }
 
   void recordImpression(String promotionId, {required bool count}) {
@@ -525,6 +591,16 @@ class PromotionService extends ChangeNotifier {
     return (impressions: impressions, clicks: clicks);
   }
 
+  /// Dev Switcher personas: adds a mock row (id must start with `promo-` so
+  /// Production Mode hides it).
+  void addMock(Promotion p) {
+    ensureSeeded();
+    assert(p.id.startsWith('promo-'));
+    if (_items.any((e) => e.id == p.id)) return;
+    _items.add(p);
+    notifyListeners();
+  }
+
   void resetForTests() {
     _items.clear();
     _stats.clear();
@@ -544,6 +620,8 @@ class PromotionService extends ChangeNotifier {
 
   void _seedMocks() {
     final now = TGClock.now();
+    final short = _config.durations.first;
+    final long = _config.durations.last;
 
     Promotion mk({
       required String id,
@@ -551,23 +629,23 @@ class PromotionService extends ChangeNotifier {
       required PromotionTargetKind kind,
       required String ref,
       required PromotionTier tier,
-      required PromotionDurationKey dur,
+      required int dur,
       required PromotionStatus status,
       int startOffsetDays = -1,
       PromotionSource source = PromotionSource.paid,
     }) {
-      final start = now.add(Duration(days: startOffsetDays));
+      final start = DurationService.addDays(now, startOffsetDays);
       return Promotion(
         id: id,
         ownerId: ownerId,
         targetKind: kind,
         targetRef: ref,
         tier: tier,
-        durationKey: dur,
+        durationDays: dur,
         startsAt: start,
-        endsAt: start.add(Duration(days: dur.days)),
+        endsAt: DurationService.addDays(start, dur),
         status: status,
-        pricePln: _config.pricePln(tier, dur),
+        pricePln: source == PromotionSource.paid ? _config.pricePln(tier, dur) : 0,
         source: source,
         paymentId: source == PromotionSource.paid ? 'pay-$id' : null,
       );
@@ -575,39 +653,44 @@ class PromotionService extends ChangeNotifier {
 
     // Catalogue seed (VITRIN-1 display) + compact VITRIN-2 owner set.
     _items.addAll([
-      mk(id: 'promo-sp-1', ownerId: 'seller_primegastro', kind: PromotionTargetKind.listing, ref: 'p001', tier: PromotionTier.spotlight, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-sp-2', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p002', tier: PromotionTier.spotlight, dur: PromotionDurationKey.month1, status: PromotionStatus.active),
-      mk(id: 'promo-sp-3', ownerId: 'seller_mateusz', kind: PromotionTargetKind.restaurant, ref: 'r001', tier: PromotionTier.spotlight, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-sp-4', ownerId: 'seller_technica', kind: PromotionTargetKind.listing, ref: 'p003', tier: PromotionTier.spotlight, dur: PromotionDurationKey.week2, status: PromotionStatus.active, source: PromotionSource.enterpriseIncluded),
-      mk(id: 'promo-gl-1', ownerId: 'seller_anna', kind: PromotionTargetKind.listing, ref: 'p004', tier: PromotionTier.glow, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-gl-2', ownerId: 'seller_primegastro', kind: PromotionTargetKind.listing, ref: 'p005', tier: PromotionTier.glow, dur: PromotionDurationKey.month1, status: PromotionStatus.active),
-      mk(id: 'promo-gl-3', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p006', tier: PromotionTier.glow, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-gl-4', ownerId: 'seller_anna', kind: PromotionTargetKind.restaurant, ref: 'r002', tier: PromotionTier.glow, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-gl-5', ownerId: 'seller_technica', kind: PromotionTargetKind.listing, ref: 'p008', tier: PromotionTier.glow, dur: PromotionDurationKey.month1, status: PromotionStatus.active, source: PromotionSource.proIncluded),
-      mk(id: 'promo-gl-6', ownerId: 'seller_mateusz', kind: PromotionTargetKind.listing, ref: 'p009', tier: PromotionTier.glow, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-bo-1', ownerId: 'seller_primegastro', kind: PromotionTargetKind.listing, ref: 'p010', tier: PromotionTier.bold, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-bo-2', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p011', tier: PromotionTier.bold, dur: PromotionDurationKey.month1, status: PromotionStatus.active),
-      mk(id: 'promo-bo-3', ownerId: 'seller_anna', kind: PromotionTargetKind.listing, ref: 'p013', tier: PromotionTier.bold, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-bo-4', ownerId: 'seller_technica', kind: PromotionTargetKind.listing, ref: 'p014', tier: PromotionTier.bold, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-bo-5', ownerId: 'seller_mateusz', kind: PromotionTargetKind.listing, ref: 'p015', tier: PromotionTier.bold, dur: PromotionDurationKey.month1, status: PromotionStatus.active),
-      mk(id: 'promo-bo-6', ownerId: 'seller_karol', kind: PromotionTargetKind.restaurant, ref: 'r003', tier: PromotionTier.bold, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-bo-7', ownerId: 'seller_primegastro', kind: PromotionTargetKind.listing, ref: 'p016', tier: PromotionTier.bold, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-bo-8', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p017', tier: PromotionTier.bold, dur: PromotionDurationKey.month1, status: PromotionStatus.active),
-      mk(id: 'promo-sched-1', ownerId: 'seller_anna', kind: PromotionTargetKind.listing, ref: 'p018', tier: PromotionTier.glow, dur: PromotionDurationKey.week2, status: PromotionStatus.scheduled, startOffsetDays: 3),
-      mk(id: 'promo-ended-1', ownerId: 'seller_technica', kind: PromotionTargetKind.listing, ref: 'p019', tier: PromotionTier.spotlight, dur: PromotionDurationKey.week2, status: PromotionStatus.ended, startOffsetDays: -20),
+      mk(id: 'promo-sp-1', ownerId: 'seller_primegastro', kind: PromotionTargetKind.listing, ref: 'p001', tier: PromotionTier.spotlight, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-sp-2', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p002', tier: PromotionTier.spotlight, dur: long, status: PromotionStatus.active),
+      mk(id: 'promo-sp-3', ownerId: 'seller_mateusz', kind: PromotionTargetKind.restaurant, ref: 'r001', tier: PromotionTier.spotlight, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-sp-4', ownerId: 'seller_technica', kind: PromotionTargetKind.listing, ref: 'p003', tier: PromotionTier.spotlight, dur: short, status: PromotionStatus.active, source: PromotionSource.enterpriseIncluded),
+      mk(id: 'promo-gl-1', ownerId: 'seller_anna', kind: PromotionTargetKind.listing, ref: 'p004', tier: PromotionTier.glow, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-gl-2', ownerId: 'seller_primegastro', kind: PromotionTargetKind.listing, ref: 'p005', tier: PromotionTier.glow, dur: long, status: PromotionStatus.active),
+      mk(id: 'promo-gl-3', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p006', tier: PromotionTier.glow, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-gl-4', ownerId: 'seller_anna', kind: PromotionTargetKind.restaurant, ref: 'r002', tier: PromotionTier.glow, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-gl-5', ownerId: 'seller_technica', kind: PromotionTargetKind.listing, ref: 'p008', tier: PromotionTier.glow, dur: long, status: PromotionStatus.active, source: PromotionSource.proIncluded),
+      mk(id: 'promo-gl-6', ownerId: 'seller_mateusz', kind: PromotionTargetKind.listing, ref: 'p009', tier: PromotionTier.glow, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-bo-1', ownerId: 'seller_primegastro', kind: PromotionTargetKind.listing, ref: 'p010', tier: PromotionTier.bold, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-bo-2', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p011', tier: PromotionTier.bold, dur: long, status: PromotionStatus.active),
+      mk(id: 'promo-bo-3', ownerId: 'seller_anna', kind: PromotionTargetKind.listing, ref: 'p013', tier: PromotionTier.bold, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-bo-4', ownerId: 'seller_technica', kind: PromotionTargetKind.listing, ref: 'p014', tier: PromotionTier.bold, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-bo-5', ownerId: 'seller_mateusz', kind: PromotionTargetKind.listing, ref: 'p015', tier: PromotionTier.bold, dur: long, status: PromotionStatus.active),
+      mk(id: 'promo-bo-6', ownerId: 'seller_karol', kind: PromotionTargetKind.restaurant, ref: 'r003', tier: PromotionTier.bold, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-bo-7', ownerId: 'seller_primegastro', kind: PromotionTargetKind.listing, ref: 'p016', tier: PromotionTier.bold, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-bo-8', ownerId: 'seller_gastropl', kind: PromotionTargetKind.listing, ref: 'p017', tier: PromotionTier.bold, dur: long, status: PromotionStatus.active),
+      mk(id: 'promo-sched-1', ownerId: 'seller_anna', kind: PromotionTargetKind.listing, ref: 'p018', tier: PromotionTier.glow, dur: short, status: PromotionStatus.scheduled, startOffsetDays: 3),
+      mk(id: 'promo-ended-1', ownerId: 'seller_technica', kind: PromotionTargetKind.listing, ref: 'p019', tier: PromotionTier.spotlight, dur: short, status: PromotionStatus.ended, startOffsetDays: -20),
       // VITRIN-2 dashboard demo: 3 active + 1 scheduled + 1 ended on mock store seller.
-      mk(id: 'promo-dash-1', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p001', tier: PromotionTier.glow, dur: PromotionDurationKey.month1, status: PromotionStatus.active),
-      mk(id: 'promo-dash-2', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p002', tier: PromotionTier.bold, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-dash-3', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p003', tier: PromotionTier.spotlight, dur: PromotionDurationKey.week2, status: PromotionStatus.active),
-      mk(id: 'promo-dash-sched', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p004', tier: PromotionTier.glow, dur: PromotionDurationKey.week2, status: PromotionStatus.scheduled, startOffsetDays: 5),
-      mk(id: 'promo-dash-ended', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p005', tier: PromotionTier.bold, dur: PromotionDurationKey.week2, status: PromotionStatus.ended, startOffsetDays: -16),
+      mk(id: 'promo-dash-1', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p001', tier: PromotionTier.glow, dur: long, status: PromotionStatus.active, source: PromotionSource.proIncluded),
+      // Ends in 2 days → Action Center "Promotion ends in 2 days" suggestion.
+      mk(id: 'promo-dash-2', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p002', tier: PromotionTier.bold, dur: short, status: PromotionStatus.active, startOffsetDays: 2 - short),
+      mk(id: 'promo-dash-3', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p003', tier: PromotionTier.spotlight, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-dash-sched', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p004', tier: PromotionTier.glow, dur: short, status: PromotionStatus.scheduled, startOffsetDays: 5),
+      mk(id: 'promo-dash-ended', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p005', tier: PromotionTier.bold, dur: short, status: PromotionStatus.ended, startOffsetDays: -(short + 2)),
     ]);
 
-    grantProCredits(FakeAuthIds.storeSeller, count: 2);
-    // Seed some stats for dashboard.
-    for (final id in ['promo-dash-1', 'promo-dash-2', 'promo-dash-3']) {
-      _stats[_statKey(id)] = PromotionStat(promotionId: id, date: _day(now), impressions: 40 + id.hashCode % 80, clicks: 3 + id.hashCode % 12);
-    }
+    // Pro period allowance; promo-dash-1 already spent one credit.
+    grantProCredits(FakeAuthIds.storeSeller);
+    final spent = _credits.indexWhere((c) => c.ownerId == FakeAuthIds.storeSeller && !c.used);
+    if (spent >= 0) _credits[spent] = _credits[spent].copyWith(used: true);
+    // Recorded counters for the demo rows (same shape recordImpression/recordClick write).
+    const demoStats = {'promo-dash-1': (412, 31), 'promo-dash-2': (138, 9), 'promo-dash-3': (655, 47)};
+    demoStats.forEach((id, v) {
+      _stats[_statKey(id)] = PromotionStat(promotionId: id, date: _day(now), impressions: v.$1, clicks: v.$2);
+    });
   }
 
   String _statKey(String promotionId) {

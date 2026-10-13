@@ -13,7 +13,9 @@ import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
+import 'package:twoja_gastromania/payment/payment_models.dart';
 
 class BulkAddRow {
   BulkAddRow({required this.id, required this.photos});
@@ -138,8 +140,15 @@ class _BulkAddPageState extends State<BulkAddPage> {
       freeLeft = auth.freeListingsLeft;
     }
     if (paid.isNotEmpty && mounted) {
-      final total = paid.length * TGPricing.listingFeePln;
-      if (paid.length + (3 - auth.freeListingsLeft) >= 4 || auth.freeSlotsUsed + paid.length >= 4) {
+      final cfg = PricingConfigService.instance.config;
+      final days = cfg.defaultListingDays;
+      final fee = cfg.listingFeePln(days);
+      final total = paid.length * fee;
+      final nudge = cfg.shouldNudgeBasicStore(
+        paidBasket30dEqPln: total,
+        listingCount: auth.freeSlotsUsed + paid.length,
+      );
+      if (nudge) {
         TGAnalytics.track('basic_store_nudge_view', {'n': paid.length});
       }
       await showModalBottomSheet<void>(
@@ -152,21 +161,29 @@ class _BulkAddPageState extends State<BulkAddPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Equipment listing · 30 days · ${TGPricing.listingFeePln},00 PLN × ${paid.length}',
+                ctx.t('uyum_bulk_line', {'days': '$days', 'fee': '$fee', 'n': '${paid.length}'}),
+                key: const Key('bulk-pay-line'),
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
-              Text('Total (brutto, VAT 23% included): $total,00 PLN'),
-              if (paid.length >= 4 || auth.freeSlotsUsed >= 3)
+              Text(ctx.t('ui_total_brutto_vat', {'n': '$total'})),
+              if (nudge)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    '4 × ${TGPricing.listingFeePln} = ${4 * TGPricing.listingFeePln} PLN vs Basic Store 199 PLN, plus Verified badge and store page',
+                    ctx.t('ui_basic_store_nudge', {
+                      'n': '${cfg.storeNudgeMinListings}',
+                      'fee': '$fee',
+                      'sum': '${cfg.storeNudgeMinListings * fee}',
+                      'store': '${cfg.basicStoreMonthlyPln}',
+                    }),
                     style: FlutterFlowTheme.of(ctx).bodySmall,
                   ),
                 ),
               const SizedBox(height: 12),
               PaymentForm(
                 amountPln: total.toDouble(),
+                billingKind: TGPaymentKind.listing,
+                billingDescription: 'Listing fee · ${paid.length} listings',
                 onPaid: () async {
                   for (final row in paid) {
                     final p = _toProduct(auth, row, status: TGListingStatus.active);
@@ -181,7 +198,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
                   }
                 },
               ),
-              TextButton(onPressed: () => context.go('/plans'), child: const Text('See Basic Store')),
+              TextButton(onPressed: () => context.go('/plans'), child: Text(ctx.t('uyum_see_basic_store'))),
             ],
           ),
         ),
@@ -215,7 +232,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
                 Text(context.t('ui_bulk_add_equipment'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
                 Text('Location, phone and seller are automatic from your account.', style: theme.bodySmall),
                 Text('Completeness ${(avg * 100).round()}%', style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
-                Text('Free slots left: ${auth.freeListingsLeft}/3', style: theme.bodySmall),
+                Text(context.t('dash_quota_free', {'left': '${auth.freeListingsLeft}', 'total': '${auth.freeListingsTotal}'}), style: theme.bodySmall),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,

@@ -105,7 +105,7 @@ class TGHeader extends StatelessWidget implements PreferredSizeWidget {
       const SizedBox(width: 8),
       if (!auth.isLoggedIn)
         GestureDetector(
-          onLongPress: () => showTGDevSwitch(context, auth),
+          onLongPress: tgDevSwitchEnabled ? () => showTGDevSwitch(context, auth) : null,
           child: isPhone
               ? TGIconButton(icon: Icons.person, tooltip: context.t('ui_login'), onPressed: () => TGNav.login(context))
               : TGButton(
@@ -117,8 +117,11 @@ class TGHeader extends StatelessWidget implements PreferredSizeWidget {
                   borderRadius: BorderRadius.circular(TGRadius.pill),
                 ),
         )
-      else
+      else ...[
         _AccountPill(auth: auth, compact: compactRight, phone: isPhone),
+        SizedBox(width: isPhone ? 4 : 6),
+        _AvatarButton(auth: auth, size: w < 360 ? 28 : (isPhone ? 32 : 36)),
+      ],
     ];
 
     return Material(
@@ -326,6 +329,48 @@ class _LanguageMenu extends StatelessWidget {
   }
 }
 
+/// Initials avatar → account menu (dashboard links, quota, quick actions).
+class _AvatarButton extends StatelessWidget {
+  const _AvatarButton({required this.auth, required this.size});
+
+  final FakeAuthState auth;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final label = context.t('dash_avatar_menu');
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        child: Material(
+          color: theme.primary.withValues(alpha: 0.22),
+          shape: const CircleBorder(),
+          child: InkWell(
+            key: const Key('header-avatar'),
+            customBorder: const CircleBorder(),
+            onTap: () => showTGAccountSheet(context),
+            onLongPress: tgDevSwitchEnabled ? () => showTGDevSwitch(context, auth) : null,
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: Center(
+                child: Text(
+                  auth.userInitials,
+                  style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w800, fontSize: 12),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Logged-in account pill. Priority: expired listings > expiring ≤5d > other states.
 /// Long-press in debug builds opens the 7-scenario developer switch.
 class _AccountPill extends StatelessWidget {
@@ -410,21 +455,8 @@ class _AccountPill extends StatelessWidget {
     return '$head\n$listings';
   }
 
-  void _onTap(BuildContext context) {
-    switch (auth.pillKind) {
-      case TGHeaderPillKind.needsAttention:
-        TGNav.dashboardListings(context, filter: 'review');
-        return;
-      case TGHeaderPillKind.expiredListings:
-        TGNav.dashboardListings(context, filter: 'expired');
-        return;
-      case TGHeaderPillKind.expiringListings:
-        TGNav.dashboardListings(context, filter: 'expiring');
-        return;
-      default:
-        showTGAccountSheet(context);
-    }
-  }
+  /// Every pill state opens the Action center; the avatar opens the account menu.
+  void _onTap(BuildContext context) => context.go('/dashboard/actions');
 
   @override
   Widget build(BuildContext context) {
@@ -445,7 +477,7 @@ class _AccountPill extends StatelessWidget {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _onTap(context),
-            onLongPress: () => showTGDevSwitch(context, auth),
+            onLongPress: tgDevSwitchEnabled ? () => showTGDevSwitch(context, auth) : null,
             child: Container(
               height: 40,
               constraints: BoxConstraints(maxWidth: phone ? 148 : compact ? 240 : 300),
@@ -502,10 +534,7 @@ class _AccountPill extends StatelessWidget {
             height: 28,
             decoration: BoxDecoration(color: theme.primary.withValues(alpha: 0.22), shape: BoxShape.circle),
             alignment: Alignment.center,
-            child: Text(
-              auth.userInitials,
-              style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w800, fontSize: 11),
-            ),
+            child: Icon(Icons.task_alt, size: 16, color: theme.primaryText),
           ),
           if (phone && auth.mobileBadgeCount > 0)
             Positioned(

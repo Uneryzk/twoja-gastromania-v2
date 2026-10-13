@@ -98,15 +98,13 @@ void main() {
     expect(app.errors.distinct, isEmpty);
   });
 
-  testWidgets('admin bar can act as seller', (tester) async {
+  testWidgets('admin bar offers no impersonation', (tester) async {
     final app = await pumpTgApp(tester, location: '/seller/4102-ek');
     app.auth.setRole(TGUserRole.admin);
     await tester.pump();
     expect(find.text('Edit Seller Profile (Admin)'), findsOneWidget);
-    await tester.tap(find.text('Act as Seller'));
-    await tester.pump();
-    expect(app.auth.userId, 'seller_ek');
-    expect(find.textContaining('Complete your store setup'), findsOneWidget);
+    expect(find.text('Act as Seller'), findsNothing);
+    expect(app.auth.userId, 'staff_admin');
     app.errors.stop();
     expect(app.errors.distinct, isEmpty);
   });

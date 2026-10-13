@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart' show TGStorePlanKind;
+import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
@@ -45,7 +46,7 @@ class AdSlotService extends ChangeNotifier {
     return cfg.flags.bannerAds && cfg.phase >= 2;
   }
 
-  int priceFor(BannerDurationKey key) => pricing.pricePln(key);
+  int priceFor(int key) => pricing.pricePln(key);
   int get maxPerDay => pricing.maxSponsoredPerDay;
 
   void reset() {
@@ -59,7 +60,8 @@ class AdSlotService extends ChangeNotifier {
     notifyListeners();
   }
 
-  static DateTime dayOf(DateTime t) => DateTime(t.year, t.month, t.day);
+  /// Warsaw calendar day containing [t] (see [DurationService]).
+  static DateTime dayOf(DateTime t) => DurationService.dayStart(t);
 
   void ensureSeeded() {
     if (_seeded) return;
@@ -73,13 +75,13 @@ class AdSlotService extends ChangeNotifier {
         targetUrl: '/restaurants/51010001-restaurant-with-terrace-mariacka-katowice',
         title: 'Restaurant with terrace – Katowice',
         imageUrl: TGListingImages.heroSlide(0),
-        startsAt: today.subtract(const Duration(days: 2)),
-        endsAt: today.add(const Duration(days: 12)),
+        startsAt: DurationService.addDays(today, -2),
+        endsAt: DurationService.addDays(today, 12),
         status: TGAdSlotStatus.live,
-        duration: BannerDurationKey.w2,
+        durationDays: 14,
         impressions: 1840,
         clicks: 62,
-        pricePln: priceFor(BannerDurationKey.w2),
+        pricePln: priceFor(14),
         isMock: true,
       ),
       TGAdSlot(
@@ -89,11 +91,11 @@ class AdSlotService extends ChangeNotifier {
         targetUrl: '/seller/1847-gastrosilesia',
         title: 'GastroPL Outlet – kitchen equipment',
         imageUrl: TGListingImages.heroSlide(1),
-        startsAt: today.add(const Duration(days: 1)),
-        endsAt: today.add(const Duration(days: 15)),
+        startsAt: DurationService.addDays(today, 1),
+        endsAt: DurationService.addDays(today, 15),
         status: TGAdSlotStatus.pendingReview,
-        duration: BannerDurationKey.w2,
-        pricePln: priceFor(BannerDurationKey.w2),
+        durationDays: 14,
+        pricePln: priceFor(14),
         isMock: true,
       ),
       TGAdSlot(
@@ -103,11 +105,11 @@ class AdSlotService extends ChangeNotifier {
         targetUrl: '/products',
         title: 'Combi ovens – spring offer',
         imageUrl: TGListingImages.heroSlide(3),
-        startsAt: today.add(const Duration(days: 4)),
-        endsAt: today.add(const Duration(days: 11)),
+        startsAt: DurationService.addDays(today, 4),
+        endsAt: DurationService.addDays(today, 11),
         status: TGAdSlotStatus.approved,
-        duration: BannerDurationKey.w1,
-        pricePln: priceFor(BannerDurationKey.w1),
+        durationDays: 7,
+        pricePln: priceFor(7),
         isMock: true,
       ),
     ]);
@@ -154,17 +156,17 @@ class AdSlotService extends ChangeNotifier {
 
   bool isDayFull(DateTime day, {String? ignoreHoldOf}) => seatsTaken(day, ignoreHoldOf: ignoreHoldOf) >= maxPerDay;
 
-  bool windowFree(DateTime start, BannerDurationKey duration, {String? ignoreHoldOf}) {
+  bool windowFree(DateTime start, int duration, {String? ignoreHoldOf}) {
     final s = dayOf(start);
-    for (var i = 0; i < duration.days; i++) {
-      if (isDayFull(s.add(Duration(days: i)), ignoreHoldOf: ignoreHoldOf)) return false;
+    for (var i = 0; i < duration; i++) {
+      if (isDayFull(DurationService.addDays(s, i), ignoreHoldOf: ignoreHoldOf)) return false;
     }
     return true;
   }
 
   /// Bookable start days are today … today + horizon − 1.
   DateTime get firstBookableDay => dayOf(TGClock.now());
-  DateTime get lastBookableDay => firstBookableDay.add(Duration(days: pricing.waitlistHorizonDays - 1));
+  DateTime get lastBookableDay => DurationService.addDays(firstBookableDay, pricing.waitlistHorizonDays - 1);
 
   List<TGAdDay> calendar({DateTime? from, int? days, String? ignoreHoldOf}) {
     final start = dayOf(from ?? firstBookableDay);
@@ -172,29 +174,30 @@ class AdSlotService extends ChangeNotifier {
     return [
       for (var i = 0; i < n; i++)
         TGAdDay(
-          day: start.add(Duration(days: i)),
-          taken: seatsTaken(start.add(Duration(days: i)), ignoreHoldOf: ignoreHoldOf),
+          day: DurationService.addDays(start, i),
+          taken: seatsTaken(DurationService.addDays(start, i), ignoreHoldOf: ignoreHoldOf),
           capacity: maxPerDay,
         ),
     ];
   }
 
   /// Earliest start ≥ [from] whose full window fits within the horizon; null → waitlist.
-  DateTime? nextAvailableStart(BannerDurationKey duration, {DateTime? from, String? ignoreHoldOf}) {
+  DateTime? nextAvailableStart(int duration, {DateTime? from, String? ignoreHoldOf}) {
     var d = dayOf(from ?? firstBookableDay);
     if (d.isBefore(firstBookableDay)) d = firstBookableDay;
     while (!d.isAfter(lastBookableDay)) {
       if (windowFree(d, duration, ignoreHoldOf: ignoreHoldOf)) return d;
-      d = d.add(const Duration(days: 1));
+      d = DurationService.addDays(d, 1);
     }
     return null;
   }
 
-  bool horizonFull(BannerDurationKey duration, {String? ignoreHoldOf}) =>
+  bool horizonFull(int duration, {String? ignoreHoldOf}) =>
       nextAvailableStart(duration, ignoreHoldOf: ignoreHoldOf) == null;
 
   /// Locks the window for [BannerPricing.holdHours]. Replaces the owner's previous hold.
-  TGAdHold reserve({required String ownerId, required DateTime startsAt, required BannerDurationKey duration}) {
+  TGAdHold reserve({required String ownerId, required DateTime startsAt, required int durationDays}) {
+    final duration = durationDays;
     if (!purchaseVisible) throw StateError('ui_banner_err_unavailable');
     final start = dayOf(startsAt);
     if (start.isBefore(firstBookableDay)) throw StateError('ui_banner_err_past');
@@ -204,11 +207,11 @@ class AdSlotService extends ChangeNotifier {
       id: 'hold_${_seq++}',
       ownerId: ownerId,
       startsAt: start,
-      duration: duration,
+      durationDays: duration,
       expiresAt: TGClock.now().add(Duration(hours: pricing.holdHours)),
     );
     _holds.add(hold);
-    TGAnalytics.track('banner_hold', {'start': start.toIso8601String(), 'days': duration.days});
+    TGAnalytics.track('banner_hold', {'start': start.toIso8601String(), 'days': duration});
     notifyListeners();
     return hold;
   }
@@ -221,10 +224,10 @@ class AdSlotService extends ChangeNotifier {
 
   bool isOnWaitlist(String ownerId) => waitlist.any((w) => w.ownerId == ownerId);
 
-  void joinWaitlist(String ownerId, BannerDurationKey duration) {
+  void joinWaitlist(String ownerId, int duration) {
     if (isOnWaitlist(ownerId)) return;
-    waitlist.add(TGAdWaitlistEntry(ownerId: ownerId, duration: duration, createdAt: TGClock.now()));
-    TGAnalytics.track('banner_waitlist_join', {'days': duration.days});
+    waitlist.add(TGAdWaitlistEntry(ownerId: ownerId, durationDays: duration, createdAt: TGClock.now()));
+    TGAnalytics.track('banner_waitlist_join', {'days': duration});
     notifyListeners();
   }
 
@@ -232,7 +235,7 @@ class AdSlotService extends ChangeNotifier {
     if (waitlist.isEmpty) return;
     final remaining = <TGAdWaitlistEntry>[];
     for (final w in waitlist) {
-      final start = nextAvailableStart(w.duration);
+      final start = nextAvailableStart(w.durationDays);
       if (start == null) {
         remaining.add(w);
         continue;
@@ -243,7 +246,7 @@ class AdSlotService extends ChangeNotifier {
         dealId: 'waitlist',
         title: 'Banner dates available',
         body: 'A hero banner window is free again.',
-        deepLink: '/dashboard/advertising',
+        deepLink: '/dashboard/advertising?tab=banners',
       );
     }
     waitlist
@@ -276,7 +279,7 @@ class AdSlotService extends ChangeNotifier {
     return [
       for (var i = 0; i < days; i++)
         () {
-          final d = start.add(Duration(days: i));
+          final d = DurationService.addDays(start, i);
           final seats = List<TGAdSlot?>.filled(maxPerDay, null);
           for (final s in occupying) {
             final lane = laneOf[s.id]!;
@@ -355,9 +358,10 @@ class AdSlotService extends ChangeNotifier {
     required String title,
     required String imageUrl,
     required DateTime startsAt,
-    BannerDurationKey duration = BannerDurationKey.w2,
+    int durationDays = 14,
     bool useEnterpriseEntitlement = false,
   }) {
+    final duration = durationDays;
     if (!purchaseVisible) throw StateError('ui_banner_err_unavailable');
     final err = validateTargetUrl(targetUrl);
     if (err != null) throw StateError(err);
@@ -366,7 +370,7 @@ class AdSlotService extends ChangeNotifier {
     final start = dayOf(startsAt);
     if (!windowFree(start, duration, ignoreHoldOf: ownerId)) throw StateError('ui_banner_err_full');
     final entitlement =
-        useEnterpriseEntitlement && duration == pricing.enterpriseFreeDuration && canUseEnterpriseEntitlement(ownerId);
+        useEnterpriseEntitlement && duration == pricing.enterpriseFreeDays && canUseEnterpriseEntitlement(ownerId);
     if (useEnterpriseEntitlement && !entitlement) throw StateError('ui_banner_err_entitlement');
     final price = entitlement ? 0 : priceFor(duration);
     if (entitlement) {
@@ -382,9 +386,9 @@ class AdSlotService extends ChangeNotifier {
       title: t,
       imageUrl: imageUrl,
       startsAt: start,
-      endsAt: start.add(Duration(days: duration.days)),
+      endsAt: DurationService.addDays(start, duration),
       status: TGAdSlotStatus.pendingReview,
-      duration: duration,
+      durationDays: duration,
       pricePln: price,
       enterpriseEntitlement: entitlement,
     );
@@ -392,7 +396,7 @@ class AdSlotService extends ChangeNotifier {
     TGAnalytics.track('ad_purchase', {
       'id': slot.id,
       'price': price,
-      'days': duration.days,
+      'days': duration,
       'entitlement': entitlement,
       'kind': kind.name,
     });
@@ -421,7 +425,7 @@ class AdSlotService extends ChangeNotifier {
       body: nextStatus == TGAdSlotStatus.live
           ? 'Your banner is live on the homepage.'
           : 'Approved. It goes live on the booked start date.',
-      deepLink: '/dashboard/advertising',
+      deepLink: '/dashboard/advertising?tab=banners',
     );
     notifyListeners();
     return null;
@@ -443,7 +447,7 @@ class AdSlotService extends ChangeNotifier {
       dealId: id,
       title: 'Banner ad needs a correction',
       body: reason,
-      deepLink: '/dashboard/advertising',
+      deepLink: '/dashboard/advertising?tab=banners',
     );
     notifyListeners();
     return null;
@@ -484,7 +488,7 @@ class AdSlotService extends ChangeNotifier {
       body: prev.pricePln > 0
           ? 'Your content was not approved. A full refund of ${prev.pricePln} PLN was issued.'
           : 'Your content was not approved. Your Enterprise entitlement was restored.',
-      deepLink: '/dashboard/advertising',
+      deepLink: '/dashboard/advertising?tab=banners',
     );
     _restoreEntitlement(prev);
     _notifyWaitlist();
@@ -495,7 +499,7 @@ class AdSlotService extends ChangeNotifier {
   /// Full refund when cancelled ≥ [BannerPricing.fullRefundDaysBeforeStart] days before start.
   bool canCancel(TGAdSlot s) {
     if (!s.occupiesSeat || s.status == TGAdSlotStatus.live) return false;
-    final lead = dayOf(s.startsAt).difference(dayOf(TGClock.now())).inDays;
+    final lead = DurationService.calendarDaysBetween(TGClock.now(), s.startsAt);
     return lead >= pricing.fullRefundDaysBeforeStart;
   }
 
@@ -508,6 +512,21 @@ class AdSlotService extends ChangeNotifier {
     slots[i] = prev.copyWith(status: TGAdSlotStatus.cancelled, refundPln: prev.pricePln);
     _restoreEntitlement(prev);
     TGAnalytics.track('ad_cancel', {'id': id, 'refund': prev.pricePln});
+    _notifyWaitlist();
+    notifyListeners();
+    return null;
+  }
+
+  /// Owner ends a live banner today. Unused days are not refunded.
+  String? stopByOwner(String id, {required String ownerId}) {
+    final i = slots.indexWhere((s) => s.id == id);
+    if (i < 0) return 'ads_err_not_found';
+    final prev = slots[i];
+    if (prev.ownerId != ownerId) return 'ads_err_not_owner';
+    final now = TGClock.now();
+    if (prev.status != TGAdSlotStatus.live && !(prev.status == TGAdSlotStatus.approved && !now.isBefore(prev.startsAt))) return 'ads_err_not_live';
+    slots[i] = prev.copyWith(status: TGAdSlotStatus.ended, endsAt: now, endedEarlyReason: 'owner_stop');
+    TGAnalytics.track('ad_stop_early', {'id': id});
     _notifyWaitlist();
     notifyListeners();
     return null;
@@ -544,7 +563,7 @@ class AdSlotService extends ChangeNotifier {
       dealId: id,
       title: 'Banner ad ended',
       body: refund > 0 ? 'Prorated refund: $refund PLN.' : 'Your banner was ended by moderation.',
-      deepLink: '/dashboard/advertising',
+      deepLink: '/dashboard/advertising?tab=banners',
     );
     _notifyWaitlist();
     notifyListeners();
@@ -579,7 +598,7 @@ class AdSlotService extends ChangeNotifier {
           dealId: s.id,
           title: 'Banner ad ended · report',
           body: '${s.impressions} impressions · ${s.clicks} clicks. Reach depends on homepage traffic.',
-          deepLink: '/dashboard/advertising',
+          deepLink: '/dashboard/advertising?tab=banners',
         );
         TGAnalytics.track('ad_impression_report', {'id': s.id, 'impressions': s.impressions, 'clicks': s.clicks});
       } else if (s.status == TGAdSlotStatus.approved && !now.isBefore(s.startsAt)) {

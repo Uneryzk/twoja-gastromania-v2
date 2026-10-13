@@ -124,7 +124,7 @@ class _RulesCard extends StatelessWidget {
       ('Free months', '${cfg.freeMonths} months Pro-level Special Order tools (and Priority if for sale)'),
       ('≥5 qualified', '20% off promote / Priority / sponsor slot'),
       ('≥10 qualified', '40% off the same items'),
-      ('Not discounted', 'Store plans, Audited fee, standard listing fee (49 PLN), Renew'),
+      ('Not discounted', 'Store plans, standard listing fee (49 PLN), Renew'),
       ('Ends', 'All program discounts end on programEndsAt'),
       ('Badge', 'No badge is awarded.'),
     ];

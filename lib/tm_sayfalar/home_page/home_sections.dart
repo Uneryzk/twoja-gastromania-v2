@@ -873,7 +873,14 @@ class _SellerCard extends StatelessWidget {
                   children: [
                     Icon(Icons.verified_user, size: 16, color: theme.success),
                     const SizedBox(width: 6),
-                    Text(l10n.getText('iudua9mi'), style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w800)),
+                    Flexible(
+                      child: Text(
+                        l10n.getText('iudua9mi'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w800),
+                      ),
+                    ),
                   ],
                 ),
               ),

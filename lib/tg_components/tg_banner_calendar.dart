@@ -3,15 +3,16 @@ import 'package:intl/intl.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 
 /// "20 Oct – 27 Oct" (end = last shown day, inclusive).
-String tgBannerWindowLabel(BuildContext context, DateTime start, BannerDurationKey duration) {
+String tgBannerWindowLabel(BuildContext context, DateTime start, int durationDays) {
   final locale = Localizations.localeOf(context).languageCode;
   final fmt = DateFormat('d MMM', locale);
-  final last = start.add(Duration(days: duration.days - 1));
+  final last = DurationService.addDays(start, durationDays - 1);
   return '${fmt.format(start)} – ${fmt.format(last)}';
 }
 
@@ -21,13 +22,13 @@ class TGBannerCalendar extends StatelessWidget {
   const TGBannerCalendar({
     super.key,
     required this.ownerId,
-    required this.duration,
+    required this.durationDays,
     required this.selectedStart,
     required this.onSelect,
   });
 
   final String ownerId;
-  final BannerDurationKey duration;
+  final int durationDays;
   final DateTime? selectedStart;
   final ValueChanged<DateTime> onSelect;
 
@@ -40,10 +41,10 @@ class TGBannerCalendar extends StatelessWidget {
     final first = days.first.day;
     final lead = (first.weekday - DateTime.monday) % 7;
     final sel = selectedStart == null ? null : AdSlotService.dayOf(selectedStart!);
-    final selEnd = sel?.add(Duration(days: duration.days));
-    final selectionFree = sel != null && ads.windowFree(sel, duration, ignoreHoldOf: ownerId);
-    final next = ads.nextAvailableStart(duration, from: sel, ignoreHoldOf: ownerId) ??
-        ads.nextAvailableStart(duration, ignoreHoldOf: ownerId);
+    final selEnd = sel == null ? null : DurationService.addDays(sel, durationDays);
+    final selectionFree = sel != null && ads.windowFree(sel, durationDays, ignoreHoldOf: ownerId);
+    final next = ads.nextAvailableStart(durationDays, from: sel, ignoreHoldOf: ownerId) ??
+        ads.nextAvailableStart(durationDays, ignoreHoldOf: ownerId);
     final horizonFull = next == null;
     final weekdayFmt = DateFormat('EEEEE', locale);
     final monthFmt = DateFormat('LLLL yyyy', locale);
@@ -113,7 +114,7 @@ class TGBannerCalendar extends StatelessWidget {
             selectionFree: selectionFree,
             next: next,
             horizonFull: horizonFull,
-            duration: duration,
+            durationDays: durationDays,
             ownerId: ownerId,
             onUseNext: next == null ? null : () => onSelect(next),
           ),
@@ -255,7 +256,7 @@ class _StatusLine extends StatefulWidget {
     required this.selectionFree,
     required this.next,
     required this.horizonFull,
-    required this.duration,
+    required this.durationDays,
     required this.ownerId,
     required this.onUseNext,
   });
@@ -264,7 +265,7 @@ class _StatusLine extends StatefulWidget {
   final bool selectionFree;
   final DateTime? next;
   final bool horizonFull;
-  final BannerDurationKey duration;
+  final int durationDays;
   final String ownerId;
   final VoidCallback? onUseNext;
 
@@ -291,7 +292,7 @@ class _StatusLineState extends State<_StatusLine> {
             onPressed: joined
                 ? null
                 : () {
-                    ads.joinWaitlist(widget.ownerId, widget.duration);
+                    ads.joinWaitlist(widget.ownerId, widget.durationDays);
                     setState(() {});
                   },
             label: joined ? context.t('ui_banner_waitlist_joined') : context.t('ui_banner_notify_me'),
@@ -304,12 +305,12 @@ class _StatusLineState extends State<_StatusLine> {
     }
     if (widget.selection != null && widget.selectionFree) {
       return Text(
-        context.t('ui_banner_selected_window', {'window': tgBannerWindowLabel(context, widget.selection!, widget.duration)}),
+        context.t('ui_banner_selected_window', {'window': tgBannerWindowLabel(context, widget.selection!, widget.durationDays)}),
         style: theme.bodyMedium.override(fontWeight: FontWeight.w800),
       );
     }
     final nextLabel = context.t('ui_banner_next_available', {
-      'window': tgBannerWindowLabel(context, widget.next!, widget.duration),
+      'window': tgBannerWindowLabel(context, widget.next!, widget.durationDays),
     });
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

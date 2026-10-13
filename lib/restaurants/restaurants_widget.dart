@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:twoja_gastromania/tg_components/tg_ranking_info.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_card.dart';
@@ -273,6 +274,8 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
           child: Text(localizedResultsCount(context, total), style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
         ),
         const Spacer(),
+        const TGRankingInfoLink(surface: 'restaurants', compact: true),
+        const SizedBox(width: 4),
         DropdownButton<RestaurantSort>(
           value: query.sort,
           underline: const SizedBox.shrink(),
@@ -337,7 +340,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const Align(alignment: AlignmentDirectional.centerEnd, child: TGRankingInfoLink(surface: 'restaurants', compact: true)),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
