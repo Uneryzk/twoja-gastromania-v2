@@ -16,13 +16,13 @@ void main() {
 
   test('seeded catalogue keeps sold/expired rows but public filters drop them', () async {
     final all = await TGProductService.instance.getAll();
-    expect(all, hasLength(18));
+    expect(all, hasLength(23));
     expect(all.where((p) => p.id == 'p007').single.status, TGListingStatus.sold);
     expect(all.where((p) => p.id == 'p012').single.status, TGListingStatus.expired);
     final public = applyFilters(all, const TGProductsQueryState());
     expect(public.every((p) => p.isActive), isTrue);
     expect(public.map((p) => p.id), isNot(containsAll(['p007', 'p012'])));
-    expect(public, hasLength(16));
+    expect(public, hasLength(21));
   });
 
   test('hasExpired scenario is 3 active, 2 expired, 1 draft', () {
@@ -103,8 +103,8 @@ void main() {
   test('seeded listings have unique 8-digit listing numbers used in URLs', () async {
     final all = await TGProductService.instance.getAll();
     final numbers = all.map((p) => p.listingNo).whereType<String>().toList();
-    expect(numbers, hasLength(18));
-    expect(numbers.toSet(), hasLength(18));
+    expect(numbers, hasLength(23));
+    expect(numbers.toSet(), hasLength(23));
     expect(numbers.every(TGListingNo.isListingNo), isTrue);
     expect(all.where((p) => p.id == 'p001').single.listingNo, '10482137');
     expect(all.first.detailPath, contains(all.first.listingNo));

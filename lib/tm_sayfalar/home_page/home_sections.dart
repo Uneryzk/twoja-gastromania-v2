@@ -54,8 +54,8 @@ class HomeSectionTitle extends StatelessWidget {
                   title,
                   style: theme.headlineSmall.override(
                     fontSize: phone ? 24 : 32,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.35,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.4,
                   ),
                 ),
               ),
@@ -334,8 +334,8 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                                     style: theme.headlineMedium.override(
                                                       color: Colors.white,
                                                       fontSize: phone ? 24 : 38,
-                                                      fontWeight: FontWeight.w700,
-                                                      letterSpacing: 0.4,
+                                                      fontWeight: FontWeight.w500,
+                                                      letterSpacing: 0.45,
                                                       lineHeight: 1.15,
                                                     ),
                                                   ),
@@ -594,8 +594,8 @@ class _CategoryCard extends StatelessWidget {
                           style: theme.titleSmall.override(
                             color: Colors.white,
                             fontSize: compact ? 13 : 16,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.25,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.35,
                             lineHeight: 1.2,
                           ),
                         ),
@@ -1077,8 +1077,8 @@ class _HomeStatCardState extends State<HomeStatCard> {
                   overflow: TextOverflow.ellipsis,
                   style: theme.titleMedium.override(
                     fontSize: widget.large ? 16 : 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.22,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.35,
                     lineHeight: 1.2,
                   ),
                 ),

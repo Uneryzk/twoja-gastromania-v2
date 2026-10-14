@@ -680,6 +680,9 @@ class PromotionService extends ChangeNotifier {
       mk(id: 'promo-dash-3', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p003', tier: PromotionTier.spotlight, dur: short, status: PromotionStatus.active),
       mk(id: 'promo-dash-sched', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p004', tier: PromotionTier.glow, dur: short, status: PromotionStatus.scheduled, startOffsetDays: 5),
       mk(id: 'promo-dash-ended', ownerId: FakeAuthIds.storeSeller, kind: PromotionTargetKind.listing, ref: 'p005', tier: PromotionTier.bold, dur: short, status: PromotionStatus.ended, startOffsetDays: -(short + 2)),
+      // Font-preview pack: Bold vs Spotlight vs Normal (p020/p021/p024 stay organic).
+      mk(id: 'promo-font-bold', ownerId: 'seller_font_customkit', kind: PromotionTargetKind.listing, ref: 'p022', tier: PromotionTier.bold, dur: short, status: PromotionStatus.active),
+      mk(id: 'promo-font-spot', ownerId: 'seller_font_rentline', kind: PromotionTargetKind.listing, ref: 'p023', tier: PromotionTier.spotlight, dur: long, status: PromotionStatus.active),
     ]);
 
     // Pro period allowance; promo-dash-1 already spent one credit.

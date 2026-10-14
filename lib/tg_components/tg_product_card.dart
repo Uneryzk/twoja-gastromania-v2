@@ -340,8 +340,8 @@ class _GridBody extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.titleMedium.override(
                     fontSize: 16,
-                    fontWeight: titleBold ? FontWeight.w700 : FontWeight.w400,
-                    letterSpacing: 0.25,
+                    fontWeight: titleBold ? FontWeight.w500 : FontWeight.w400,
+                    letterSpacing: 0.35,
                     lineHeight: 1.3,
                   ),
                 ),
@@ -426,8 +426,8 @@ class _WideListBody extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.titleLarge.override(
-                      fontWeight: titleBold ? FontWeight.w700 : FontWeight.w400,
-                      letterSpacing: 0.3,
+                      fontWeight: titleBold ? FontWeight.w500 : FontWeight.w400,
+                      letterSpacing: 0.4,
                       lineHeight: 1.2,
                     ),
                   ),
@@ -532,8 +532,8 @@ class _CompactListBody extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.titleSmall.override(
-                            fontWeight: titleBold ? FontWeight.w700 : FontWeight.w400,
-                            letterSpacing: 0.2,
+                            fontWeight: titleBold ? FontWeight.w500 : FontWeight.w400,
+                            letterSpacing: 0.3,
                             lineHeight: 1.2,
                           ),
                         ),

@@ -17,7 +17,8 @@ void main() {
 
   test('special-order manufacturer directory excludes basic and inactive', () {
     final makers = TGSellerProfileService.instance.specialOrderManufacturers;
-    expect(makers.length, 6);
+    expect(makers.length, 7);
+    expect(makers.any((p) => p.name == 'CustomKit Atelier'), isTrue);
     expect(makers.any((p) => p.name == 'Technica'), isFalse);
     expect(makers.any((p) => p.name == 'OldKitchen'), isFalse);
     expect(makers.any((p) => p.name == 'Gastrosilesia.pl'), isTrue);

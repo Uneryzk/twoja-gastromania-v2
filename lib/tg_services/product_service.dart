@@ -13,7 +13,7 @@ class TGProductService {
   static final TGProductService instance = TGProductService._();
 
   /// Bumped when seed image strategy changes (remote Unsplash → local assets).
-  static const _storageKey = '__tg_products_v12__';
+  static const _storageKey = '__tg_products_v13__';
 
   List<TGProduct>? _cache;
 
@@ -21,6 +21,7 @@ class TGProductService {
   static const _kSeedProductIds = {
     'p001', 'p002', 'p003', 'p004', 'p005', 'p006', 'p007', 'p008', 'p009',
     'p010', 'p011', 'p012', 'p013', 'p014', 'p015', 'p016', 'p017', 'p018',
+    'p020', 'p021', 'p022', 'p023', 'p024',
   };
 
   List<TGProduct> _visible(List<TGProduct> all) {
@@ -149,6 +150,11 @@ class TGProductService {
     const s3 = TGSeller(id: 'seller_mateusz', name: 'Mateusz K.', type: TGSellerType.private, verified: false, rating: 4.4);
     const s4 = TGSeller(id: 'seller_technica', name: 'Technica Pro', type: TGSellerType.store, verified: false, rating: 4.2);
     const s5 = TGSeller(id: 'seller_anna', name: 'Anna P.', type: TGSellerType.private, verified: true, rating: 4.6);
+    const sFontPrivate = TGSeller(id: 'seller_font_piotr', name: 'Piotr W.', type: TGSellerType.private, verified: false, rating: 4.3);
+    const sFontCorp = TGSeller(id: 'seller_font_inoxcorp', name: 'InoxCorp', type: TGSellerType.store, verified: true, rating: 4.8);
+    const sFontSo = TGSeller(id: 'seller_font_customkit', name: 'CustomKit Atelier', type: TGSellerType.store, verified: true, rating: 4.7);
+    const sFontRent = TGSeller(id: 'seller_font_rentline', name: 'RentLine Gastro', type: TGSellerType.store, verified: true, rating: 4.5);
+    const sFontPro = TGSeller(id: 'seller_font_proheat', name: 'ProHeat Kitchen', type: TGSellerType.store, verified: true, rating: 4.9);
 
     // Requirements mix:
     // - 3 promoted (pickup, shipping, buyer-choice)
@@ -609,6 +615,132 @@ class TGProductService {
         createdAt: now.subtract(const Duration(days: 10)),
         description: 'Nowy regał w systemie skręcanym. Idealny do magazynu.',
       ),
+      // Font-preview pack (Regular titles): 1 private, 1 corporate, 1 special-order, 1 rental, 1 Pro.
+      TGProduct(
+        id: 'p020',
+        title: 'Patelnia uchylna 80 L – elektryczna, stal 304',
+        price: 8900,
+        priceUnit: TGPriceUnit.oneTime,
+        priceBasis: TGPriceBasis.brutto,
+        negotiable: true,
+        oldPrice: null,
+        condition: TGCondition.used,
+        listingType: TGListingType.buy,
+        category: TGCategory.cookingEquipment,
+        powerType: TGPowerType.electric,
+        warrantyMonths: 3,
+        delivery: false,
+        pickup: true,
+        seller: sFontPrivate,
+        city: 'Łódź',
+        voivodeship: 'Łódzkie',
+        phone: phone,
+        imageUrl: TGListingImages.cooking,
+        photoCount: 5,
+        isPromoted: false,
+        createdAt: now.subtract(const Duration(hours: 8)),
+        description: 'Prywatna oferta. Sprawna patelnia uchylna do gastronomii, regularny tytuł do testów fontu.',
+      ),
+      TGProduct(
+        id: 'p021',
+        title: 'Zestaw stołów nierdzewnych 3×180 cm – faktura VAT',
+        price: 6400,
+        priceUnit: TGPriceUnit.oneTime,
+        priceBasis: TGPriceBasis.netto,
+        negotiable: false,
+        oldPrice: 7200,
+        condition: TGCondition.newItem,
+        listingType: TGListingType.buy,
+        category: TGCategory.stainlessSteelFurniture,
+        powerType: TGPowerType.other,
+        warrantyMonths: 24,
+        delivery: true,
+        pickup: true,
+        seller: sFontCorp,
+        city: 'Poznań',
+        voivodeship: 'Wielkopolskie',
+        phone: phone,
+        imageUrl: TGListingImages.stainless,
+        photoCount: 7,
+        isPromoted: false,
+        createdAt: now.subtract(const Duration(hours: 10)),
+        description: 'Korporacyjny zestaw stołów roboczych. Nowe, z atestem stali. Faktura VAT 23%.',
+      ),
+      TGProduct(
+        id: 'p022',
+        title: 'Blat roboczy na wymiar – stal 304, spaw TIG',
+        price: 4100,
+        priceUnit: TGPriceUnit.oneTime,
+        priceBasis: TGPriceBasis.netto,
+        negotiable: true,
+        oldPrice: null,
+        condition: TGCondition.newItem,
+        listingType: TGListingType.buy,
+        category: TGCategory.stainlessSteelFurniture,
+        powerType: TGPowerType.other,
+        warrantyMonths: 12,
+        delivery: true,
+        pickup: true,
+        seller: sFontSo,
+        city: 'Kraków',
+        voivodeship: 'Małopolskie',
+        phone: phone,
+        imageUrl: TGListingImages.paslanmazEquip,
+        photoCount: 6,
+        isPromoted: true,
+        createdAt: now.subtract(const Duration(hours: 6)),
+        description: 'Producent zamówień specjalnych. Blat cięty i spawany pod wymiar zaplecza.',
+      ),
+      TGProduct(
+        id: 'p023',
+        title: 'Piec konwekcyjny 6× GN 1/1 – wynajem miesięczny',
+        price: 890,
+        priceUnit: TGPriceUnit.month,
+        priceBasis: TGPriceBasis.netto,
+        negotiable: false,
+        oldPrice: null,
+        condition: TGCondition.used,
+        listingType: TGListingType.rent,
+        category: TGCategory.cookingEquipment,
+        powerType: TGPowerType.electric,
+        warrantyMonths: 0,
+        delivery: true,
+        pickup: true,
+        seller: sFontRent,
+        city: 'Wrocław',
+        voivodeship: 'Dolnośląskie',
+        phone: phone,
+        imageUrl: TGListingImages.combiOven,
+        photoCount: 8,
+        isPromoted: true,
+        createdAt: now.subtract(const Duration(hours: 4)),
+        description: 'Firma wynajmu. Piec serwisowany, kaucja zwrotna, umowa miesięczna.',
+      ),
+      TGProduct(
+        id: 'p024',
+        title: 'Szafa przelotowa inox 1400 mm – linia ProHeat',
+        price: 9800,
+        priceUnit: TGPriceUnit.oneTime,
+        priceBasis: TGPriceBasis.netto,
+        negotiable: false,
+        oldPrice: null,
+        condition: TGCondition.newItem,
+        listingType: TGListingType.buy,
+        category: TGCategory.stainlessSteelFurniture,
+        powerType: TGPowerType.other,
+        warrantyMonths: 24,
+        delivery: true,
+        pickup: true,
+        seller: sFontPro,
+        city: 'Warszawa',
+        voivodeship: 'Mazowieckie',
+        phone: phone,
+        imageUrl: TGListingImages.shelves,
+        photoCount: 9,
+        isPromoted: false,
+        createdAt: now.subtract(const Duration(hours: 2)),
+        description: 'Sklep Pro. Szafa przelotowa do linii wydawczej, montaż na miejscu.',
+      ),
     ];
     final numbered = [
       for (final p in seeded)
@@ -668,6 +800,11 @@ String _seedListingNo(String id) => switch (id) {
       'p016' => '25947382',
       'p017' => '26058493',
       'p018' => '27169504',
+      'p020' => '28270615',
+      'p021' => '29381726',
+      'p022' => '30492837',
+      'p023' => '31503948',
+      'p024' => '32614059',
       _ => TGListingNo.allocate(),
     };
 

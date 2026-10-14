@@ -56,7 +56,7 @@ void main() {
       expect(kUiTranslations.containsKey('ui_admin_promo_label_bold'), isFalse);
     });
 
-    testWidgets('product cards: Bold has no label and a w700 title; Spotlight/Glow keep ÖNE ÇIKAN', (tester) async {
+    testWidgets('product cards: Bold has no label and a Medium title; Spotlight/Glow keep ÖNE ÇIKAN', (tester) async {
       // A stale stored config with labelBold=true must not bring the label back.
       final svc = PricingConfigService.instance;
       svc.setConfig(svc.config.copyWith(promotions: svc.config.promotions.copyWith(labelBold: true)));
@@ -74,7 +74,7 @@ void main() {
         expect(_within(f, find.text('SPONSORLU')), findsNothing);
         expect(_within(f, find.text('ÖNE ÇIKAN')), findsNothing);
         final title = tester.widget<Text>(_within(f, find.text(card.product.title)).first);
-        expect(title.style?.fontWeight, FontWeight.w700);
+        expect(title.style?.fontWeight, FontWeight.w500);
       }
       expect(_within(featured.first, find.text('ÖNE ÇIKAN')), findsWidgets);
       expect(find.text('SPONSORLU'), findsNothing);
