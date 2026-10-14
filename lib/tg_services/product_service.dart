@@ -243,7 +243,7 @@ class TGProductService {
       TGProduct(
         id: 'p004',
         title: 'Szafa chłodnicza 700L – inox, 3 półki',
-        price: null,
+        price: 6900,
         priceUnit: TGPriceUnit.oneTime,
         priceBasis: TGPriceBasis.brutto,
         negotiable: true,
@@ -318,7 +318,7 @@ class TGProductService {
       TGProduct(
         id: 'p007',
         title: 'Witryna chłodnicza cukiernicza – 120cm, LED',
-        price: null,
+        price: 4500,
         priceUnit: TGPriceUnit.oneTime,
         priceBasis: TGPriceBasis.brutto,
         negotiable: true,
@@ -393,7 +393,7 @@ class TGProductService {
       TGProduct(
         id: 'p010',
         title: 'Wynajem: agregat chłodniczy + komora – sezon letni',
-        price: null,
+        price: 1800,
         priceUnit: TGPriceUnit.month,
         priceBasis: TGPriceBasis.netto,
         negotiable: true,
@@ -518,7 +518,7 @@ class TGProductService {
       TGProduct(
         id: 'p015',
         title: 'Stół chłodniczy 3-drzwiowy – gastronomiczny',
-        price: null,
+        price: 5200,
         priceUnit: TGPriceUnit.oneTime,
         priceBasis: TGPriceBasis.netto,
         negotiable: true,
@@ -593,7 +593,7 @@ class TGProductService {
       TGProduct(
         id: 'p018',
         title: 'Regał magazynowy inox – 5 półek, 120x50',
-        price: null,
+        price: 1890,
         priceUnit: TGPriceUnit.oneTime,
         priceBasis: TGPriceBasis.netto,
         negotiable: false,

@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/add_product/wizard_mobile.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/login/login_widget.dart';
@@ -814,7 +815,7 @@ class _AddProductPageState extends State<AddProductPage> {
             controller: _price,
             focusNode: _focus('price'),
             suffix: 'PLN',
-            enabled: !draft.askPrice,
+            enabled: true,
             keyboardType: TextInputType.number,
             error: _err('price'),
             onChanged: (v) => _dirty(() => draft.priceText = v),
@@ -834,7 +835,7 @@ class _AddProductPageState extends State<AddProductPage> {
             SizedBox(width: 200, child: basis),
           ]);
         }),
-        if (!draft.askPrice && draft.pricePln != null)
+        if (TGListingPrice.isValid(draft.pricePln))
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
@@ -849,13 +850,6 @@ class _AddProductPageState extends State<AddProductPage> {
           value: draft.negotiable,
           onChanged: (v) => _dirty(() => draft.negotiable = v ?? false),
           title: Text(context.t('ui_negotiable')),
-          activeColor: TGColors.cta,
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: draft.askPrice,
-          onChanged: (v) => _dirty(() => draft.askPrice = v),
-          title: Text(context.t('ui_no_price')),
           activeColor: TGColors.cta,
         ),
       ],

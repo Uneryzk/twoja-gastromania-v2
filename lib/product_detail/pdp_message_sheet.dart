@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/tg_components/tg_inline_translate.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_message.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -193,10 +194,11 @@ class _MessageSheetState extends State<_MessageSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(widget.product.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
-                            Text(
-                              widget.product.price == null ? context.t('ui_ask_price') : formatPln(widget.product.price!),
-                              style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w700),
-                            ),
+                            if (TGListingPrice.isValid(widget.product.price))
+                              Text(
+                                formatPln(widget.product.price!),
+                                style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w700),
+                              ),
                           ],
                         ),
                       ),

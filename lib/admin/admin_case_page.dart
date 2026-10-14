@@ -10,6 +10,7 @@ import 'package:twoja_gastromania/admin/listing_images_editor.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
@@ -245,7 +246,8 @@ class _LeftColumn extends StatelessWidget {
                   const SizedBox(height: 6),
                   TGInlineTranslate(text: product!.description!, style: const TextStyle(fontSize: 13, height: 1.35)),
                 ],
-                Text(product!.price == null ? context.t('ui_ask_price') : '${product!.price} PLN', style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800)),
+                if (TGListingPrice.isValid(product!.price))
+                  Text('${product!.price} PLN', style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800)),
                 Text('${product!.condition.name} · ${product!.city} · ${product!.powerType.name}', style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
               ] else
                 Text(context.t('ui_listing_no', {'n': listingNo}), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),

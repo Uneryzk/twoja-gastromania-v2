@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/products/tg_geo.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -43,7 +44,6 @@ class AddProductDraft extends ChangeNotifier {
   String priceText = '';
   TGPriceBasis priceBasis = TGPriceBasis.brutto;
   bool negotiable = false;
-  bool askPrice = false;
   String depositText = '';
   String minPeriodText = '';
 
@@ -162,11 +162,7 @@ class AddProductDraft extends ChangeNotifier {
     notifyListeners();
   }
 
-  int? get pricePln {
-    if (askPrice) return null;
-    final n = int.tryParse(priceText.replaceAll(RegExp(r'[^0-9]'), ''));
-    return n;
-  }
+  int? get pricePln => TGListingPrice.parse(priceText);
 
   int get counterpartPln {
     final p = pricePln;
@@ -215,7 +211,7 @@ class AddProductDraft extends ChangeNotifier {
     bit(category != null);
     bit(title.trim().length >= 15);
     bit(description.trim().length >= 50);
-    bit(askPrice || (pricePln != null && pricePln! > 0));
+    bit(TGListingPrice.isValid(pricePln));
     bit(brand.trim().isNotEmpty);
     bit(photos.where((p) => p.error == null).isNotEmpty);
     bit(photos.where((p) => p.error == null).length >= 5);
@@ -259,7 +255,7 @@ class AddProductDraft extends ChangeNotifier {
         if (description.trim().length < 50 || description.trim().length > 4000) {
           fieldErrors['description'] = 'err_wizard_description_len';
         }
-        if (!askPrice && (pricePln == null || pricePln! <= 0)) {
+        if (!TGListingPrice.isValid(pricePln)) {
           fieldErrors['price'] = 'err_wizard_price';
         }
         if (listingType == TGListingType.rent) {

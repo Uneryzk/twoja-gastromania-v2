@@ -251,7 +251,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                     overflow: TextOverflow.ellipsis,
                     style: theme.titleSmall.override(
                       fontSize: 16,
-                      fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w400,
+                      fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w300,
                       letterSpacing: 0.25,
                     ),
                   ),
@@ -331,7 +331,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.titleMedium.override(
-                        fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w400,
+                        fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w300,
                         letterSpacing: 0.25,
                       ),
                     ),
@@ -417,7 +417,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.titleSmall.override(
-                        fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w400,
+                        fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w300,
                         color: Colors.white,
                       ),
                     ),

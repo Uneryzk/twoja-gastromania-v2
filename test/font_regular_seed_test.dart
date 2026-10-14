@@ -8,6 +8,7 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_theme.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
@@ -31,6 +32,13 @@ void main() {
 
   test('kDisableDynamicListingImages stays locked', () {
     expect(TGListingImages.kDisableDynamicListingImages, isTrue);
+  });
+
+  test('every seed listing has a numeric price of at least 10 PLN', () async {
+    final all = await TGProductService.instance.getAll();
+    expect(all, isNotEmpty);
+    expect(all.every((p) => TGListingPrice.isValid(p.price)), isTrue);
+    expect(all.singleWhere((p) => p.id == 'p018').price, 1890);
   });
 
   test('font pack seeds exactly five typed listings with Regular-ready titles', () async {
@@ -170,10 +178,46 @@ void main() {
       expect(title.style?.letterSpacing, lessThanOrEqualTo(0.4));
     }
 
-    expectTitle('p020', FontWeight.w400);
-    expectTitle('p021', FontWeight.w400);
-    expectTitle('p024', FontWeight.w400);
+    expectTitle('p020', FontWeight.w300);
+    expectTitle('p021', FontWeight.w300);
+    expectTitle('p024', FontWeight.w300);
     expectTitle('p022', FontWeight.w700);
     expectTitle('p023', FontWeight.w700);
+  });
+
+  testWidgets('standard listing card never shows ask-for-price copy', (tester) async {
+    final all = await TGProductService.instance.getAll();
+    final shelf = all.singleWhere((p) => p.id == 'p018');
+    expect(shelf.isPromoted, isFalse);
+    expect(TGListingPrice.isValid(shelf.price), isTrue);
+
+    await tester.runAsync(loadRealisticFonts);
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<FakeAuthState>.value(
+        value: FakeAuthState(isLoggedIn: true),
+        child: MaterialApp(
+          localizationsDelegates: const [
+            FFLocalizationsDelegate(),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          locale: const Locale('tr'),
+          supportedLocales: const [Locale('pl'), Locale('en'), Locale('tr')],
+          theme: buildTGDarkTheme(),
+          home: Scaffold(body: TGProductCard(product: shelf)),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Fiyat sorun'), findsNothing);
+    expect(find.text('Zapytaj o cenę'), findsNothing);
+    expect(find.text('Ask for price'), findsNothing);
+    expect(find.textContaining('PLN'), findsWidgets);
   });
 }

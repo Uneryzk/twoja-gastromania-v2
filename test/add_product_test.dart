@@ -6,6 +6,7 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
@@ -22,6 +23,27 @@ void main() {
     expect(isValidNip('1111111111'), isTrue);
     expect(isValidNip('1111111112'), isFalse);
     expect(isValidNip('123'), isFalse);
+  });
+
+  test('listing price rejects 0–9 and empty; 10 PLN is the minimum', () {
+    expect(TGListingPrice.isValid(null), isFalse);
+    expect(TGListingPrice.isValid(0), isFalse);
+    expect(TGListingPrice.isValid(9), isFalse);
+    expect(TGListingPrice.isValid(10), isTrue);
+    expect(TGListingPrice.parse('7'), 7);
+    expect(TGListingPrice.isValid(TGListingPrice.parse('7')), isFalse);
+
+    final auth = FakeAuthState(isLoggedIn: true)..setScenario(TGEntitlementScenario.noListings);
+    final draft = AddProductDraft(auth: auth)
+      ..category = TGCategory.cookingEquipment
+      ..title = 'Rational SCC 101 combi oven'
+      ..description = 'Fully working combi oven with a recent service and stainless interior ready.';
+    draft.priceText = '9';
+    expect(draft.validateStep(0), isFalse);
+    expect(draft.fieldErrors['price'], 'err_wizard_price');
+    draft.priceText = '10';
+    expect(draft.validateStep(0), isTrue);
+    expect(draft.fieldErrors.containsKey('price'), isFalse);
   });
 
   test('review validation collects errors from every step', () {
@@ -145,7 +167,7 @@ void main() {
     final previewTitle = tester.widget<Text>(
       find.descendant(of: find.byKey(const Key('showcase-standard-preview')), matching: find.text(live.title)),
     );
-    expect(previewTitle.style?.fontWeight, FontWeight.w400);
+    expect(previewTitle.style?.fontWeight, FontWeight.w300);
     expect(live.status, TGListingStatus.active);
     expect(live.listingNo, isNotNull);
     expect(live.extra['Brand'], 'Rational');
@@ -173,7 +195,7 @@ void main() {
     final title = tester.widget<Text>(
       find.descendant(of: find.byType(TGProductCard), matching: find.text('Piec konwekcyjny łódź')),
     );
-    expect(title.style?.fontWeight, FontWeight.w400);
+    expect(title.style?.fontWeight, FontWeight.w300);
     expect(title.style?.fontWeight, isNot(FontWeight.w700));
     expect(TGListingImages.kDisableDynamicListingImages, isTrue);
     _expectNoErrors(app);

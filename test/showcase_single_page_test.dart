@@ -68,7 +68,7 @@ void main() {
     final title = tester.widget<Text>(
       find.descendant(of: find.byKey(const Key('showcase-standard-preview')), matching: find.text(product.title)),
     );
-    expect(title.style?.fontWeight, FontWeight.w400);
+    expect(title.style?.fontWeight, FontWeight.w300);
     expect(title.style?.fontWeight, isNot(FontWeight.w700));
     expect(TGListingImages.kDisableDynamicListingImages, isTrue);
     _expectNoErrors(app);

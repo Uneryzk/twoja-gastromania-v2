@@ -33,6 +33,7 @@ import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_contact.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_robots.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
@@ -822,11 +823,9 @@ class _PriceBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    final hasPrice = product.price != null;
+    final hasPrice = TGListingPrice.isValid(product.price);
     final rent = hasPrice && product.listingType == TGListingType.rent;
-    final main = !hasPrice
-        ? context.t('ui_ask_price')
-        : '${formatPln(product.price!)}${rent ? ' ${context.t('ui_per_month')}' : ''}';
+    final main = hasPrice ? '${formatPln(product.price!)}${rent ? ' ${context.t('ui_per_month')}' : ''}' : '';
 
     String? other;
     if (hasPrice) {
@@ -844,7 +843,8 @@ class _PriceBlock extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 8,
           children: [
-            Text(main, style: theme.headlineMedium.override(fontSize: 28, fontWeight: FontWeight.w800, color: hasPrice ? theme.primaryText : theme.secondaryText)),
+            if (hasPrice)
+              Text(main, style: theme.headlineMedium.override(fontSize: 28, fontWeight: FontWeight.w800, color: theme.primaryText)),
             if (hasPrice)
               Tooltip(
                 message: product.priceBasis == TGPriceBasis.netto ? context.t('ui_netto_tooltip') : context.t('ui_brutto_tooltip'),

@@ -10,6 +10,7 @@ import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -31,7 +32,7 @@ class BulkAddRow {
   String? get blockReason {
     if (photos.isEmpty) return 'Needs 1 photo';
     if (title.trim().length < 5) return 'Needs title';
-    if (int.tryParse(priceText.replaceAll(RegExp(r'\D'), '')) == null) return 'Needs price';
+    if (!TGListingPrice.isValid(TGListingPrice.parse(priceText))) return 'Needs price';
     return null;
   }
 
@@ -89,7 +90,7 @@ class _BulkAddPageState extends State<BulkAddPage> {
       title: row.title.trim().isEmpty ? 'Untitled equipment' : row.title.trim(),
       category: row.category,
       condition: row.condition,
-      price: int.tryParse(row.priceText.replaceAll(RegExp(r'\D'), '')),
+      price: TGListingPrice.parse(row.priceText),
       priceUnit: TGPriceUnit.oneTime,
       priceBasis: row.basis,
       negotiable: false,

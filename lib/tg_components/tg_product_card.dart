@@ -15,6 +15,7 @@ import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_components/tg_listing_no_line.dart';
 import 'package:twoja_gastromania/tg_core/tg_contact.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_promo_visibility.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -340,7 +341,7 @@ class _GridBody extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.titleMedium.override(
                     fontSize: 16,
-                    fontWeight: titleBold ? FontWeight.w700 : FontWeight.w400,
+                    fontWeight: titleBold ? FontWeight.w700 : FontWeight.w300,
                     letterSpacing: 0.25,
                     lineHeight: 1.3,
                   ),
@@ -426,7 +427,7 @@ class _WideListBody extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.titleLarge.override(
-                      fontWeight: titleBold ? FontWeight.w700 : FontWeight.w400,
+                      fontWeight: titleBold ? FontWeight.w700 : FontWeight.w300,
                       letterSpacing: 0.3,
                       lineHeight: 1.2,
                     ),
@@ -532,7 +533,7 @@ class _CompactListBody extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.titleSmall.override(
-                            fontWeight: titleBold ? FontWeight.w700 : FontWeight.w400,
+                            fontWeight: titleBold ? FontWeight.w700 : FontWeight.w300,
                             letterSpacing: 0.2,
                             lineHeight: 1.2,
                           ),
@@ -767,16 +768,17 @@ class _PriceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    final hasPrice = product.price != null;
-    final discounted = hasPrice && product.oldPrice != null && product.oldPrice! > product.price!;
-    final unitSuffix = (hasPrice && product.listingType == TGListingType.rent) ? ' ${context.t('ui_per_month')}' : '';
+    final hasPrice = TGListingPrice.isValid(product.price);
+    if (!hasPrice) return const SizedBox.shrink();
+    final discounted = product.oldPrice != null && product.oldPrice! > product.price!;
+    final unitSuffix = product.listingType == TGListingType.rent ? ' ${context.t('ui_per_month')}' : '';
 
-    final priceText = hasPrice ? '${formatPln(product.price!)}$unitSuffix' : context.t('ui_ask_price');
+    final priceText = '${formatPln(product.price!)}$unitSuffix';
     final priceStyle = theme.titleLarge.override(
-      fontSize: compact ? 18 : (hasPrice ? 22 : 18),
+      fontSize: compact ? 18 : 22,
       fontWeight: FontWeight.w800,
       lineHeight: 1.0,
-      color: hasPrice ? theme.primaryText : theme.secondaryText,
+      color: theme.primaryText,
     );
 
     final content = Row(

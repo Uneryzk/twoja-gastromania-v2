@@ -8,6 +8,7 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -720,7 +721,8 @@ class _TargetSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(product.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                Text(product.price == null ? context.t('ui_price_on_request') : '${product.price} PLN', style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800, fontSize: 12)),
+                if (TGListingPrice.isValid(product.price))
+                  Text('${product.price} PLN', style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800, fontSize: 12)),
               ],
             ),
           ),
