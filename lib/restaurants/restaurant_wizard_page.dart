@@ -411,7 +411,7 @@ class _RestaurantWizardPageState extends State<RestaurantWizardPage> {
                     )
                   : null,
               padding: draft.promoteDays > 0 ? const EdgeInsets.all(2) : EdgeInsets.zero,
-              child: RestaurantCard(listing: preview, variant: RestaurantCardVariant.grid),
+              child: RestaurantCard(listing: preview, variant: RestaurantCardVariant.grid, previewAsStandard: true),
             )
           else
             Container(

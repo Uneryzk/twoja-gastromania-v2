@@ -3,6 +3,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_services/translation_service.dart';
 
 /// Listing copy stays in the original language until the buyer taps Translate.
@@ -82,10 +83,10 @@ class _PdpTranslateBlockState extends State<PdpTranslateBlock> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if ((titleTx ?? '').isNotEmpty) ...[
-                Text(titleTx!, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+                TGUserText(titleTx!, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 6),
               ],
-              Text(
+              TGUserText(
                 desc.isEmpty ? '—' : desc,
                 maxLines: widget.descOpen ? 99 : 4,
                 overflow: TextOverflow.ellipsis,

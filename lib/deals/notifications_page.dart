@@ -20,13 +20,14 @@ import 'package:twoja_gastromania/tg_services/notification_prefs_service.dart';
 import 'package:twoja_gastromania/tg_services/notification_service.dart';
 
 String localizedNotificationTitle(BuildContext context, TGAppNotification n) {
-  final key = switch (n.type) {
-    'deal_reminder' || 'deal_reminder_d3' => 'notif_deal_reminder_title',
-    'deal_reminder_d10' => 'notif_deal_reminder_d10_title',
-    _ => 'notif_${n.type}_title',
-  };
-  final text = context.t(key);
-  return text.isEmpty ? n.title : text;
+  final key = n.titleKey.isNotEmpty
+      ? n.titleKey
+      : switch (n.type) {
+          'deal_reminder' || 'deal_reminder_d3' => 'notif_deal_reminder_title',
+          'deal_reminder_d10' => 'notif_deal_reminder_d10_title',
+          _ => 'notif_${n.type}_title',
+        };
+  return context.tryT(key, n.params) ?? context.t(key, n.params);
 }
 
 String localizedNotificationBody(BuildContext context, TGAppNotification n) {
@@ -34,13 +35,15 @@ String localizedNotificationBody(BuildContext context, TGAppNotification n) {
     'title': n.params['title'] ?? n.body,
     'name': n.params['name'] ?? 'Technica',
     'n': n.params['n'] ?? n.dealId,
+    ...n.params,
   };
-  final key = switch (n.type) {
-    'deal_reminder' || 'deal_reminder_d3' || 'deal_reminder_d10' || 'deal_review_requested' || 'deal_expired' => 'notif_listing_body',
-    _ => 'notif_${n.type}_body',
-  };
-  final text = context.t(key, params);
-  return text.isEmpty ? n.body : text;
+  final key = n.bodyKey.isNotEmpty
+      ? n.bodyKey
+      : switch (n.type) {
+          'deal_reminder' || 'deal_reminder_d3' || 'deal_reminder_d10' || 'deal_review_requested' || 'deal_expired' => 'notif_listing_body',
+          _ => 'notif_${n.type}_body',
+        };
+  return context.tryT(key, params) ?? context.t(key, params);
 }
 
 /// `/account/notifications?tab=all|action|updates|prefs`.

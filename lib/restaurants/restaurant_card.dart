@@ -13,6 +13,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
 import 'package:twoja_gastromania/tg_core/tg_promo_visibility.dart';
@@ -31,6 +32,7 @@ class RestaurantCard extends StatefulWidget {
     this.promotionTier,
     this.promotionId,
     this.isPromoRepeat = false,
+    this.previewAsStandard = false,
   });
 
   final RestaurantListing listing;
@@ -39,6 +41,9 @@ class RestaurantCard extends StatefulWidget {
   final PromotionTier? promotionTier;
   final String? promotionId;
   final bool isPromoRepeat;
+
+  /// Draft / wizard / free-preview cards: ignore live promotions and never bold the title.
+  final bool previewAsStandard;
 
   @override
   State<RestaurantCard> createState() => _RestaurantCardState();
@@ -74,6 +79,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
   }
 
   PromotionTier? get _tier {
+    if (widget.previewAsStandard) return null;
     if (widget.promotionTier != null) return widget.promotionTier;
     return PromotionService.instance.effectiveRestaurantPromo(r)?.tier;
   }
@@ -219,7 +225,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                     right: 8,
                     top: 8,
                     child: IconButton(
-                      tooltip: 'Favourite',
+                      tooltip: context.t('ui_favourite'),
                       onPressed: _toggleFav,
                       icon: Icon(_isFav ? Icons.favorite : Icons.favorite_border, color: _isFav ? const Color(0xFFE91E8C) : Colors.white),
                     ),
@@ -243,11 +249,15 @@ class _RestaurantCardState extends State<RestaurantCard> {
                     restoLocalizedTitle(context, r),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.titleSmall.override(fontSize: 16, fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w500),
+                    style: theme.titleSmall.override(
+                      fontSize: 16,
+                      fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w400,
+                      letterSpacing: 0.25,
+                    ),
                   ),
                   if (r.venueName != null && r.venueName!.trim().isNotEmpty) ...[
                     const SizedBox(height: 2),
-                    Text(
+                    TGUserText(
                       r.venueName!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -320,12 +330,15 @@ class _RestaurantCardState extends State<RestaurantCard> {
                       restoLocalizedTitle(context, r),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.titleMedium.override(fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w500),
+                      style: theme.titleMedium.override(
+                        fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w400,
+                        letterSpacing: 0.25,
+                      ),
                     ),
                     const SizedBox(height: 6),
-                    Text(r.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.bodySmall.override(color: theme.secondaryText)),
+                    TGUserText(r.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.bodySmall.override(color: theme.secondaryText)),
                     const SizedBox(height: 8),
-                    Text('No. ${r.listingNo}', style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
+                    Text(context.t('ui_listing_no', {'n': r.listingNo}), style: theme.bodySmall.override(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 10),
                     Wrap(spacing: 6, runSpacing: 6, children: _specChips(theme)),
                     const SizedBox(height: 10),
@@ -404,7 +417,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.titleSmall.override(
-                        fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: _titleBold ? FontWeight.w700 : FontWeight.w400,
                         color: Colors.white,
                       ),
                     ),

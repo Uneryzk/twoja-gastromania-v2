@@ -8,6 +8,7 @@ import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
+import 'package:twoja_gastromania/tg_core/tg_i18n_audit.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
@@ -202,7 +203,15 @@ void applyTGDevSwitchPick(GoRouter router, FakeAuthState auth, Object picked) {
     _devAdvanceBusinessDays(picked.days);
     return;
   }
+  if (picked is _DevLanguageAudit) {
+    TGI18nAudit.instance.setEnabled(!TGI18nAudit.instance.requested);
+    return;
+  }
   if (picked is int) _devAdvanceClock(picked);
+}
+
+class _DevLanguageAudit {
+  const _DevLanguageAudit();
 }
 
 class _DevBusinessDays {
@@ -275,18 +284,27 @@ Future<void> showTGDevSwitch(BuildContext context, FakeAuthState auth) async {
       _devSection(context, t('ui_dev_sec_transfer')),
       PopupMenuItem(value: DevrenSellerDevPick.listingOwner, child: Text(t('ui_dev_transfer_owner'), style: itemStyle)),
       const PopupMenuDivider(),
-      _devSection(context, 'Restaurant Seller'),
-      PopupMenuItem(value: RestoSellerDevPick.ownerFreeAvailable, child: Text('Owner (individual, free start available)', style: itemStyle)),
-      PopupMenuItem(value: RestoSellerDevPick.ownerFreeUsed, child: Text('Owner (free start used)', style: itemStyle)),
-      PopupMenuItem(value: RestoSellerDevPick.agentBasicStore, child: Text('Agent (Basic store)', style: itemStyle)),
-      PopupMenuItem(value: RestoSellerDevPick.withExpired, child: Text('With expired listing', style: itemStyle)),
-      PopupMenuItem(value: RestoSellerDevPick.underReview, child: Text('With listing under review', style: itemStyle)),
+      _devSection(context, t('ui_dev_resto_seller')),
+      PopupMenuItem(value: RestoSellerDevPick.ownerFreeAvailable, child: Text(t('ui_dev_resto_owner_free'), style: itemStyle)),
+      PopupMenuItem(value: RestoSellerDevPick.ownerFreeUsed, child: Text(t('ui_dev_resto_owner_used'), style: itemStyle)),
+      PopupMenuItem(value: RestoSellerDevPick.agentBasicStore, child: Text(t('ui_dev_resto_agent_basic'), style: itemStyle)),
+      PopupMenuItem(value: RestoSellerDevPick.withExpired, child: Text(t('ui_dev_resto_expired'), style: itemStyle)),
+      PopupMenuItem(value: RestoSellerDevPick.underReview, child: Text(t('ui_dev_resto_review'), style: itemStyle)),
+      const PopupMenuDivider(),
+      _devSection(context, t('ui_dev_language_audit')),
+      PopupMenuItem(
+        value: const _DevLanguageAudit(),
+        child: Text(
+          TGI18nAudit.instance.requested ? t('ui_dev_language_audit_on') : t('ui_dev_language_audit_off'),
+          style: itemStyle,
+        ),
+      ),
       const PopupMenuDivider(),
       _devSection(context, t('ui_dev_sec_clock')),
       for (final d in const [1, 2, 3, 5, 10, 14, 25])
         PopupMenuItem(value: d, child: Text(_devClockLabel(context, d), style: itemStyle)),
       for (final d in const [1, 3, 5, 10])
-        PopupMenuItem(value: _DevBusinessDays(d), child: Text('Advance $d business days', style: itemStyle)),
+        PopupMenuItem(value: _DevBusinessDays(d), child: Text(context.t('ui_dev_advance_biz', {'n': '$d'}), style: itemStyle)),
     ],
   );
   if (picked == null) return;
@@ -333,7 +351,7 @@ class _SheetFrame extends StatelessWidget {
                   child: Text(title, style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
                 ),
                 IconButton(
-                  tooltip: 'Close',
+                  tooltip: context.t('ui_close'),
                   icon: Icon(Icons.close, color: theme.secondaryText),
                   onPressed: () => Navigator.of(context).maybePop(),
                 ),
@@ -629,14 +647,7 @@ String _storePlanFullName(BuildContext context, String label) => switch (label) 
       _ => context.t('ui_plan_basic_store'),
     };
 
-String _roleLabel(BuildContext context, TGUserRole role) => switch (role) {
-      TGUserRole.visitor => context.t('ui_role_visitor'),
-      TGUserRole.seller => context.t('ui_role_seller'),
-      TGUserRole.storeSeller => context.t('ui_role_store_seller'),
-      TGUserRole.moderator => context.t('ui_role_moderator'),
-      TGUserRole.admin => context.t('ui_role_admin'),
-      TGUserRole.buyer => context.t('ui_role_buyer'),
-    };
+String _roleLabel(BuildContext context, TGUserRole role) => context.t(role.labelKey);
 
 class _AccountSheet extends StatelessWidget {
   const _AccountSheet();
@@ -807,7 +818,7 @@ class _AccountSheet extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'DEMO · switch account state',
+            context.t('ui_dev_switch_account'),
             style: theme.labelSmall.override(color: theme.secondaryText, fontWeight: FontWeight.w800, letterSpacing: 0.8),
           ),
           const SizedBox(height: 4),

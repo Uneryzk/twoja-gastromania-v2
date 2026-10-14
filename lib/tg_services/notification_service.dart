@@ -23,18 +23,24 @@ class NotificationService extends ChangeNotifier {
     required String userId,
     required String type,
     required String dealId,
-    required String title,
-    required String body,
+    String? title,
+    String? body,
+    String? titleKey,
+    String? bodyKey,
     String? deepLink,
     Map<String, String> params = const {},
   }) {
+    final tk = titleKey ?? 'notif_${type}_title';
+    final bk = bodyKey ?? 'notif_${type}_body';
     final n = TGAppNotification(
       id: 'n-${_seq++}',
       userId: userId,
       type: type,
       dealId: dealId,
-      title: title,
-      body: body,
+      titleKey: tk,
+      bodyKey: bk,
+      title: title ?? '',
+      body: body ?? '',
       createdAt: TGClock.now(),
       deepLink: deepLink ?? '/account/deals/$dealId?confirm=1',
       params: params,

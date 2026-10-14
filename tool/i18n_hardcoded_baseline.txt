@@ -1,0 +1,104 @@
+# I18N-2 hardcoded chrome baseline. Removing a line is allowed (ratchet).
+lib/admin/admin_chrome.dart:Text:Twoja Gastromania
+lib/admin/admin_deal_case_page.dart:Text:EN
+lib/admin/admin_deal_case_page.dart:Text:PL
+lib/admin/admin_deal_case_page.dart:Text:TR
+lib/admin/admin_deal_modals.dart:Text:EN
+lib/admin/admin_deal_modals.dart:Text:PL
+lib/admin/admin_founders_page.dart:Text:NIP
+lib/admin/admin_modals.dart:Text:EN
+lib/admin/admin_modals.dart:Text:PL
+lib/admin/admin_modals.dart:Text:TR
+lib/admin/admin_so_modals.dart:Text:EN
+lib/admin/admin_so_modals.dart:Text:EN
+lib/admin/admin_so_modals.dart:Text:PL
+lib/admin/admin_so_modals.dart:Text:PL
+lib/admin/admin_so_modals.dart:Text:TR
+lib/admin/admin_so_modals.dart:Text:TR
+lib/dashboard/bulk_add_page.dart:Text:Location, phone and seller are automatic from your account.
+lib/dashboard/bulk_add_page.dart:Text:NOWY
+lib/dashboard/bulk_add_page.dart:Text:Save all as drafts
+lib/dashboard/bulk_add_page.dart:Text:Upload photos to create draft rows
+lib/dashboard/bulk_add_page.dart:Text:UŻYWANY
+lib/dashboard/bulk_add_page.dart:labelText:Category
+lib/dashboard/bulk_add_page.dart:labelText:Price PLN
+lib/dashboard/bulk_add_page.dart:labelText:Title
+lib/dashboard/listings_dashboard_widget.dart:Text:Edit description
+lib/dashboard/listings_dashboard_widget.dart:Text:Edit description
+lib/dashboard/listings_dashboard_widget.dart:Text:Filters use garden, alcohol permit and play area.
+lib/dashboard/listings_dashboard_widget.dart:Text:How many are left?
+lib/dashboard/listings_dashboard_widget.dart:Text:Save
+lib/dashboard/listings_dashboard_widget.dart:labelText:Quantity left
+lib/dashboard/verification_cards.dart:labelText:NIP
+lib/product_detail/report_listing_sheet.dart:Text:5 MB+
+lib/restaurants/restaurant_detail_page.dart:Text:Message
+lib/restaurants/restaurant_details_editor.dart:Text:+ Add custom item
+lib/restaurants/restaurant_details_editor.dart:Text:All optional. Autosaved. Declared by you · not verified.
+lib/restaurants/restaurant_details_editor.dart:Text:Back
+lib/restaurants/restaurant_details_editor.dart:Text:Class
+lib/restaurants/restaurant_details_editor.dart:Text:Included in rent
+lib/restaurants/restaurant_details_editor.dart:Text:Listed on delivery platforms / has online presence
+lib/restaurants/restaurant_details_editor.dart:Text:Listing details
+lib/restaurants/restaurant_details_editor.dart:Text:No tax advice. Total shown is net only from items with a known netto basis.
+lib/restaurants/restaurant_details_editor.dart:Text:Scope
+lib/restaurants/restaurant_details_editor.dart:labelText:Amount PLN
+lib/restaurants/restaurant_details_editor.dart:labelText:Anything else you’d like buyers to know?
+lib/restaurants/restaurant_details_editor.dart:labelText:Area m²
+lib/restaurants/restaurant_details_editor.dart:labelText:Area m²
+lib/restaurants/restaurant_details_editor.dart:labelText:Brand & assets (name, recipes, social, domain)
+lib/restaurants/restaurant_details_editor.dart:labelText:Equipment & systems
+lib/restaurants/restaurant_details_editor.dart:labelText:Last outdoor-seating fee (PLN)
+lib/restaurants/restaurant_message_sheet.dart:Text:Send message
+lib/restaurants/restaurant_message_sheet.dart:Text:Sign in to send a message. Calling does not require login.
+lib/restaurants/restaurant_message_sheet.dart:hintText:Write your message…
+lib/restaurants/restaurant_next_steps_sheet.dart:Text:Maybe later
+lib/restaurants/restaurant_next_steps_sheet.dart:Text:Your listing is live!
+lib/restaurants/restaurant_success_page.dart:Text:Copy link
+lib/restaurants/restaurant_success_page.dart:Text:Go to dashboard
+lib/restaurants/restaurant_transfer_sheet.dart:Text:Back
+lib/restaurants/restaurant_transfer_sheet.dart:Text:Did you find the buyer through Twoja Gastromania?
+lib/restaurants/restaurant_transfer_sheet.dart:Text:Fees are not refunded.
+lib/restaurants/restaurant_transfer_sheet.dart:Text:Fees are not refunded.
+lib/restaurants/restaurant_transfer_sheet.dart:Text:Keep (default) or remove when the transfer closes.
+lib/restaurants/restaurant_transfer_sheet.dart:Text:No
+lib/restaurants/restaurant_transfer_sheet.dart:Text:Why are you closing this listing?
+lib/restaurants/restaurant_transfer_sheet.dart:Text:Yes
+lib/restaurants/restaurant_transfer_sheet.dart:Text:Your linked equipment listings
+lib/seller/seller_profile_panels.dart:Text:Completed via platform
+lib/seller/store_owner_edit.dart:labelText:Facebook
+lib/seller/store_owner_edit.dart:labelText:Instagram
+lib/special_order/founders_page.dart:SnackBar:Manufacturer account required
+lib/special_order/founders_page.dart:SnackBar:Under review
+lib/special_order/founders_page.dart:Text:Add projects in store gallery
+lib/special_order/founders_page.dart:Text:Apply
+lib/special_order/founders_page.dart:Text:Founding manufacturers
+lib/special_order/founders_page.dart:Text:Manufacturer account required
+lib/special_order/founders_page.dart:Text:Pick call date (mock calendar)
+lib/special_order/founders_page.dart:Text:Program is not open in this phase.
+lib/special_order/founders_page.dart:Text:Rule
+lib/special_order/founders_page.dart:Text:Topic
+lib/special_order/founders_page.dart:Text:Under review
+lib/special_order/founders_page.dart:labelText:Company
+lib/special_order/founders_page.dart:labelText:NIP
+lib/special_order/manufacturer_dashboard_page.dart:Text:Listings
+lib/special_order/manufacturer_dashboard_page.dart:Text:No discounted purchases yet.
+lib/special_order/manufacturer_dashboard_page.dart:Text:Savings history
+lib/special_order/manufacturer_dashboard_page.dart:label:View Founding manufacturers
+lib/special_order/seller_leads_page.dart:Text:Early
+lib/special_order/seller_leads_page.dart:Text:Early
+lib/special_order/seller_leads_page.dart:Text:Revise quote
+lib/special_order/seller_leads_page.dart:Text:See Priority
+lib/special_order/seller_leads_page.dart:Text:Send your quote first
+lib/special_order/seller_leads_page.dart:tooltip:Dismiss
+lib/special_order/special_review_composer.dart:SnackBar:Review submitted — awaiting manufacturer response
+lib/special_order/special_review_composer.dart:Text:I confirm this review is based on a real completed project.
+lib/special_order/special_review_composer.dart:Text:Overall
+lib/special_order/special_review_composer.dart:Text:Review custom project
+lib/special_order/special_review_composer.dart:Text:Review submitted — awaiting manufacturer response
+lib/special_order/special_review_composer.dart:labelText:Your review (20–1000 characters)
+lib/tg_components/tg_product_card.dart:Text:Login
+lib/tg_components/tg_product_card.dart:Text:Not now
+lib/tm_sayfalar/home_page/home_sections.dart:Text:21twf2jq
+lib/tm_sayfalar/home_page/home_sections.dart:Text:88t2wvuj
+lib/tm_sayfalar/home_page/home_sections.dart:label:Next
+lib/tm_sayfalar/home_page/home_sections.dart:label:Previous

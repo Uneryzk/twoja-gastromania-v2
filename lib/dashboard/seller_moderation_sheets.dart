@@ -117,7 +117,14 @@ class _RemovalBody extends StatelessWidget {
       children: [
         Text(context.t('ui_statement_of_reasons'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
-        Text(kase.removalRule ?? kase.shortReason ?? context.t('ui_removed_badge'), style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.error)),
+        Text(
+          context.tryT(kase.removalRule ?? '') ??
+              context.tryT(kase.shortReason ?? '') ??
+              kase.removalRule ??
+              kase.shortReason ??
+              context.t('ui_removed_badge'),
+          style: const TextStyle(fontWeight: FontWeight.w800, color: TGColors.error),
+        ),
         const SizedBox(height: 8),
         Text(kase.removalExplanation ?? context.t('ui_content_review_notice')),
         if (kase.decidedByHuman && kase.decidedAt != null) ...[

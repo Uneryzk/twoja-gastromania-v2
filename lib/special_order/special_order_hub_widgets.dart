@@ -549,7 +549,7 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
                           style: theme.titleSmall.override(
                             fontWeight: switch (tier) {
                               PromotionTier.bold => FontWeight.w700,
-                              null => FontWeight.w500,
+                              null => FontWeight.w400,
                               _ => FontWeight.w900,
                             },
                           ),
@@ -675,7 +675,7 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
                           style: theme.titleMedium.override(
                             fontWeight: switch (tier) {
                               PromotionTier.bold => FontWeight.w700,
-                              null => FontWeight.w500,
+                              null => FontWeight.w400,
                               _ => FontWeight.w900,
                             },
                             fontSize: tier == PromotionTier.bold || strong ? 19 : null,

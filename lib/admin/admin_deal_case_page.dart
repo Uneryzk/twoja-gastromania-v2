@@ -15,6 +15,12 @@ import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 
+String _timelineLine(BuildContext context, TGDealTimelineEvent e) {
+  final actor = e.actorKey != null ? (context.tryT(e.actorKey!) ?? e.actor) : e.actor;
+  final label = e.messageKey != null ? (context.tryT(e.messageKey!, e.args) ?? e.label) : e.label;
+  return '$actor · $label';
+}
+
 class AdminDealCasePage extends StatefulWidget {
   const AdminDealCasePage({super.key, required this.dealNo});
   final String dealNo;
@@ -171,7 +177,7 @@ class _TimelineState extends State<_Timeline> {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('d MMM · HH:mm');
+    final fmt = DateFormat('d MMM · HH:mm', Localizations.localeOf(context).toString());
     final events = widget.kase.timeline;
     return AdminCard(
       child: Column(
@@ -189,7 +195,7 @@ class _TimelineState extends State<_Timeline> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(width: 88, child: Text(fmt.format(events[i].at), style: const TextStyle(fontSize: 11, color: TGColors.textSecondary))),
-                    Expanded(child: Text('${events[i].actor} · ${events[i].label}', style: const TextStyle(fontSize: 12, height: 1.35))),
+                    Expanded(child: Text(_timelineLine(context, events[i]), style: const TextStyle(fontSize: 12, height: 1.35))),
                   ],
                 ),
               ),

@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:twoja_gastromania/flutter_flow/tg_l10n.dart';
 import 'package:twoja_gastromania/tg_core/duration_service.dart';
+import 'package:twoja_gastromania/tg_core/tg_i18n_audit.dart';
 
 /// Day-only duration labels from ICU plural messages in [kUiTranslations]
 /// (`dur_*` keys). Never build "N days" by string concatenation.
@@ -9,9 +11,17 @@ class DurationFormatter {
   DurationFormatter._();
 
   static String _message(String key, String locale) {
+    final code = locale.split(RegExp('[_-]')).first;
     final m = kUiTranslations[key];
-    if (m == null) return key;
-    return m[locale] ?? m[locale.split(RegExp('[_-]')).first] ?? m['en'] ?? key;
+    if (m == null) {
+      return resolveI18nText(key: key, languageCode: code, map: null, debugOrProfile: kDebugMode || kProfileMode);
+    }
+    final direct = m[locale] ?? m[code];
+    if (direct != null && direct.isNotEmpty) return direct;
+    // Unsupported language (e.g. fr) → English, not a missing marketplace key.
+    const shipped = {'pl', 'en', 'tr', 'de', 'cs', 'sk', 'uk', 'be', 'lt', 'ru'};
+    if (!shipped.contains(code)) return m['en'] ?? key;
+    return resolveI18nText(key: key, languageCode: code, map: m, debugOrProfile: kDebugMode || kProfileMode);
   }
 
   /// "14 gün" / "14 days" / "1 day" / "5 dni" / "1 dzień".

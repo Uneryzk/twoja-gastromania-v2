@@ -1,4 +1,5 @@
 import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
+import 'package:twoja_gastromania/tg_core/tg_i18n_audit.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -65,18 +66,45 @@ class FFLocalizations {
       ? languages().indexOf(languageCode)
       : 0;
 
+  /// True when [key] has a non-empty value for this locale (no EN fallback).
+  bool hasText(String key) {
+    final map = kTranslationsMap[key];
+    if (map == null) return false;
+    final raw = map[locale.toString()] ?? map[locale.languageCode];
+    return raw != null && raw.isNotEmpty;
+  }
+
+  /// Like [getText] but `null` when the active language has no row (no ⚠, no EN).
+  String? tryText(String key, [Map<String, String>? params]) {
+    if (!hasText(key)) return null;
+    return getText(key, params);
+  }
+
   String getText(String key, [Map<String, String>? params]) {
-    final map = kTranslationsMap[key] ?? const <String, String>{};
+    final map = kTranslationsMap[key];
     final code = locale.languageCode;
-    var text = map[locale.toString()] ?? map[code] ?? map['en'] ?? map['pl'] ?? '';
+    final debugOrProfile = kDebugMode || kProfileMode;
+    var text = resolveI18nText(
+      key: key,
+      languageCode: code,
+      map: map == null
+          ? null
+          : {
+              code: map[locale.toString()] ?? map[code] ?? '',
+              if (map['en'] != null) 'en': map['en']!,
+              if (map['pl'] != null) 'pl': map['pl']!,
+            },
+      debugOrProfile: debugOrProfile,
+    );
+    if (text.startsWith(TGI18nAudit.markerPrefix)) return text;
     if (text.contains(', plural,')) {
-      return DurationFormatter.formatIcu(text, code, {...?params});
-    }
-    if (params != null) {
+      text = DurationFormatter.formatIcu(text, code, {...?params});
+    } else if (params != null) {
       params.forEach((name, value) {
         text = text.replaceAll('{$name}', value);
       });
     }
+    TGI18nAudit.instance.markResolved(text);
     return text;
   }
 
@@ -194,6 +222,9 @@ bool _isSupportedLocale(Locale locale) =>
 extension FFLocalizationsContext on BuildContext {
   String t(String key, [Map<String, String>? params]) =>
       FFLocalizations.of(this).getText(key, params);
+
+  String? tryT(String key, [Map<String, String>? params]) =>
+      FFLocalizations.of(this).tryText(key, params);
 }
 
 String localizedResultsCount(BuildContext context, int n) =>

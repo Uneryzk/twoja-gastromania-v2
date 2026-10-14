@@ -202,9 +202,11 @@ class TGAppNotification {
     required this.userId,
     required this.type,
     required this.dealId,
-    required this.title,
-    required this.body,
+    required this.titleKey,
+    required this.bodyKey,
     required this.createdAt,
+    this.title = '',
+    this.body = '',
     this.readAt,
     this.deepLink,
     this.params = const {},
@@ -213,6 +215,10 @@ class TGAppNotification {
   final String userId;
   final String type;
   final String dealId;
+  /// l10n key persisted instead of an English sentence.
+  final String titleKey;
+  final String bodyKey;
+  /// Legacy EN snapshot for older mock rows; UI prefers [titleKey].
   final String title;
   final String body;
   final DateTime createdAt;

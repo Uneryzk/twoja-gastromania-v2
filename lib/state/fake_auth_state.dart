@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/payment/payment_models.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_core/tg_user_locales.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/favorites_service.dart';
 import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
@@ -309,13 +312,14 @@ enum RestoSellerDevPick {
 }
 
 extension TGUserRoleLabel on TGUserRole {
-  String get label => switch (this) {
-        TGUserRole.visitor => 'Visitor',
-        TGUserRole.seller => 'Seller',
-        TGUserRole.storeSeller => 'Store seller',
-        TGUserRole.moderator => 'Moderator',
-        TGUserRole.admin => 'Admin',
-        TGUserRole.buyer => 'Buyer',
+  /// l10n key; resolve with `context.t(role.labelKey)`.
+  String get labelKey => switch (this) {
+        TGUserRole.visitor => 'ui_role_visitor',
+        TGUserRole.seller => 'ui_role_seller',
+        TGUserRole.storeSeller => 'ui_role_store_seller',
+        TGUserRole.moderator => 'ui_role_moderator',
+        TGUserRole.admin => 'ui_role_admin',
+        TGUserRole.buyer => 'ui_role_buyer',
       };
 
   bool get isStaff => this == TGUserRole.moderator || this == TGUserRole.admin;
@@ -335,12 +339,21 @@ class FakeAuthState extends ChangeNotifier {
     } else {
       setRole(TGUserRole.visitor, notify: false);
     }
+    TGUserLocales.set(userId, preferredLocale);
+  }
+
+  @override
+  void notifyListeners() {
+    TGUserLocales.set(userId, preferredLocale);
+    super.notifyListeners();
   }
 
   bool _isLoggedIn;
   bool get isLoggedIn => _isLoggedIn;
 
   String userId = mockOwnerId;
+  /// Recipient language for email/SMS (`TGUserLocales`).
+  String preferredLocale = 'pl';
   String userInitials = 'TG';
   String displayName = 'TG Demo';
   bool phoneVerified = false;
@@ -456,7 +469,7 @@ class FakeAuthState extends ChangeNotifier {
 
   bool get canModerate => isLoggedIn && role.isStaff;
   bool get isAdmin => isLoggedIn && role == TGUserRole.admin;
-  String get staffLabel => role.label;
+  String get staffLabelKey => role.labelKey;
 
   void setRole(TGUserRole next, {bool notify = true}) {
     role = next;
@@ -1067,18 +1080,22 @@ class FakeAuthState extends ChangeNotifier {
     notifyListeners();
   }
 
-  String listingTooltipLines([DateTime? now]) {
+  String listingTooltipLines(BuildContext context, [DateTime? now]) {
     final at = now ?? DateTime.now();
     final rows = <String>[];
     for (final p in publishedListings) {
       if (p.status == TGListingStatus.expired) {
-        rows.add('${p.title} · expired ${p.daysSinceExpiry(at)}d ago');
+        rows.add('${p.title} · ${context.t('ui_expired_ago', {'n': '${p.daysSinceExpiry(at)}'})}');
       } else if (p.status == TGListingStatus.underReview) {
-        rows.add('${p.title} · needs attention');
+        rows.add('${p.title} · ${context.t('ui_under_review')}');
       } else if (p.isActive) {
-        rows.add('${p.title} · ${p.daysUntilExpiry(at)}d left');
+        rows.add('${p.title} · ${context.t('ui_days_left_n', {'n': '${p.daysUntilExpiry(at)}'})}');
+      } else if (p.status == TGListingStatus.draft) {
+        rows.add('${p.title} · ${context.t('ui_status_draft')}');
+      } else if (p.status == TGListingStatus.paymentPending) {
+        rows.add('${p.title} · ${context.t('ui_payment_pending')}');
       } else {
-        rows.add('${p.title} · ${p.status.name}');
+        rows.add('${p.title} · ${context.t('ui_removed_badge')}');
       }
     }
     return rows.join('\n');

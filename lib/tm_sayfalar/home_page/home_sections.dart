@@ -11,6 +11,7 @@ import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_rating_stars.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
+import 'package:twoja_gastromania/tg_core/tg_plural.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
@@ -49,7 +50,14 @@ class HomeSectionTitle extends StatelessWidget {
             children: [
               Semantics(
                 header: true,
-                child: Text(title, style: theme.headlineSmall.override(fontSize: phone ? 24 : 32, fontWeight: FontWeight.w900)),
+                child: Text(
+                  title,
+                  style: theme.headlineSmall.override(
+                    fontSize: phone ? 24 : 32,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.35,
+                  ),
+                ),
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 6),
@@ -326,8 +334,9 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                                     style: theme.headlineMedium.override(
                                                       color: Colors.white,
                                                       fontSize: phone ? 24 : 38,
-                                                      fontWeight: FontWeight.w900,
-                                                      lineHeight: 1.1,
+                                                      fontWeight: FontWeight.w700,
+                                                      letterSpacing: 0.4,
+                                                      lineHeight: 1.15,
                                                     ),
                                                   ),
                                                   if (!s.sponsored) ...[
@@ -542,7 +551,7 @@ class _CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     return TGHoverCard(
-      semanticLabel: 'Browse $title',
+      semanticLabel: context.t('ui_browse_category', {'title': title}),
       onTap: () => TGNav.category(context, data.category),
       child: Stack(
         fit: StackFit.expand,
@@ -582,13 +591,19 @@ class _CategoryCard extends StatelessWidget {
                           title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.titleSmall.override(color: Colors.white, fontSize: compact ? 13 : 16, fontWeight: FontWeight.w800, lineHeight: 1.15),
+                          style: theme.titleSmall.override(
+                            color: Colors.white,
+                            fontSize: compact ? 13 : 16,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.25,
+                            lineHeight: 1.2,
+                          ),
                         ),
                       ),
                       if (count != null) ...[
                         const SizedBox(height: 6),
                         Text(
-                          count == 1 ? '1 listing' : '$count listings',
+                          TGPlural.listingsOf(context, count!),
                           style: theme.bodySmall.override(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w700),
                         ),
                       ],
@@ -1060,7 +1075,12 @@ class _HomeStatCardState extends State<HomeStatCard> {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.titleMedium.override(fontSize: widget.large ? 16 : 14, fontWeight: FontWeight.w800, lineHeight: 1.15),
+                  style: theme.titleMedium.override(
+                    fontSize: widget.large ? 16 : 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.22,
+                    lineHeight: 1.2,
+                  ),
                 ),
               ),
               const SizedBox(height: 6),

@@ -71,11 +71,11 @@ class TGMapCard extends StatelessWidget {
         children: [
           Semantics(
             button: true,
-            label: 'Map showing $address. Opens in maps.',
+            label: context.t('ui_map_showing', {'address': address}),
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
-                onTap: () => openExternalUrl(context, mapsUri, failMessage: 'Could not open Maps'),
+                onTap: () => openExternalUrl(context, mapsUri, failMessage: context.t('ui_could_not_open_maps')),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(TGRadius.input),
                   child: mapHeight != null
@@ -87,7 +87,7 @@ class TGMapCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           TGButton(
-            onPressed: () => openExternalUrl(context, mapsUri, failMessage: 'Could not open Maps'),
+            onPressed: () => openExternalUrl(context, mapsUri, failMessage: context.t('ui_could_not_open_maps')),
             label: actionLabel ?? context.t('ui_open_in_maps'),
             icon: Icons.map_outlined,
             variant: TGButtonVariant.outline,

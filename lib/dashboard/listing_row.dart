@@ -8,6 +8,7 @@ import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -38,7 +39,7 @@ class ListingRow extends StatelessWidget {
     final meta = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(product.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+        TGUserText(product.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
         if (product.listingNo != null) ...[
           const SizedBox(height: 2),
           Text(context.t('ui_listing_no_short', {'n': product.listingNo!}), style: theme.bodySmall.override(color: theme.secondaryText, fontSize: 12)),
@@ -55,7 +56,11 @@ class ListingRow extends StatelessWidget {
             if (ModerationService.instance.sellerCaseFor(product.listingNo)?.replyBy != null)
               _ReplyByChip(at: ModerationService.instance.sellerCaseFor(product.listingNo)!.replyBy!),
             if (product.status == TGListingStatus.removed && ModerationService.instance.sellerCaseFor(product.listingNo)?.shortReason != null)
-              Text(ModerationService.instance.sellerCaseFor(product.listingNo)!.shortReason!, style: const TextStyle(fontSize: 11, color: TGColors.error, fontWeight: FontWeight.w700)),
+              Text(
+                context.tryT(ModerationService.instance.sellerCaseFor(product.listingNo)!.shortReason!) ??
+                    ModerationService.instance.sellerCaseFor(product.listingNo)!.shortReason!,
+                style: const TextStyle(fontSize: 11, color: TGColors.error, fontWeight: FontWeight.w700),
+              ),
           ],
         ),
         const SizedBox(height: 8),
@@ -217,7 +222,7 @@ class ListingRow extends StatelessWidget {
               if (canMove) PopupMenuItem(key: Key('listing-move-store-${product.id}'), value: 'move_store', child: Text(context.t('dash_move_store'))),
               PopupMenuItem(value: 'images', child: Text(context.t('ui_image_change'))),
               if (product.status == TGListingStatus.active && AdSlotService.instance.purchaseVisible)
-                const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
+                PopupMenuItem(value: 'banner', child: Text(context.t('ui_banner_ad'))),
               PopupMenuItem(value: 'sold', child: Text(context.t('ui_mark_sold'))),
               PopupMenuItem(value: 'remove', child: Text(context.t('ui_remove_listing'))),
             ],
@@ -471,7 +476,7 @@ class _FounderQualifyChip extends StatelessWidget {
           Icon(Icons.verified_outlined, size: 14, color: theme.primaryText),
           const SizedBox(width: 4),
           Text(
-            'Qualifies for founder tier',
+            context.t('ui_qualifies_founder'),
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: theme.primaryText),
           ),
         ],

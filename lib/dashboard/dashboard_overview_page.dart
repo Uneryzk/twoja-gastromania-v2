@@ -582,7 +582,7 @@ class _PaidListingOptions extends StatelessWidget {
                       style: theme.bodySmall,
                     ),
                   ),
-                  Text(cfg.perDayLabel(cfg.listingFeePln(d), d), style: theme.bodySmall.override(color: theme.secondaryText)),
+                  Text(cfg.perDayLabel(cfg.listingFeePln(d), d, unit: context.t('ui_pln_per_day')), style: theme.bodySmall.override(color: theme.secondaryText)),
                 ],
               ),
             ),

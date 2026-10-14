@@ -710,10 +710,14 @@ class _ProgramsTab extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(info.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text(info.qualified ? 'Qualifies for founder tier' : info.reasons.join(' · ')),
+            subtitle: Text(
+              info.qualified
+                  ? context.t('ui_qualifies_founder')
+                  : info.reasons.map((k) => context.tryT(k) ?? k).join(' · '),
+            ),
             trailing: info.qualified
                 ? null
-                : TextButton(onPressed: () => context.go('/dashboard/listings'), child: const Text('Fix')),
+                : TextButton(onPressed: () => context.go('/dashboard/listings'), child: Text(context.t('ui_fix'))),
           ),
         const SizedBox(height: 12),
         Text('Savings history', style: theme.titleSmall.override(fontWeight: FontWeight.w900)),

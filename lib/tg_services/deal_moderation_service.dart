@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_core/tg_user_locales.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_models/tg_deal.dart';
@@ -40,6 +43,9 @@ class DealModerationService extends ChangeNotifier {
     _seeded = true;
     DealService.instance.ensureSeeded();
     _seed();
+    for (final c in cases) {
+      c.timeline = [for (final e in c.timeline) migrateDealTimelineEvent(e)];
+    }
   }
 
   int count(TGDealQueueKind k) => k == TGDealQueueKind.all ? cases.length : cases.where((c) => c.queue == k).length;
@@ -127,7 +133,7 @@ class DealModerationService extends ChangeNotifier {
     c.evidenceDueAt = c.evidenceDueAt!.add(const Duration(hours: 48));
     c.timeline = [
       ...c.timeline,
-      TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', label: 'Requested more evidence from buyer (+48 h)'),
+      TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', actorKey: 'tl_actor_moderator', label: 'Requested more evidence from buyer (+48 h)', messageKey: 'tl_requested_more_evidence'),
     ];
     _queueMail(c, to: '${c.buyer.name} <buyer@mail.com>', templateId: 'deal_more_evidence', lang: lang, subject: 'More evidence needed', body: 'Please send additional evidence for ${c.dealNo}.');
     _audit(actorId, actorRole, 'request_evidence', c.dealNo, 'Requested more evidence');
@@ -138,7 +144,7 @@ class DealModerationService extends ChangeNotifier {
   void requestCrossCheck(TGAdminDealCase c, {required String actorId, required String actorRole, required String amount, required String date, String lang = 'en'}) {
     c.timeline = [
       ...c.timeline,
-      TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', label: 'Cross-check sent to seller: payment of about $amount around $date for No. ${c.listingNo}?'),
+      TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', actorKey: 'tl_actor_moderator', label: 'Cross-check sent to seller: payment of about $amount around $date for No. ${c.listingNo}?', messageKey: 'tl_cross_check_sent', args: {'amount': amount, 'date': date, 'n': c.listingNo}),
     ];
     _queueMail(c, to: '${c.seller.name} <seller@mail.com>', templateId: 'deal_crosscheck', lang: lang, subject: 'Quick check on a listing', body: 'Did you receive a payment of about $amount around $date for Listing No. ${c.listingNo}? Yes / No / Not sure.');
     _audit(actorId, actorRole, 'crosscheck', c.dealNo, 'Requested seller cross-check');
@@ -149,7 +155,7 @@ class DealModerationService extends ChangeNotifier {
   void contactParty(TGAdminDealCase c, {required bool seller, required String actorId, required String actorRole, required String body, String lang = 'en'}) {
     final name = seller ? c.seller.name : c.buyer.name;
     _queueMail(c, to: '$name <party@mail.com>', templateId: seller ? 'deal_contact_seller' : 'deal_contact_buyer', lang: lang, subject: 'Message about ${c.dealNo}', body: body);
-    c.timeline = [...c.timeline, TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', label: seller ? 'Contacted seller' : 'Contacted buyer')];
+    c.timeline = [...c.timeline, TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', actorKey: 'tl_actor_moderator', label: seller ? 'Contacted seller' : 'Contacted buyer', messageKey: seller ? 'tl_contacted_seller' : 'tl_contacted_buyer')];
     _audit(actorId, actorRole, seller ? 'contact_seller' : 'contact_buyer', c.dealNo, seller ? 'Contacted seller' : 'Contacted buyer');
     TGAnalytics.track('admin_deal_action', {'type': seller ? 'contact_seller' : 'contact_buyer', 'dealNo': c.dealNo});
     notifyListeners();
@@ -233,7 +239,7 @@ class DealModerationService extends ChangeNotifier {
     };
     _queueMail(c, to: '${c.buyer.name} <buyer@mail.com>', templateId: 'deal_decision_buyer', lang: 'en', subject: 'Update on your review', body: buyerBody);
     _queueMail(c, to: '${c.seller.name} <seller@mail.com>', templateId: 'deal_decision_seller', lang: 'en', subject: 'Update on a review', body: 'A moderator reviewed the case for ${c.listingTitle}.');
-    c.timeline = [...c.timeline, TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', label: 'Decision: ${c.statusLabel}')];
+    c.timeline = [...c.timeline, TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', actorKey: 'tl_actor_moderator', label: 'Decision: ${c.statusLabel}', messageKey: 'tl_decision', args: {'status': c.statusLabel})];
     _audit(actorId, actorRole, 'decision', c.dealNo, 'Decision ${decision.name}', reason: rationale);
     TGAnalytics.track('admin_deal_decision', {'dealNo': c.dealNo, 'result': decision.name});
     notifyListeners();
@@ -242,7 +248,7 @@ class DealModerationService extends ChangeNotifier {
   void flaggedApprove(TGAdminDealCase c, {required String actorId, required String actorRole, required String rationale}) {
     c.reviewState = TGPurchaseReviewState.awaitingSeller;
     c.statusLabel = 'Released to seller check';
-    c.timeline = [...c.timeline, TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', label: 'Flagged review approved into the normal flow')];
+    c.timeline = [...c.timeline, TGDealTimelineEvent(at: TGClock.now(), actor: 'Moderator', actorKey: 'tl_actor_moderator', label: 'Flagged review approved into the normal flow', messageKey: 'tl_flagged_approved')];
     _audit(actorId, actorRole, 'flagged_approve', c.dealNo, 'Approved flagged review', reason: rationale);
     TGAnalytics.track('admin_deal_decision', {'dealNo': c.dealNo, 'result': 'approve'});
     notifyListeners();
@@ -336,8 +342,11 @@ class DealModerationService extends ChangeNotifier {
     return TGQueuedEmail(id: 'preview', to: to, subject: subject, body: body, templateId: templateId, createdAt: TGClock.now());
   }
 
-  void _queueMail(TGAdminDealCase c, {required String to, required String templateId, required String lang, required String subject, required String body}) {
-    final mail = TGQueuedEmail(id: 'E-${emails.length + 1}-${DateTime.now().microsecondsSinceEpoch}', to: to, subject: subject, body: body, templateId: templateId, createdAt: TGClock.now(), listingNo: c.dealNo);
+  void _queueMail(TGAdminDealCase c, {required String to, required String templateId, required String lang, required String subject, required String body, Map<String, String> params = const {}}) {
+    final loc = FFLocalizations(Locale(lang.split(RegExp('[_-]')).first));
+    final resolvedSubject = loc.tryText('mail_${templateId}_subject', params) ?? subject;
+    final resolvedBody = loc.tryText('mail_${templateId}_body', params) ?? body;
+    final mail = TGQueuedEmail(id: 'E-${emails.length + 1}-${DateTime.now().microsecondsSinceEpoch}', to: to, subject: resolvedSubject, body: resolvedBody, templateId: templateId, createdAt: TGClock.now(), listingNo: c.dealNo);
     emails.insert(0, mail);
     if (lastUndo?.dealNo == c.dealNo) _undoEmailIds.add(mail.id);
   }
@@ -686,3 +695,64 @@ class DealModerationService extends ChangeNotifier {
     ]);
   }
 }
+
+/// Maps legacy English timeline labels to l10n keys (mock + runtime).
+TGDealTimelineEvent migrateDealTimelineEvent(TGDealTimelineEvent e) {
+  if (e.messageKey != null && e.messageKey!.isNotEmpty) {
+    return e.actorKey != null ? e : TGDealTimelineEvent(at: e.at, actor: e.actor, label: e.label, messageKey: e.messageKey, args: e.args, actorKey: _actorKey(e.actor));
+  }
+  String? key;
+  var args = Map<String, String>.from(e.args);
+  final label = e.label;
+  if (label.startsWith('Buyer posted review for No. ')) {
+    key = 'tl_buyer_posted_review';
+    args['n'] = label.split('No. ').last;
+  } else if (label == 'Seller question sent (app + email)') {
+    key = 'tl_seller_question_sent';
+  } else if (label.startsWith('Seller disputed: ')) {
+    key = 'tl_seller_disputed';
+    args['reason'] = label.substring('Seller disputed: '.length);
+  } else if (label.startsWith('Evidence window opened')) {
+    key = 'tl_evidence_opened';
+    args['hours'] = '48';
+  } else if (label == 'Buyer uploaded live video') {
+    key = 'tl_buyer_uploaded_video';
+  } else if (label.startsWith('Evidence window closed')) {
+    key = 'tl_evidence_closed_empty';
+  } else if (label.startsWith('Buyer uploaded payment')) {
+    key = 'tl_buyer_uploaded_docs';
+  } else if (label.startsWith('Photo-only upload rejected')) {
+    key = 'tl_photo_only_rejected';
+  } else if (label.startsWith('Held for check')) {
+    key = 'tl_held_for_check';
+  } else if (label.startsWith('Requested more evidence')) {
+    key = 'tl_requested_more_evidence';
+  } else if (label.startsWith('Cross-check sent to seller')) {
+    key = 'tl_cross_check_sent';
+  } else if (label == 'Contacted seller') {
+    key = 'tl_contacted_seller';
+  } else if (label == 'Contacted buyer') {
+    key = 'tl_contacted_buyer';
+  } else if (label.startsWith('Decision: ')) {
+    key = 'tl_decision';
+    args['status'] = label.substring('Decision: '.length);
+  } else if (label.startsWith('Flagged review approved')) {
+    key = 'tl_flagged_approved';
+  }
+  return TGDealTimelineEvent(
+    at: e.at,
+    actor: e.actor,
+    label: e.label,
+    messageKey: key,
+    args: args,
+    actorKey: e.actorKey ?? _actorKey(e.actor),
+  );
+}
+
+String? _actorKey(String actor) => switch (actor) {
+      'Moderator' => 'tl_actor_moderator',
+      'Buyer' => 'tl_actor_buyer',
+      'Seller' => 'tl_actor_seller',
+      'System' => 'tl_actor_system',
+      _ => null,
+    };

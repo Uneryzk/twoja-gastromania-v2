@@ -35,9 +35,25 @@ ThemeData buildTGDarkTheme() {
     highlightColor: Colors.transparent,
   );
 
-  final textTheme = GoogleFonts.interTextTheme(base.textTheme).apply(
+  final rawTextTheme = GoogleFonts.interTextTheme(base.textTheme).apply(
     bodyColor: TGColors.textPrimary,
     displayColor: TGColors.textPrimary,
+  );
+  TextStyle heading(TextStyle? style, double letterSpacing) =>
+      (style ?? const TextStyle()).copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: letterSpacing,
+      );
+  final textTheme = rawTextTheme.copyWith(
+    displayLarge: heading(rawTextTheme.displayLarge, 0.45),
+    displayMedium: heading(rawTextTheme.displayMedium, 0.4),
+    displaySmall: heading(rawTextTheme.displaySmall, 0.35),
+    headlineLarge: heading(rawTextTheme.headlineLarge, 0.35),
+    headlineMedium: heading(rawTextTheme.headlineMedium, 0.3),
+    headlineSmall: heading(rawTextTheme.headlineSmall, 0.3),
+    titleLarge: heading(rawTextTheme.titleLarge, 0.25),
+    titleMedium: heading(rawTextTheme.titleMedium, 0.22),
+    titleSmall: heading(rawTextTheme.titleSmall, 0.2),
   );
 
   OutlineInputBorder inputBorder(Color color, [double width = 1]) =>

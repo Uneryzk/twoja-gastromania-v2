@@ -27,10 +27,21 @@ enum TGPlatformSignalKind { messages, callClicks, listingPublished, listingSold 
 
 @immutable
 class TGDealTimelineEvent {
-  const TGDealTimelineEvent({required this.at, required this.actor, required this.label});
+  const TGDealTimelineEvent({
+    required this.at,
+    required this.actor,
+    required this.label,
+    this.messageKey,
+    this.args = const {},
+    this.actorKey,
+  });
   final DateTime at;
   final String actor;
+  /// Legacy EN snapshot; UI prefers [messageKey].
   final String label;
+  final String? messageKey;
+  final Map<String, String> args;
+  final String? actorKey;
 }
 
 @immutable

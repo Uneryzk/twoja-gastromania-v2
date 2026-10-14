@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:twoja_gastromania/flutter_flow/tg_localized_message.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
@@ -48,15 +49,19 @@ class RestaurantPostPublishService extends ChangeNotifier {
 
   Set<String> dashboardCards(String listingId) => Set.unmodifiable(_dismissedCards[listingId] ?? const {});
 
-  String equipmentCardCopy(RestaurantListing r, {required int freeLeft}) {
+  LocalizedMessage equipmentCardCopy(RestaurantListing r, {required int freeLeft}) {
     if (r.equipmentIncluded == RestaurantEquipmentIncluded.all) {
-      return 'Selling some items separately?';
+      return const LocalizedMessage('ui_equip_sell_separate');
     }
     final cfg = PricingConfigService.instance.config;
     if (freeLeft > 0) {
-      return 'Your first ${cfg.freeListingQuota} listings are free. $freeLeft left.';
+      return LocalizedMessage('ui_equip_free_left', {'n': '${cfg.freeListingQuota}', 'left': '$freeLeft'});
     }
-    return '${cfg.defaultListingFeePln} PLN / ${cfg.defaultListingDays} days each, or Basic Store ${cfg.basicStoreMonthlyPln} PLN for up to 15 listings';
+    return LocalizedMessage('ui_equip_paid_or_store', {
+      'fee': '${cfg.defaultListingFeePln}',
+      'period': '${cfg.defaultListingDays}',
+      'store': '${cfg.basicStoreMonthlyPln}',
+    });
   }
 
   void onClockAdvanced() {

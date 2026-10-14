@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_util.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'serialization_util.dart';
 
@@ -62,17 +63,17 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
                     children: [
                       Icon(Icons.explore_off_outlined, color: theme.primary, size: 48),
                       const SizedBox(height: 14),
-                      Text('Page not found', style: theme.titleLarge, textAlign: TextAlign.center),
+                      Text(context.t('ui_page_not_found'), style: theme.titleLarge, textAlign: TextAlign.center),
                       const SizedBox(height: 8),
                       Text(
-                        'We could not find ${state.uri}',
+                        context.t('ui_page_not_found_path', {'uri': '${state.uri}'}),
                         style: theme.bodyMedium.override(color: theme.secondaryText),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 20),
                       TGButton(
                         onPressed: () => context.go('/'),
-                        label: 'Back to home',
+                        label: context.t('ui_back_to_home'),
                         icon: Icons.home_outlined,
                         height: 46,
                       ),

@@ -9,6 +9,7 @@ import 'package:twoja_gastromania/restaurants/restaurant_renew_sheet.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_transfer_sheet.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
 import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/tg_core/restaurant_config.dart';
@@ -71,24 +72,28 @@ class RestaurantListingRow extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
-                            Text('No. ${r.listingNo}', style: theme.bodySmall.override(color: theme.secondaryText)),
+                            TGUserText(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+                            Text(context.t('ui_listing_no_short', {'n': r.listingNo}), style: theme.bodySmall.override(color: theme.secondaryText)),
                             const SizedBox(height: 6),
                             Wrap(
                               spacing: 6,
                               runSpacing: 6,
                               children: [
-                                _chip('Restaurant', theme.primaryText),
-                                _chip(_statusLabel(r), amber ? TGColors.rating : theme.primary),
-                                if (free) _chip('FREE', TGColors.cta),
+                                _chip(context.t('dash_type_restaurant'), theme.primaryText),
+                                _chip(_statusLabel(context, r), amber ? TGColors.rating : theme.primary),
+                                if (free) _chip(context.t('ui_chip_free'), TGColors.cta),
                                 if (r.status == RestaurantListingStatus.active) ListingPromoStatus(restaurant: r),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            _timer(r, free, days, amber, theme),
+                            _timer(context, r, free, days, amber, theme),
                             const SizedBox(height: 6),
                             Text(
-                              'Views ${r.engagement.views} · Contacts ${r.engagement.uniqueContacts} · Favorites ${r.engagement.uniqueFavorites}',
+                              context.t('ui_metrics_vcf', {
+                                'v': '${r.engagement.views}',
+                                'c': '${r.engagement.uniqueContacts}',
+                                'f': '${r.engagement.uniqueFavorites}',
+                              }),
                               style: theme.bodySmall.override(fontWeight: FontWeight.w700),
                             ),
                             if (r.publishedAt != null) ...[
@@ -127,11 +132,11 @@ class RestaurantListingRow extends StatelessWidget {
                         itemBuilder: (_) => [
                           if (r.publishedAt != null) PopupMenuItem(value: 'insights', child: Text(context.t('dash_insights_open'))),
                           PopupMenuItem(value: 'images', child: Text(context.t('ui_image_change'))),
-                          if (canRenew || expired) const PopupMenuItem(value: 'renew', child: Text('Renew')),
-                          if (r.status == RestaurantListingStatus.active) const PopupMenuItem(value: 'promote', child: Text('Promote')),
-                          if (r.status == RestaurantListingStatus.active && AdSlotService.instance.purchaseVisible) const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
-                          if (r.status == RestaurantListingStatus.active) const PopupMenuItem(value: 'transfer', child: Text('Mark as transferred')),
-                          const PopupMenuItem(value: 'remove', child: Text('Remove')),
+                          if (canRenew || expired) PopupMenuItem(value: 'renew', child: Text(context.t('ui_renew'))),
+                          if (r.status == RestaurantListingStatus.active) PopupMenuItem(value: 'promote', child: Text(context.t('ui_promote'))),
+                          if (r.status == RestaurantListingStatus.active && AdSlotService.instance.purchaseVisible) PopupMenuItem(value: 'banner', child: Text(context.t('ui_banner_ad'))),
+                          if (r.status == RestaurantListingStatus.active) PopupMenuItem(value: 'transfer', child: Text(context.t('ui_mark_transferred'))),
+                          PopupMenuItem(value: 'remove', child: Text(context.t('ui_remove_listing'))),
                         ],
                       ),
                     ],
@@ -144,35 +149,35 @@ class RestaurantListingRow extends StatelessWidget {
                       if (expired)
                         TGButton(
                           onPressed: () => showRestaurantRenewSheet(context, r),
-                          label: 'Renew · ${cfg.paidPricePln} PLN',
+                          label: context.t('ui_renew_pln', {'fee': '${cfg.paidPricePln}'}),
                           height: 40,
                           borderRadius: BorderRadius.circular(TGRadius.pill),
                         )
                       else if (canRenew)
                         TGButton(
                           onPressed: () => showRestaurantRenewSheet(context, r, early: true),
-                          label: 'Renew early',
+                          label: context.t('ui_renew_early'),
                           variant: TGButtonVariant.outline,
                           height: 40,
                           borderRadius: BorderRadius.circular(TGRadius.pill),
                         ),
                       if (r.status == RestaurantListingStatus.active)
                         PopupMenuButton<String>(
-                          tooltip: 'Promote',
+                          tooltip: context.t('ui_promote'),
                           onSelected: (v) {
                             if (v == 'promote') showRestaurantRenewSheet(context, r, promoteOnly: true);
                             if (v == 'banner') context.go('/dashboard/advertising?target=${Uri.encodeComponent(r.detailPath)}');
                           },
                           itemBuilder: (_) => [
-                            const PopupMenuItem(value: 'promote', child: Text('Promote listing')),
-                            if (AdSlotService.instance.purchaseVisible) const PopupMenuItem(value: 'banner', child: Text('Banner ad')),
+                            PopupMenuItem(value: 'promote', child: Text(context.t('ui_promote_listing'))),
+                            if (AdSlotService.instance.purchaseVisible) PopupMenuItem(value: 'banner', child: Text(context.t('ui_banner_ad'))),
                           ],
                           child: Container(
                             height: 40,
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(borderRadius: BorderRadius.circular(TGRadius.pill)),
-                            child: Text('Promote', style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: theme.primary)),
+                            child: Text(context.t('ui_promote'), style: theme.bodySmall.override(fontWeight: FontWeight.w800, color: theme.primary)),
                           ),
                         ),
                       if (r.status == RestaurantListingStatus.pendingAuthorization)
@@ -181,21 +186,21 @@ class RestaurantListingRow extends StatelessWidget {
                             context.read<FakeAuthState>();
                             showTGAuthProofSheet(context, r);
                           },
-                          label: 'Authorization needed · upload proof',
+                          label: context.t('ui_auth_needed_upload'),
                           height: 40,
                           borderRadius: BorderRadius.circular(TGRadius.pill),
                         ),
                       if (r.status == RestaurantListingStatus.paymentPending)
                         TGButton(
                           onPressed: () => context.go('/restaurants/new?resume=${r.id}'),
-                          label: 'Resume',
+                          label: context.t('ui_resume'),
                           height: 40,
                           borderRadius: BorderRadius.circular(TGRadius.pill),
                         ),
                       if (r.status == RestaurantListingStatus.draft)
                         TGButton(
                           onPressed: () => context.go('/restaurants/new?resume=${r.id}'),
-                          label: 'Continue draft',
+                          label: context.t('ui_continue_draft'),
                           variant: TGButtonVariant.outline,
                           height: 40,
                           borderRadius: BorderRadius.circular(TGRadius.pill),
@@ -211,13 +216,14 @@ class RestaurantListingRow extends StatelessWidget {
     );
   }
 
-  Widget _timer(RestaurantListing r, bool free, int days, bool amber, FlutterFlowTheme theme) {
+  Widget _timer(BuildContext context, RestaurantListing r, bool free, int days, bool amber, FlutterFlowTheme theme) {
     final expired = r.status == RestaurantListingStatus.expired;
+    final left = context.t('ui_days_left_n', {'n': '$days'});
     final label = expired
-        ? 'Expired'
+        ? context.t('ui_filter_expired')
         : free
-            ? 'FREE · $days days left'
-            : '$days days left';
+            ? '${context.t('ui_chip_free')} · $left'
+            : left;
     final total = free ? RestaurantConfigService.instance.config.freeDays : RestaurantConfigService.instance.config.paidDays;
     final value = expired ? 0.0 : (days / total).clamp(0.0, 1.0);
     return Column(
@@ -244,15 +250,15 @@ class RestaurantListingRow extends StatelessWidget {
         child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
       );
 
-  String _statusLabel(RestaurantListing r) => switch (r.status) {
-        RestaurantListingStatus.active => 'Active',
-        RestaurantListingStatus.expired => 'Expired',
-        RestaurantListingStatus.draft => 'Draft',
-        RestaurantListingStatus.paymentPending => 'Payment pending',
-        RestaurantListingStatus.pendingAuthorization => 'Pending authorization',
-        RestaurantListingStatus.underReview => 'Under review',
-        RestaurantListingStatus.sold => 'Transferred',
-        RestaurantListingStatus.removed => 'Removed',
+  String _statusLabel(BuildContext context, RestaurantListing r) => switch (r.status) {
+        RestaurantListingStatus.active => context.t('ui_status_active'),
+        RestaurantListingStatus.expired => context.t('ui_filter_expired'),
+        RestaurantListingStatus.draft => context.t('ui_status_draft'),
+        RestaurantListingStatus.paymentPending => context.t('ui_payment_pending'),
+        RestaurantListingStatus.pendingAuthorization => context.t('ui_pending_authorization'),
+        RestaurantListingStatus.underReview => context.t('ui_under_review'),
+        RestaurantListingStatus.sold => context.t('ui_status_transferred'),
+        RestaurantListingStatus.removed => context.t('ui_removed_badge'),
       };
 }
 
@@ -265,9 +271,9 @@ Future<void> showTGAuthProofSheet(BuildContext context, RestaurantListing listin
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Upload proof of authorization', style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
+          Text(ctx.t('ui_upload_auth_proof'), style: FlutterFlowTheme.of(ctx).titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
-          const Text('Lease page, owner letter, or agent (pośrednik) contract. Only moderators can see this file.'),
+          Text(ctx.t('ui_auth_proof_hint')),
           const SizedBox(height: 16),
           TGButton(
             onPressed: () {
@@ -278,7 +284,7 @@ Future<void> showTGAuthProofSheet(BuildContext context, RestaurantListing listin
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('ui_proof_uploaded_mock'))));
             },
-            label: 'Upload document',
+            label: ctx.t('ui_upload_document'),
             height: 48,
             borderRadius: BorderRadius.circular(TGRadius.pill),
           ),

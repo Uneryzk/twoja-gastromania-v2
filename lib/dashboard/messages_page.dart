@@ -11,6 +11,7 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_inline_translate.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
@@ -879,7 +880,7 @@ class _ChatPane extends StatelessWidget {
                             child: Text(context.t('ui_view_listing')),
                           )
                         else if (m.kind == TGMessageKind.priceQuote)
-                          Text(m.body, style: theme.bodyMedium.override(fontWeight: FontWeight.w800, color: theme.primary))
+                          TGUserText(m.body, style: theme.bodyMedium.override(fontWeight: FontWeight.w800, color: theme.primary))
                         else if (m.body.isNotEmpty)
                           TGInlineTranslate(text: m.body, style: theme.bodyMedium, compact: true),
                         const SizedBox(height: 4),

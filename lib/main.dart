@@ -11,6 +11,8 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/flutter_flow/nav/nav.dart';
 import 'package:twoja_gastromania/state/admin_locale_state.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_components/tg_i18n_audit_overlay.dart';
+import 'package:twoja_gastromania/tg_core/tg_i18n_audit.dart';
 import 'package:twoja_gastromania/tg_core/tg_theme.dart';
 import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
@@ -140,9 +142,14 @@ class _MyAppState extends State<MyApp> {
         darkTheme: buildTGDarkTheme(),
         themeMode: _themeMode,
         routerConfig: _router,
-        builder: (context, child) => Scaffold(
-          backgroundColor: DarkModeTheme().primaryBackground,
-          body: child ?? const SizedBox.shrink(),
+        builder: (context, child) => ListenableBuilder(
+          listenable: TGI18nAudit.instance,
+          builder: (context, _) => TGI18nAuditOverlay(
+            child: Scaffold(
+              backgroundColor: DarkModeTheme().primaryBackground,
+              body: child ?? const SizedBox.shrink(),
+            ),
+          ),
         ),
       ),
     );

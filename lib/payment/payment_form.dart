@@ -25,6 +25,7 @@ class PaymentForm extends StatefulWidget {
     this.onCancelWait,
     this.onWaitingChanged,
     this.showPayButton = true,
+    this.dense = false,
     this.billingKind,
     this.billingDescription,
     this.billingListingId,
@@ -38,6 +39,9 @@ class PaymentForm extends StatefulWidget {
   final VoidCallback? onCancelWait;
   final ValueChanged<bool>? onWaitingChanged;
   final bool showPayButton;
+
+  /// Compact single-page layout: methods in one row, tighter BLIK and checkboxes.
+  final bool dense;
 
   /// When set, a successful charge writes a [TGPayment] for the signed-in
   /// user before [onPaid] runs. Checkout records its own cart payment.
@@ -359,6 +363,8 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
       );
     }
 
+    if (widget.dense) return _denseForm(theme);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -479,6 +485,139 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
     );
   }
 
+  Widget _denseForm(FlutterFlowTheme theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            for (final m in TGPayMethod.values) ...[
+              if (m != TGPayMethod.values.first) const SizedBox(width: 6),
+              Expanded(child: _denseMethodChip(m, theme)),
+            ],
+          ],
+        ),
+        if (_method == TGPayMethod.blik) ...[
+          const SizedBox(height: 8),
+          AnimatedBuilder(
+            animation: _shake,
+            builder: (context, child) {
+              final t = _shake.value;
+              final dx = (t == 0 || t == 1) ? 0.0 : 8 * (t < 0.25 || (t > 0.5 && t < 0.75) ? 1 : -1) * (1 - t);
+              return Transform.translate(offset: Offset(dx, 0), child: child);
+            },
+            child: _blikRow(compact: true),
+          ),
+        ],
+        if (_method == TGPayMethod.card) ...[
+          const SizedBox(height: 8),
+          _cardFields(),
+        ],
+        if (_error != null) ...[
+          const SizedBox(height: 6),
+          WizardError(_error!),
+          if (_error == context.t('ui_no_confirmation'))
+            TextButton(onPressed: _pay, child: Text(context.t('ui_try_again'))),
+        ],
+        const SizedBox(height: 6),
+        _toggle(
+          key: const Key('payment-faktura'),
+          value: _faktura,
+          label: context.t('ui_need_faktura'),
+          onChanged: (v) => setState(() => _faktura = v),
+        ),
+        if (_faktura) ...[
+          WizardField(
+            key: const Key('payment-nip'),
+            controller: _nip,
+            hint: context.t('ui_nip'),
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+            error: _nipError,
+            errorId: 'payment-nip-error',
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 6),
+          WizardField(
+            key: const Key('payment-company'),
+            controller: _company,
+            hint: context.t('ui_company_name'),
+            error: _companyError,
+            errorId: 'payment-company-error',
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 6),
+          WizardField(
+            key: const Key('payment-address'),
+            controller: _address,
+            hint: context.t('ui_address'),
+            maxLines: 2,
+            error: _addressError,
+            errorId: 'payment-address-error',
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+        _toggle(
+          key: const Key('payment-terms'),
+          value: _terms,
+          label: context.t('ui_accept_regulamin'),
+          onChanged: (v) => setState(() => _terms = v),
+        ),
+        if (widget.showPayButton) ...[
+          const SizedBox(height: 8),
+          TGButton(
+            key: const Key('payment-pay'),
+            onPressed: _canPay ? _pay : null,
+            label: context.t('ui_pay_amount', {'amount': formatMoneyPln(widget.amountPln)}),
+            height: 40,
+            borderRadius: BorderRadius.circular(TGRadius.pill),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _denseMethodChip(TGPayMethod method, FlutterFlowTheme theme) {
+    final selected = _method == method;
+    final title = switch (method) {
+      TGPayMethod.blik => 'BLIK',
+      TGPayMethod.przelewy24 => 'Przelewy24',
+      TGPayMethod.card => context.t('ui_card'),
+    };
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: title,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(TGRadius.input),
+        onTap: () {
+          setState(() => _method = method);
+          TGAnalytics.emit('payment_method_selected', {'method': method.name});
+        },
+        child: AnimatedContainer(
+          duration: TGMotion.quick,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(TGRadius.input),
+            border: Border.all(color: selected ? theme.primary : TGColors.border, width: selected ? 2 : 1),
+            color: selected ? theme.primary.withValues(alpha: 0.14) : theme.secondaryBackground,
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.labelSmall.override(
+              fontWeight: FontWeight.w700,
+              color: selected ? theme.primary : theme.primaryText,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _methodCard({required TGPayMethod method, required String title, required String subtitle}) {
     return WizardRadioCard(
       selected: _method == method,
@@ -491,17 +630,17 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
     );
   }
 
-  Widget _blikRow() {
-    const gap = 8.0;
-    const boxW = 48.0;
-    const boxH = 56.0;
+  Widget _blikRow({bool compact = false}) {
+    final gap = compact ? 4.0 : 8.0;
+    final boxW = compact ? 36.0 : 48.0;
+    final boxH = compact ? 42.0 : 56.0;
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
       child: Row(
         children: [
           for (var i = 0; i < 6; i++) ...[
-            if (i > 0) const SizedBox(width: gap),
+            if (i > 0) SizedBox(width: gap),
             SizedBox(
               width: boxW,
               height: boxH,
@@ -514,7 +653,7 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
                 autofillHints: i == 0 ? const [AutofillHints.oneTimeCode] : null,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(i == 0 ? 6 : 1)],
                 onChanged: (v) => _onBlikChanged(i, v),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                style: TextStyle(fontSize: compact ? 16 : 20, fontWeight: FontWeight.w800),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: TGColors.surfaceHover,

@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:twoja_gastromania/add_product/add_product_draft.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
@@ -124,9 +126,26 @@ void main() {
     await pumpFor(tester, const Duration(milliseconds: 700));
     expect(app.location, contains('/add-product/success'));
     expect(find.text('Your listing is live'), findsOneWidget);
-    expect(app.auth.freeSlotsUsed, 1);
+    expect(find.byKey(const Key('showcase-single-page')), findsOneWidget);
+    expect(find.byType(VerticalDivider), findsWidgets);
+    expect(find.text('Standard listing'), findsOneWidget);
+    expect(find.byKey(const Key('showcase-tier-bold')), findsOneWidget);
+    expect(find.byKey(const Key('showcase-tier-glow')), findsOneWidget);
+    expect(find.byKey(const Key('showcase-tier-spotlight')), findsOneWidget);
+    expect(find.text('BLIK'), findsOneWidget);
+    expect(find.text('Przelewy24'), findsOneWidget);
+    expect(find.text('Not now'), findsOneWidget);
+    expect(TGListingImages.kDisableDynamicListingImages, isTrue);
+    final previewCard = tester.widget<TGProductCard>(
+      find.descendant(of: find.byKey(const Key('showcase-standard-preview')), matching: find.byType(TGProductCard)),
+    );
+    expect(previewCard.previewAsStandard, isTrue);
     expect(find.text('You have 2 free listings left.'), findsOneWidget);
     final live = app.auth.ownedActive.single;
+    final previewTitle = tester.widget<Text>(
+      find.descendant(of: find.byKey(const Key('showcase-standard-preview')), matching: find.text(live.title)),
+    );
+    expect(previewTitle.style?.fontWeight, FontWeight.w400);
     expect(live.status, TGListingStatus.active);
     expect(live.listingNo, isNotNull);
     expect(live.extra['Brand'], 'Rational');
@@ -140,6 +159,23 @@ void main() {
     await tester.pump();
     expect(find.text('Brand'), findsWidgets);
     expect(find.text('Rational'), findsWidgets);
+    _expectNoErrors(app);
+  });
+
+  testWidgets('wizard live preview uses Regular listing titles', (tester) async {
+    final app = await pumpTgApp(tester, location: '/add-product');
+    await tester.tap(find.byKey(const Key('wizard-cat-cookingEquipment')));
+    await tester.pump();
+    await _enter(tester, const Key('wizard-title'), 'Piec konwekcyjny łódź');
+    expect(find.byType(TGProductCard), findsWidgets);
+    final card = tester.widget<TGProductCard>(find.byType(TGProductCard).first);
+    expect(card.previewAsStandard, isTrue);
+    final title = tester.widget<Text>(
+      find.descendant(of: find.byType(TGProductCard), matching: find.text('Piec konwekcyjny łódź')),
+    );
+    expect(title.style?.fontWeight, FontWeight.w400);
+    expect(title.style?.fontWeight, isNot(FontWeight.w700));
+    expect(TGListingImages.kDisableDynamicListingImages, isTrue);
     _expectNoErrors(app);
   });
 

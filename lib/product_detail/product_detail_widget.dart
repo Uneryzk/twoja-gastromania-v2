@@ -22,6 +22,7 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_badges.dart';
 import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
@@ -691,7 +692,7 @@ class _InfoColumn extends StatelessWidget {
                 onTap: () => showTGVerifiedInfo(context, product.seller, surface: 'pdp'),
               ),
             if (product.negotiable)
-              const _MiniChip(label: 'do negocjacji'),
+              _MiniChip(label: context.t('ui_negotiable')),
             if (product.listingType == TGListingType.rent)
               _MiniChip(label: context.t('ui_rent')),
           ],
@@ -704,7 +705,7 @@ class _InfoColumn extends StatelessWidget {
             decoration: InputDecoration(labelText: context.t('ui_title')),
           )
         else
-          Text(
+          TGUserText(
             product.title,
             style: theme.headlineSmall.override(fontSize: 22, lineHeight: 28 / 22, fontWeight: FontWeight.w800),
           ),

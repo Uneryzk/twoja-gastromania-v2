@@ -1,0 +1,190 @@
+# Brand, payment, legal and technical terms that stay the same in TR/EN/PL.
+# One term per line. Case-insensitive match on the whole value or a token.
+# Lines starting with # are comments.
+
+Twoja Gastromania
+BLIK
+Przelewy24
+Faktura VAT
+NIP
+KRS
+PLN
+VAT
+Basic
+Pro
+Enterprise
+Admin
+Spam
+Banner
+Net
+Netto
+Brutto
+Spotlight
+Glow
+Bold
+DRAFT
+SKU
+ID
+URL
+PDF
+DXF
+DWG
+SMS
+SSO
+API
+SEO
+CSV
+POS
+B2B
+3-D Secure
+Visa
+Mastercard
+NOWY
+UŻYWANY
+Special Order
+Founder
+Priority
+System
+Moderator
+Push
+E-mail
+Email
+MM/YY
+noindex
+AISI
+HORECA
+Horeca
+OK
+PLN/day
+PLN/dzień
+PLN/gün
+/ mo
+/ mies.
+/ ay
+—
+•
+·
+#
+{title}
+{name}
+{n}
+{fee}
+{period}
+{price}
+{count}
+{pct}
+{date}
+{status}
+{amount}
+{day}
+{views}
+{contacts}
+{favorites}
+{tips}
+{plan}
+{used}
+{limit}
+{left}
+{total}
+{window}
+{time}
+{link}
+{no}
+{version}
+{ch}
+{d}
+{extra}
+{free}
+{paid}
+{inc}
+{max}
+{cap}
+{hours}
+Status
+Min
+Model
+mm
+km
+Platform
+E-mail
+e-mail
+Override
+Województwo
+brutto
+netto
+No.
+DRAFT - legal review required
+3-D Secure
+pHash
+Hasło
+hasło
+Live
+OK
+CSV
+NIP
+KRS
+D
+W
+H
+SKU
+VAT
+Net
+SMS
+URL
+ID
+PDF
+Espresso
+Leasing
+Logo
+Region
+Aluminium
+Parking
+Routing
+LeadAccess
+mies.
+vs
+Store
+Manufacturer
+Risk
+flags
+mail
+Secure
+espresso
+leasing
+logo
+region
+aluminium
+parking
+routing
+leadaccess
+manufacturer
+store
+risk
+override
+legal
+review
+required
+draft
+Priority Manufacturer
+Basic Store
+Aluminium
+Województwo
+mies
+Pizzeria
+pizzeria
+Fast
+food
+Catering
+dark
+kitchen
+Bar
+blender
+Speed
+rail
+Marketing
+Problem
+ay
+Fast food
+Speed rail
+Bar blender
+dark kitchen

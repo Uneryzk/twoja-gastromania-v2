@@ -9,6 +9,7 @@ import 'package:twoja_gastromania/seller/store_owner_edit.dart';
 import 'package:twoja_gastromania/seller/write_review_sheet.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_jsonld.dart';
@@ -172,13 +173,13 @@ class _StoreReviewsPanelState extends State<StoreReviewsPanel> {
               ),
             const SizedBox(height: 8),
             if (customReviews.isEmpty)
-              Text('No custom project reviews yet.', style: Theme.of(context).textTheme.bodySmall)
+              Text(context.t('ui_no_custom_reviews'), style: Theme.of(context).textTheme.bodySmall)
             else
               for (final r in customReviews)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('${r.authorName} · ${r.rating}/5 · ${r.state.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text(r.text, maxLines: 3, overflow: TextOverflow.ellipsis),
+                  title: TGUserText('${r.authorName} · ${r.rating}/5 · ${r.state.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: TGUserText(r.text, maxLines: 3, overflow: TextOverflow.ellipsis),
                 ),
           ],
         );
@@ -696,7 +697,7 @@ class _ReviewCardState extends State<_ReviewCard> {
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(r.authorName, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+              TGUserText(r.authorName, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
               Text(fmt.format(r.createdAt), style: theme.bodySmall.override(color: theme.secondaryText)),
             ],
           ),
@@ -860,7 +861,7 @@ class _ExpandableText extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(text, maxLines: expanded ? null : 5, overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis, style: const TextStyle(height: 1.45, fontSize: 14)),
+        TGUserText(text, maxLines: expanded ? null : 5, overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis, style: const TextStyle(height: 1.45, fontSize: 14)),
         if (overflow)
           TextButton(
             onPressed: onToggle,
@@ -960,7 +961,7 @@ class StoreListingsReviewsSection extends StatelessWidget {
                         Row(
                           children: [
                             Expanded(
-                              child: Text(preview[i].authorName, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
+                              child: TGUserText(preview[i].authorName, style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
                             ),
                             Text(fmt.format(preview[i].createdAt), style: theme.bodySmall.override(color: theme.secondaryText)),
                           ],
@@ -968,7 +969,7 @@ class StoreListingsReviewsSection extends StatelessWidget {
                         const SizedBox(height: 6),
                         _GoldStars(rating: preview[i].rating.toDouble(), size: 16),
                         const SizedBox(height: 8),
-                        Text(
+                        TGUserText(
                           preview[i].text,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,

@@ -22,6 +22,7 @@ import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_components/tg_rating_stars.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_contact.dart';
@@ -671,7 +672,7 @@ class _IdentityBlock extends StatelessWidget {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(profile.name, style: theme.headlineMedium.override(fontSize: 36, lineHeight: 44 / 36, fontWeight: FontWeight.w800)),
+            TGUserText(profile.name, style: theme.headlineMedium.override(fontSize: 36, lineHeight: 44 / 36, fontWeight: FontWeight.w800)),
             if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(profile)))
               TGVerifiedSellerBadge(
                 tooltip: tgVerifiedTooltip(context, tgSellerFromProfile(profile)),
@@ -778,7 +779,7 @@ class _StoreAboutIntro extends StatelessWidget {
           Text(context.t('ui_about_us'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
           if (desc.isNotEmpty)
-            Text(
+            TGUserText(
               desc,
               maxLines: 5,
               overflow: TextOverflow.ellipsis,
@@ -1038,7 +1039,7 @@ class _PrivateHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(profile.name, style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+              TGUserText(profile.name, style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 12,
@@ -1118,7 +1119,7 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
                       children: [
                         _Logo(url: profile.logoUrl, name: profile.name, size: 36, ring: false),
                         const SizedBox(width: 10),
-                        Flexible(child: Text(profile.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
+                        Flexible(child: TGUserText(profile.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.titleSmall.override(fontWeight: FontWeight.w900))),
                         if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(profile))) ...[const SizedBox(width: 8), const TGVerifiedSellerBadge()],
                         const SizedBox(width: 16),
                         Expanded(child: _TabList(tabs: tabs, active: active, listingsCount: listingsCount, reviewsCount: profile.reviewsCount, pendingChecks: pendingChecks, onSelect: onSelect, short: mobile, isStore: profile.isStore)),

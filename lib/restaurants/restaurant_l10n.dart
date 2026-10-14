@@ -4,14 +4,13 @@ import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 
 /// Localized restaurant listing title (falls back to stored English seed title).
 String restoLocalizedTitle(BuildContext context, RestaurantListing r) {
-  final t = context.t('resto_title_${r.listingNo}');
-  return t.isEmpty ? r.title : t;
+  return context.tryT('resto_title_${r.listingNo}') ?? r.title;
 }
 
 /// Short hero/ad title (city-focused).
 String restoLocalizedShortTitle(BuildContext context, RestaurantListing r) {
-  final t = context.t('resto_title_short_${r.listingNo}');
-  if (t.isNotEmpty) return t;
+  final t = context.tryT('resto_title_short_${r.listingNo}');
+  if (t != null) return t;
   return restoLocalizedTitle(context, r);
 }
 
@@ -27,13 +26,11 @@ String restoLocalizedBusinessType(BuildContext context, RestaurantBusinessType t
     RestaurantBusinessType.club => 'resto_type_club',
     RestaurantBusinessType.other => 'resto_type_other',
   };
-  final label = context.t(key);
-  return label.isEmpty ? RestaurantListing.businessTypeLabel(t) : label;
+  return context.tryT(key) ?? RestaurantListing.businessTypeLabel(t);
 }
 
 String restoLocalizedInventoryName(BuildContext context, RestaurantInventoryItem item) {
-  final t = context.t(item.name);
-  return t.isEmpty ? item.name : t;
+  return context.tryT(item.name) ?? item.name;
 }
 
 /// Equipment name keys per business type (10–18 items). Values are l10n keys.

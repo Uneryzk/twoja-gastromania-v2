@@ -1457,7 +1457,7 @@ class _AddProductPageState extends State<AddProductPage> {
           SizedBox(
             height: TGProductCard.gridExtent(320, MediaQuery.textScalerOf(context)),
             width: 320,
-            child: TGProductCard(product: draft.toProduct(), layout: TGProductCardLayout.grid),
+            child: TGProductCard(product: draft.toProduct(), layout: TGProductCardLayout.grid, previewAsStandard: true),
           )
         else
           Text(
@@ -1478,7 +1478,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 'fee': '${draft.pricing.listingFeePln(key)}',
               }),
               subtitle:
-                  '${draft.pricing.perDayLabel(draft.pricing.listingFeePln(key), key)} · ${context.t('ui_longer_cheaper')}',
+                  '${draft.pricing.perDayLabel(draft.pricing.listingFeePln(key), key, unit: context.t('ui_pln_per_day'))} · ${context.t('ui_longer_cheaper')}',
               onTap: () => _dirty(() => draft.listingDuration = key),
             ),
           ],
@@ -1607,7 +1607,7 @@ class _PreviewPanel extends StatelessWidget {
                           return SizedBox(
                             height: TGProductCard.gridExtent(w, MediaQuery.textScalerOf(context)),
                             width: w,
-                            child: TGProductCard(product: product, layout: TGProductCardLayout.grid),
+                            child: TGProductCard(product: product, layout: TGProductCardLayout.grid, previewAsStandard: true),
                           );
                         },
                       ),

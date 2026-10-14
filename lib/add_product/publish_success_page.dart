@@ -8,10 +8,8 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
-import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_components/tg_listing_no_line.dart';
-import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_showcase_section.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
@@ -50,26 +48,25 @@ class _PublishSuccessPageState extends State<PublishSuccessPage> with TickerProv
     final until = product?.expiresAt ?? DateTime.now().add(const Duration(days: 30));
     final untilLabel = DateFormat('d MMM y').format(until);
 
-    final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final actions = [
       TGButton(
         onPressed: product == null ? null : () => context.go(product.detailPath),
         label: context.t('ui_view_listing'),
-        height: 48,
+        height: 40,
         borderRadius: BorderRadius.circular(TGRadius.pill),
       ),
       TGButton(
         onPressed: () => TGNav.addProduct(context),
         label: context.t('ui_add_another'),
         variant: TGButtonVariant.outline,
-        height: 48,
+        height: 40,
         borderRadius: BorderRadius.circular(TGRadius.pill),
       ),
       TGButton(
         onPressed: () => TGNav.dashboardListings(context),
         label: context.t('ui_go_dashboard'),
         variant: TGButtonVariant.ghost,
-        height: 48,
+        height: 40,
       ),
       TGButton(
         onPressed: product == null
@@ -80,94 +77,73 @@ class _PublishSuccessPageState extends State<PublishSuccessPage> with TickerProv
               },
         label: context.t('ui_copy_link'),
         variant: TGButtonVariant.ghost,
-        height: 48,
+        height: 40,
       ),
     ];
-    final content = Column(
-      children: [
-        TGBreadcrumb(
-          items: [
-            TGBreadcrumbItem(label: context.t('ui_home'), onTap: () => TGNav.home(context)),
-            TGBreadcrumbItem(label: context.t('ui_listing_published')),
-          ],
-        ),
-        const SizedBox(height: 28),
-        AnimatedBuilder(
-          animation: _tick,
-          builder: (context, _) => CustomPaint(
-            size: const Size(72, 72),
-            painter: _TickPainter(progress: _tick.value, color: theme.primary),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(context.t('ui_listing_live'), style: theme.headlineMedium.override(fontWeight: FontWeight.w900)),
-        const SizedBox(height: 8),
-        if (product != null) TGListingNoLine(product: product),
-        const SizedBox(height: 8),
-        Text(context.t('ui_live_until', {'date': untilLabel}), style: theme.titleSmall.override(color: theme.secondaryText)),
-        const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(99),
-          child: AnimatedBuilder(
-            animation: _bar,
-            builder: (context, _) => LinearProgressIndicator(
-              value: _bar.value,
-              minHeight: 8,
-              backgroundColor: TGColors.border,
-              color: theme.primary,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (product != null) ...[
-          SizedBox(
-            height: TGProductCard.gridExtent(280, MediaQuery.textScalerOf(context)),
-            width: 280,
-            child: TGProductCard(product: product, layout: TGProductCardLayout.grid),
-          ),
-          const SizedBox(height: 28),
-          TGShowcaseSection(product: product),
-        ],
-        const SizedBox(height: 16),
-        if (auth.listingPlan == TGListingPlan.free)
-          Text(context.t('ui_free_left_n', {'n': '${auth.freeListingsLeft}'}), style: theme.titleSmall.override(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
-        Text(context.t('ui_email_before_expire'), style: theme.bodySmall.override(color: theme.secondaryText)),
-        if (!phone) ...[const SizedBox(height: 20), Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, children: actions)],
-      ],
-    );
 
     return TGPageScaffold(
-      body: phone
-          ? Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    children: [Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 720), child: content))],
-                  ),
-                ),
-                Material(
-                  color: TGColors.surface,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(16, 10, 16, 10 + MediaQuery.paddingOf(context).bottom),
-                    child: Column(children: [for (final a in actions) Padding(padding: const EdgeInsets.only(bottom: 8), child: SizedBox(width: double.infinity, child: a))]),
-                  ),
-                ),
-              ],
-            )
-          : ListView(
-              children: [
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    child: Padding(padding: const EdgeInsets.fromLTRB(24, 24, 24, 0), child: content),
-                  ),
-                ),
-                const SizedBox(height: 64),
-                const TGFooter(),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(
+          children: [
+            TGBreadcrumb(
+              items: [
+                TGBreadcrumbItem(label: context.t('ui_home'), onTap: () => TGNav.home(context)),
+                TGBreadcrumbItem(label: context.t('ui_listing_published')),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                AnimatedBuilder(
+                  animation: _tick,
+                  builder: (context, _) => CustomPaint(
+                    size: const Size(36, 36),
+                    painter: _TickPainter(progress: _tick.value, color: theme.primary),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(context.t('ui_listing_live'), style: theme.titleLarge.override(fontWeight: FontWeight.w700, letterSpacing: 0.25)),
+                      if (product != null) TGListingNoLine(product: product),
+                      Text(context.t('ui_live_until', {'date': untilLabel}), style: theme.bodySmall.override(color: theme.secondaryText)),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: 120,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: AnimatedBuilder(
+                      animation: _bar,
+                      builder: (context, _) => LinearProgressIndicator(
+                        value: _bar.value,
+                        minHeight: 6,
+                        backgroundColor: TGColors.border,
+                        color: theme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (auth.listingPlan == TGListingPlan.free) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(context.t('ui_free_left_n', {'n': '${auth.freeListingsLeft}'}), style: theme.bodySmall.override(fontWeight: FontWeight.w600)),
+              ),
+            ],
+            const SizedBox(height: 8),
+            if (product != null) Expanded(child: TGShowcaseSection(product: product)) else const Spacer(),
+            const SizedBox(height: 6),
+            Wrap(spacing: 8, runSpacing: 6, alignment: WrapAlignment.center, children: actions),
+          ],
+        ),
+      ),
     );
   }
 }

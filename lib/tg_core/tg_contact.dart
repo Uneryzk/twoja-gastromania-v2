@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -20,7 +21,7 @@ Future<void> copyPhoneNumber(BuildContext context, String phone) async {
   } catch (e) {
     debugPrint('Clipboard write failed: $e');
     if (context.mounted) {
-      showTGToast(context, 'Could not copy the number', icon: Icons.error_outline, iconColor: TGColors.error);
+      showTGToast(context, context.t('ui_could_not_copy_number'), icon: Icons.error_outline, iconColor: TGColors.error);
     }
     return;
   }
@@ -29,10 +30,10 @@ Future<void> copyPhoneNumber(BuildContext context, String phone) async {
   final dial = phone.replaceAll(RegExp(r'[^0-9+]'), '');
   showTGToast(
     context,
-    'Number copied',
+    context.t('ui_number_copied'),
     action: _canDial && dial.isNotEmpty
         ? SnackBarAction(
-            label: 'CALL',
+            label: context.t('ui_call'),
             textColor: TGColors.cta,
             onPressed: () => launchUrl(Uri(scheme: 'tel', path: dial)),
           )
@@ -52,7 +53,7 @@ Future<void> copyTextWithToast(BuildContext context, String text, {required Stri
 }
 
 /// Opens [url] in the platform browser/app, falling back to a toast.
-Future<bool> openExternalUrl(BuildContext context, Uri url, {String failMessage = 'Could not open the link'}) async {
+Future<bool> openExternalUrl(BuildContext context, Uri url, {String? failMessage}) async {
   try {
     final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (ok) return true;
@@ -60,7 +61,7 @@ Future<bool> openExternalUrl(BuildContext context, Uri url, {String failMessage 
     debugPrint('launchUrl failed for $url: $e');
   }
   if (context.mounted) {
-    showTGToast(context, failMessage, icon: Icons.error_outline, iconColor: TGColors.error);
+    showTGToast(context, failMessage ?? context.t('ui_could_not_open_link'), icon: Icons.error_outline, iconColor: TGColors.error);
   }
   return false;
 }

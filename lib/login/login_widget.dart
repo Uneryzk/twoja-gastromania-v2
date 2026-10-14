@@ -301,15 +301,19 @@ class _TopBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    return Material(
-      color: theme.secondaryBackground.withValues(alpha: 0.68),
-      borderRadius: BorderRadius.circular(14.0),
-      child: InkWell(
-        onTap: onPressed,
+    return Semantics(
+      button: true,
+      label: context.t('ui_back'),
+      child: Material(
+        color: theme.secondaryBackground.withValues(alpha: 0.68),
         borderRadius: BorderRadius.circular(14.0),
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: Icon(Icons.arrow_back_rounded, color: theme.primaryText, size: 22),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(14.0),
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Icon(Icons.arrow_back_rounded, color: theme.primaryText, size: 22),
+          ),
         ),
       ),
     );
@@ -367,7 +371,7 @@ class LoginCard extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isDesktop = screenWidth >= 900;
-    final title = isRegister ? 'SIGN UP' : 'LOG IN';
+    final title = isRegister ? context.t('ui_auth_signup') : context.t('ui_auth_login');
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -404,7 +408,7 @@ class LoginCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Step into the world of gastronomy',
+              context.t('ui_gastronomy_tagline'),
               textAlign: TextAlign.center,
               style: theme.bodyMedium.override(
                 font: GoogleFonts.inter(
@@ -420,7 +424,7 @@ class LoginCard extends StatelessWidget {
                 Expanded(
                   child: SocialAuthButton.google(
                     key: const Key('login-google'),
-                    text: 'Continue with Google',
+                    text: context.t('ui_continue_google'),
                     onPressed: onGooglePressed,
                   ),
                 ),
@@ -428,18 +432,18 @@ class LoginCard extends StatelessWidget {
                 Expanded(
                   child: SocialAuthButton.facebook(
                     key: const Key('login-facebook'),
-                    text: 'Continue with Facebook',
+                    text: context.t('ui_continue_facebook'),
                     onPressed: onFacebookPressed,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 14),
-            const OrDivider(label: 'OR'),
+            OrDivider(label: context.t('ui_or')),
             const SizedBox(height: 14),
             AuthTextField(
               fieldKey: const Key('login-email'),
-              label: 'E-mail',
+              label: context.t('ui_email'),
               controller: emailController,
               focusNode: emailFocusNode,
               keyboardType: TextInputType.emailAddress,
@@ -448,7 +452,7 @@ class LoginCard extends StatelessWidget {
             const SizedBox(height: 12),
             AuthTextField(
               fieldKey: const Key('login-password'),
-              label: 'Password',
+              label: context.t('ui_password'),
               controller: passwordController,
               focusNode: passwordFocusNode,
               obscureText: !passwordVisible,
@@ -480,7 +484,7 @@ class LoginCard extends StatelessWidget {
                 onPressed: onForgotPassword,
                 style: TextButton.styleFrom(foregroundColor: theme.secondaryText),
                 child: Text(
-                  'Forgot password?',
+                  context.t('ui_forgot_password'),
                   style: theme.labelMedium.override(
                     font: GoogleFonts.inter(
                       fontWeight: FontWeight.w600,
@@ -494,7 +498,7 @@ class LoginCard extends StatelessWidget {
             const SizedBox(height: 10),
             PrimaryGradientButton(
               key: const Key('login-primary'),
-              text: isRegister ? 'SIGN UP' : 'LOG IN',
+              text: isRegister ? context.t('ui_auth_signup') : context.t('ui_auth_login'),
               onPressed: onPrimaryAction,
               height: 46,
             ),
@@ -504,7 +508,7 @@ class LoginCard extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    isRegister ? 'Already have an account? ' : "Don't have an account yet? ",
+                    isRegister ? context.t('ui_already_have_account') : context.t('ui_no_account_yet'),
                     style: theme.bodySmall.override(
                       font: GoogleFonts.inter(
                         fontWeight: theme.bodySmall.fontWeight,
@@ -518,7 +522,7 @@ class LoginCard extends StatelessWidget {
                     onPressed: onToggleMode,
                     style: TextButton.styleFrom(foregroundColor: theme.secondary),
                     child: Text(
-                      isRegister ? 'Log in' : 'Sign up now',
+                      isRegister ? context.t('ui_log_in') : context.t('ui_auth_signup_now'),
                       style: theme.labelLarge.override(
                         font: GoogleFonts.interTight(
                           fontWeight: FontWeight.w700,

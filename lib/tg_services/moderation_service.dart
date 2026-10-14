@@ -1377,18 +1377,18 @@ class ModerationService extends ChangeNotifier {
       listing: reviewOpen,
       replyBy: DateTime(2026, 10, 10, 18),
       moderatorMessage: 'A buyer reported suspected fraud. Please confirm the unit is still available and show it working in a short video.',
-      shortReason: 'Fraud',
+      shortReason: 'ui_reason_fraud',
     );
     sellerCases[reviewHidden.listingNo!] = TGSellerModerationCase(
       listing: reviewHidden,
       replyBy: DateTime(2026, 10, 11, 12),
       moderatorMessage: 'Photos may be copied. Upload proof you own this unit. The listing is hidden until we hear from you.',
-      shortReason: 'Copied photos',
+      shortReason: 'ui_reason_copied',
     );
     sellerCases[removed.listingNo!] = TGSellerModerationCase(
       listing: removed,
-      shortReason: 'Prohibited',
-      removalRule: 'Prohibited or illegal item',
+      shortReason: 'ui_reason_prohibited',
+      removalRule: 'ui_rr_prohibited',
       removalExplanation: 'The listing showed equipment with a filed serial plate, which is not allowed on Twoja Gastromania.',
       moderatorMessage: 'This listing was removed because it offered a prohibited item.',
       decidedAt: t.subtract(const Duration(days: 1)),

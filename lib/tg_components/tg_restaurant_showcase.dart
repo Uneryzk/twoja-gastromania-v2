@@ -8,6 +8,7 @@ import 'package:twoja_gastromania/payment/payment_form.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_card.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_showcase_section.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
@@ -84,33 +85,94 @@ class _TGRestaurantShowcaseSectionState extends State<TGRestaurantShowcaseSectio
     if (_dismissed) return const SizedBox.shrink();
     final theme = FlutterFlowTheme.of(context);
     final auth = context.watch<FakeAuthState>();
-    final phone = MediaQuery.sizeOf(context).width < 400;
     final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final paid = _tier == null ? 0 : _paid(auth.userId);
+    final list = _listPrice;
 
-    return Column(
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(context.t('ui_showcase_title'), style: theme.titleLarge.override(fontWeight: FontWeight.w700, letterSpacing: 0.25)),
+        ),
+        const SizedBox(height: 4),
+        Text(context.t('ui_showcase_sub'), style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.35)),
+      ],
+    );
+
+    final preview = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(context.t('ui_showcase_title'), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)),
+        Text(context.t('ui_standard_listing'), style: theme.labelMedium.override(fontWeight: FontWeight.w600, color: theme.secondaryText)),
         const SizedBox(height: 8),
-        Text(context.t('ui_showcase_sub'), style: theme.bodyMedium.override(color: theme.secondaryText)),
-        const SizedBox(height: 16),
-        for (final tier in PromotionTier.values) ...[
-          _card(tier, reduce),
-          const SizedBox(height: 12),
-        ],
-        if (_tier != null) ...[
-          SegmentedButton<int>(
-            segments: [
-              for (final d in PricingConfigService.instance.config.promotions.durations)
-                ButtonSegment(value: d, label: Text(DurationFormatter.daysOf(context, d))),
-            ],
-            selected: {_duration},
-            onSelectionChanged: (s) => setState(() => _duration = s.first),
+        Expanded(
+          child: Center(
+            child: FittedBox(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                key: const Key('showcase-standard-preview'),
+                width: 240,
+                height: 320,
+                child: IgnorePointer(
+                  child: RestaurantCard(
+                    listing: widget.listing,
+                    variant: RestaurantCardVariant.grid,
+                    previewAsStandard: true,
+                  ),
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
+        ),
+      ],
+    );
+
+    final paidPane = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          label: context.t('ui_showcase_tier_group'),
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final stacked = c.maxWidth < 420;
+              if (stacked) {
+                return Column(
+                  children: [
+                    for (var i = 0; i < PromotionTier.values.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 6),
+                      _card(PromotionTier.values[i], reduce),
+                    ],
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < PromotionTier.values.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    Expanded(child: _card(PromotionTier.values[i], reduce)),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        SegmentedButton<int>(
+          style: const ButtonStyle(visualDensity: VisualDensity.compact, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+          segments: [
+            for (final d in PricingConfigService.instance.config.promotions.durations)
+              ButtonSegment(value: d, label: Text(DurationFormatter.daysOf(context, d))),
+          ],
+          selected: {_duration},
+          onSelectionChanged: (s) => setState(() => _duration = s.first),
+        ),
+        if (_tier != null) ...[
+          const SizedBox(height: 6),
           Text(
-            '${_paid(auth.userId)} PLN · ${_cfg.perDayLabel(_listPrice, _duration)}',
-            style: theme.titleMedium.override(fontWeight: FontWeight.w900),
+            '$paid PLN · ${_cfg.perDayLabel(list, _duration)}',
+            style: theme.titleSmall.override(fontWeight: FontWeight.w700),
           ),
           if (PromotionService.instance.isAtCapacity(_tier!))
             Text(
@@ -120,26 +182,26 @@ class _TGRestaurantShowcaseSectionState extends State<TGRestaurantShowcaseSectio
             ),
           if (!_fits())
             Text(context.t('ui_promo_needs_renew'), style: theme.bodySmall.override(color: TGColors.rating)),
-          if (_fits()) ...[
-            const SizedBox(height: 12),
-            PaymentForm(
+        ],
+        const SizedBox(height: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            primary: false,
+            child: PaymentForm(
               key: _formKey,
-              amountPln: _paid(auth.userId).toDouble(),
+              amountPln: paid.toDouble(),
               billingKind: TGPaymentKind.promotion,
-              billingDescription: tgPromoBillingLabel(_tier!, _duration),
+              billingDescription: _tier == null ? '' : tgPromoBillingLabel(_tier!, _duration),
               billingListingId: widget.listing.id,
               billingListingNo: widget.listing.listingNo,
+              autofocusBlik: false,
+              dense: true,
+              showPayButton: _tier != null && _fits(),
               onPaid: () => _buy(auth),
             ),
-            if (phone)
-              TGButton(
-                onPressed: () => _formKey.currentState?.tryPay(),
-                label: context.t('ui_continue_payment', {'fee': '${_paid(auth.userId)}'}),
-                height: 48,
-              ),
-          ],
-        ],
-        const SizedBox(height: 12),
+          ),
+        ),
+        const SizedBox(height: 6),
         TGButton(
           onPressed: () {
             TGAnalytics.track('showcase_dismiss', {'listingId': widget.listing.id, 'kind': 'restaurant'});
@@ -148,58 +210,58 @@ class _TGRestaurantShowcaseSectionState extends State<TGRestaurantShowcaseSectio
           },
           label: context.t('ui_not_now'),
           variant: TGButtonVariant.outline,
-          height: 48,
+          height: 40,
         ),
       ],
     );
+
+    return TGShowcaseSinglePage(header: header, preview: preview, paid: paidPane);
   }
 
   Widget _card(PromotionTier tier, bool reduce) {
     final theme = FlutterFlowTheme.of(context);
     final selected = _tier == tier;
-    return InkWell(
-      onTap: () {
-        setState(() => _tier = tier);
-        TGAnalytics.track('promo_select', {'tier': tier.name, 'kind': 'restaurant'});
-      },
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: reduce ? 0 : 150),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: selected ? theme.primary : theme.alternate, width: selected ? 2 : 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    tier.brand,
-                    style: theme.titleSmall.override(fontWeight: FontWeight.w900),
-                  ),
-                ),
-                if (selected) Icon(Icons.check_circle, color: theme.primary),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 220,
-              child: IgnorePointer(
-                child: RestaurantCard(listing: widget.listing, promotionTier: tier),
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: tier.brand,
+      child: InkWell(
+        key: Key('showcase-tier-${tier.name}'),
+        borderRadius: BorderRadius.circular(TGRadius.card),
+        onTap: () {
+          setState(() => _tier = tier);
+          TGAnalytics.track('promo_select', {'tier': tier.name, 'kind': 'restaurant'});
+        },
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: reduce ? 0 : 150),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(TGRadius.card),
+            border: Border.all(color: selected ? theme.primary : theme.alternate, width: selected ? 2 : 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text(tier.brand, style: theme.titleSmall.override(fontWeight: FontWeight.w700, letterSpacing: 0.2))),
+                  if (selected) Icon(Icons.check_circle, color: theme.primary, size: 18),
+                ],
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              switch (tier) {
-                PromotionTier.bold => context.t('ui_showcase_where_bold'),
-                PromotionTier.glow => context.t('ui_showcase_where_glow'),
-                PromotionTier.spotlight => context.t('ui_showcase_where_spotlight'),
-              },
-              style: theme.bodySmall,
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                switch (tier) {
+                  PromotionTier.bold => context.t('ui_showcase_where_bold'),
+                  PromotionTier.glow => context.t('ui_showcase_where_glow'),
+                  PromotionTier.spotlight => context.t('ui_showcase_where_spotlight'),
+                },
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.bodySmall.override(fontSize: 11, lineHeight: 1.25),
+              ),
+            ],
+          ),
         ),
       ),
     );

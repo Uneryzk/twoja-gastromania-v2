@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
@@ -116,7 +117,7 @@ class _NextStepsBody extends StatelessWidget {
                   const SizedBox(height: 12),
                   _Card(
                     title: shrink ? 'Selling some items separately?' : 'Sell items separately',
-                    body: equipCopy,
+                    body: equipCopy.resolveOf(context),
                     cta: 'Open equipment',
                     dense: shrink,
                     onTap: () {

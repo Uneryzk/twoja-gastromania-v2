@@ -8,6 +8,7 @@ import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/seller/store_owner_edit.dart';
 import 'package:twoja_gastromania/tg_components/tg_badges.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
@@ -63,7 +64,7 @@ class StoreMobileCoverIdentity extends StatelessWidget {
                 runSpacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text(profile.name, style: theme.headlineMedium.override(fontSize: 24, lineHeight: 30 / 24, fontWeight: FontWeight.w800)),
+                  TGUserText(profile.name, style: theme.headlineMedium.override(fontSize: 24, lineHeight: 30 / 24, fontWeight: FontWeight.w800)),
                   if (tgShowsVerifiedSellerBadge(tgSellerFromProfile(profile)))
                     TGVerifiedSellerBadge(
                       tooltip: tgVerifiedTooltip(context, tgSellerFromProfile(profile)),

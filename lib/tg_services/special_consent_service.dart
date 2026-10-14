@@ -8,6 +8,7 @@ import 'package:twoja_gastromania/flutter_flow/tg_l10n.dart';
 import 'package:twoja_gastromania/tg_core/duration_service.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/tg_user_locales.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_consent.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
@@ -140,6 +141,7 @@ class TGSpecialConsentService extends ChangeNotifier {
 
   TGSpecialRequestConsent record({required TGSpecialRequest request, required String userId, required String locale}) {
     final l = resolveLocale(locale);
+    TGUserLocales.set(userId, l);
     final text = consentText(l);
     final c = TGSpecialRequestConsent(
       id: 'so-consent-${_seq++}',
@@ -162,7 +164,7 @@ class TGSpecialConsentService extends ChangeNotifier {
 
   /// E-mail with the full accepted text + summary, and SMS with the stored-copy link.
   List<TGConsentDelivery> sendProof(TGSpecialRequest r, TGSpecialRequestConsent c) {
-    final l = c.locale;
+    final l = TGUserLocales.of(c.userId, fallback: c.locale);
     final link = consentUrl(r.requestNo);
     final email = TGConsentDelivery(
       id: 'so-dlv-${_seq++}',

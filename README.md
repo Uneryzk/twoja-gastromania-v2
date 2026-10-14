@@ -41,3 +41,36 @@ FlutterFlow projects are built to run on the Flutter _stable_ release.
   moderation photo comparison matches on originals.
 - The Regulamin photo-licence clause (`regulamin_photo_license`) is a DRAFT pending legal
   review and blocks go-live until approved.
+
+## How to add new copy (I18N-2)
+
+Chrome (buttons, labels, empty states, notifications, timeline) lives in
+`lib/flutter_flow/tg_l10n.dart` — there is no ARB file.
+
+1. Add a key with **English, Polish and Turkish** (use `_l` for all ten marketplace
+   languages, or `_d(en, pl:, tr:)` when the other eight may copy English for now).
+2. Put `{placeholders}` in every language with the **same names**.
+3. For counts use ICU `{n, plural, ...}` via `TGPlural` / `DurationFormatter`.
+   Polish needs `one` / `few` / `many` / `other`; Turkish and English need `one` /
+   `other`. Never write `'$n days'` or `'$count listings'` in Dart.
+4. In widgets call `context.t('ui_your_key', {'n': '$n'})`. Do not put a visible
+   English (or Polish/Turkish) sentence in `Text('...')`.
+5. User-generated copy (listing title, description, chat, review, store name)
+   goes through `TGUserText`, not `context.t`.
+6. Services must return `LocalizedMessage(key, args)` (or persist `titleKey` +
+   `params`). Resolve in the UI with the **active locale**. Email/SMS use the
+   **recipient** `TGUserLocales` / `User.preferredLocale`, not the sender.
+7. Check `tool/i18n_glossary.csv` for agreed terms. Skip rows marked
+   `TO CONFIRM`. Brand/technical tokens in `tool/i18n_allowlist.txt` stay the
+   same in every language (BLIK, PLN, Twoja Gastromania, Spotlight, …).
+8. `tool/check_hardcoded_strings.dart` plus `test/i18n2_*.dart` run in CI. New
+   hardcoded chrome fails the ratchet until you move it into `tg_l10n` (or, to
+   record a leftover, regenerate `tool/i18n_hardcoded_baseline.txt` with
+   `dart run tool/check_hardcoded_strings.dart --write-baseline`).
+
+Missing keys: debug/profile show `⚠ key_name` and log once; release falls back
+to English and emits `i18n_missing_key` on `TGAnalytics` (hook Crashlytics via
+`TGI18nAudit.onMissing` later). Silent English fallback is gone.
+
+Dev only (off in Production Mode): long-press the header account control →
+**Language audit** to red-frame non-key chrome and list ⚠ keys.

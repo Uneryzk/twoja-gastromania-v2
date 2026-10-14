@@ -55,64 +55,79 @@ class _RestaurantSuccessPageState extends State<RestaurantSuccessPage> with Sing
     final until = r?.expiresAt;
     return TGPageScaffold(
       header: const TGHeader(),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(
+          children: [
+            Row(
               children: [
                 ScaleTransition(
                   scale: CurvedAnimation(parent: _tick, curve: Curves.easeOutBack),
-                  child: const Icon(Icons.check_circle, size: 72, color: TGColors.cta),
+                  child: const Icon(Icons.check_circle, size: 36, color: TGColors.cta),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  widget.pending ? 'Submitted for authorization' : 'Your listing is live',
-                  style: theme.headlineSmall.override(fontWeight: FontWeight.w900),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.pending ? 'Submitted for authorization' : 'Your listing is live',
+                        style: theme.titleLarge.override(fontWeight: FontWeight.w700, letterSpacing: 0.25),
+                      ),
+                      if (r != null) Text('Listing No. ${r.listingNo}', style: theme.bodySmall.override(fontWeight: FontWeight.w600)),
+                      if (until != null && !widget.pending)
+                        Text('Live until ${DateFormat('d MMM yyyy').format(until)}', style: theme.bodySmall),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: 120,
+                  child: AnimatedBuilder(
+                    animation: _bar,
+                    builder: (_, __) => ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(value: _bar.value, minHeight: 6, color: TGColors.cta),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (widget.pending)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'Upload proof of authorization from your dashboard. The listing stays hidden until approved.',
                   textAlign: TextAlign.center,
                 ),
-                if (r != null) ...[
-                  const SizedBox(height: 8),
-                  Text('Listing No. ${r.listingNo}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                  if (until != null && !widget.pending)
-                    Text('Live until ${DateFormat('d MMM yyyy').format(until)}', style: theme.bodyMedium),
-                  if (widget.pending)
-                    const Text(
-                      'Upload proof of authorization from your dashboard. The listing stays hidden until approved.',
-                      textAlign: TextAlign.center,
-                    ),
-                ],
-                const SizedBox(height: 16),
-                AnimatedBuilder(
-                  animation: _bar,
-                  builder: (_, __) => ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(value: _bar.value, minHeight: 8, color: TGColors.cta),
-                  ),
+              ),
+            const SizedBox(height: 8),
+            if (r != null && !widget.pending)
+              Expanded(
+                child: TGRestaurantShowcaseSection(
+                  listing: r,
+                  onDismissed: _openNextSteps,
+                  onPurchased: (_) => _openNextSteps(),
                 ),
-                const SizedBox(height: 24),
-                if (r != null && !widget.pending) ...[
-                  TGRestaurantShowcaseSection(
-                    listing: r,
-                    onDismissed: _openNextSteps,
-                    onPurchased: (_) => _openNextSteps(),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+              )
+            else
+              const Spacer(),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              alignment: WrapAlignment.center,
+              children: [
                 TGButton(
                   onPressed: r == null ? null : () => context.go(r.detailPath),
                   label: 'View listing',
-                  height: 48,
+                  height: 40,
                   borderRadius: BorderRadius.circular(TGRadius.pill),
                 ),
-                const SizedBox(height: 8),
                 TGButton(
                   onPressed: () => context.go('/restaurants/new'),
                   label: 'Add another',
                   variant: TGButtonVariant.outline,
-                  height: 48,
+                  height: 40,
                   borderRadius: BorderRadius.circular(TGRadius.pill),
                 ),
                 TextButton(onPressed: () => context.go('/dashboard/listings'), child: const Text('Go to dashboard')),
@@ -127,7 +142,7 @@ class _RestaurantSuccessPageState extends State<RestaurantSuccessPage> with Sing
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );

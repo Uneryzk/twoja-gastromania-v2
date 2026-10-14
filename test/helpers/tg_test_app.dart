@@ -25,8 +25,11 @@ import 'package:twoja_gastromania/tg_services/account_settings_service.dart';
 import 'package:twoja_gastromania/tg_services/admin_console_service.dart';
 import 'package:twoja_gastromania/tg_services/verification_service.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
+import 'package:twoja_gastromania/tg_components/tg_i18n_audit_overlay.dart';
+import 'package:twoja_gastromania/tg_core/tg_i18n_audit.dart';
 import 'package:twoja_gastromania/tg_core/tg_theme.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_core/tg_user_locales.dart';
 import 'package:twoja_gastromania/tg_services/account_identity_service.dart';
 import 'package:twoja_gastromania/tg_services/invoicing_service.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
@@ -109,11 +112,14 @@ Future<void> loadRealisticFonts() async {
 class ErrorCollector {
   final List<String> errors = [];
   FlutterExceptionHandler? _previous;
+  bool ignoreOverflow = false;
 
-  void start() {
+  void start({bool ignoreOverflow = false}) {
+    this.ignoreOverflow = ignoreOverflow;
     _previous = FlutterError.onError;
     FlutterError.onError = (details) {
       final text = details.exceptionAsString().split('\n').first;
+      if (this.ignoreOverflow && text.contains('overflowed')) return;
       // Follow-on noise caused by a layout error that was already recorded.
       if (text.startsWith('RenderBox was not laid out') ||
           text.contains('_needsLayout') ||
@@ -183,6 +189,7 @@ Future<TGApp> pumpTgApp(
   Map<String, Object> prefs = const {},
   Duration settle = const Duration(milliseconds: 900),
   Locale locale = const Locale('en'),
+  bool ignoreOverflow = false,
 }) async {
   // Engine font loading completes outside of fake-async time.
   await tester.runAsync(loadRealisticFonts);
@@ -202,8 +209,10 @@ Future<TGApp> pumpTgApp(
   });
   addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
 
-  final errors = ErrorCollector()..start();
+  final errors = ErrorCollector()..start(ignoreOverflow: ignoreOverflow);
   addTearDown(errors.stop);
+  TGI18nAudit.instance.reset();
+  TGUserLocales.reset();
   MessagingService.instance.reset();
   InvoicingService.instance.reset();
   ModerationService.instance.reset();
@@ -261,14 +270,19 @@ Future<TGApp> pumpTgApp(
         darkTheme: buildTGDarkTheme(),
         themeMode: ThemeMode.dark,
         routerConfig: router,
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(textScale),
-            accessibleNavigation: false,
-          ),
-          child: Scaffold(
-            backgroundColor: TGColors.background,
-            body: child ?? const SizedBox.shrink(),
+        builder: (context, child) => ListenableBuilder(
+          listenable: TGI18nAudit.instance,
+          builder: (context, _) => TGI18nAuditOverlay(
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(textScale),
+                accessibleNavigation: false,
+              ),
+              child: Scaffold(
+                backgroundColor: TGColors.background,
+                body: child ?? const SizedBox.shrink(),
+              ),
+            ),
           ),
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_revenue.dart';
 import 'package:twoja_gastromania/tg_services/founder_service.dart';
@@ -83,8 +84,12 @@ void main() {
       city: 'Katowice',
       voivodeship: 'Śląskie',
       phone: '+48111',
-      imageUrl: 'assets/images/x.webp',
-      imageUrls: const ['a', 'b', 'c'],
+      imageUrl: TGListingImages.cooking,
+      imageUrls: const [
+        TGListingImages.cooking,
+        TGListingImages.stainless,
+        TGListingImages.foodPrep,
+      ],
       photoCount: 3,
       isPromoted: false,
       createdAt: TGClock.now(),
@@ -95,7 +100,13 @@ void main() {
     final bad = good.copyWith(imageUrls: const ['a'], title: 'COPY table short');
     final info = svc.evaluateListing(bad);
     expect(info.qualified, isFalse);
-    expect(info.reasons.any((r) => r.contains('photos') || r.contains('Completion') || r.contains('copy') || r.contains('COPY')), isTrue);
+    expect(
+      info.reasons.any((r) =>
+          r == 'founder_reason_photos' ||
+          r == 'founder_reason_completion' ||
+          r == 'founder_reason_copy'),
+      isTrue,
+    );
   });
 
   test('free months and tier discounts are consecutive', () {

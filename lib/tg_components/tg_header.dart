@@ -213,7 +213,7 @@ class _BrandMark extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: 'Twoja Gastromania – home',
+      label: context.t('ui_brand_home'),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
@@ -392,7 +392,7 @@ class _AccountPill extends StatelessWidget {
           }),
         TGHeaderPillKind.needsAttention => context.t('ui_pill_attention_short'),
         TGHeaderPillKind.expiredListings => context.t('ui_renew'),
-        TGHeaderPillKind.expiringListings => '${auth.nearestExpiringDays}d',
+        TGHeaderPillKind.expiringListings => context.t('ui_n_d_short', {'n': '${auth.nearestExpiringDays}'}),
         TGHeaderPillKind.noListings => context.t('ui_pill_free_short', {'n': '${auth.freeListingsTotal}'}),
         TGHeaderPillKind.freeQuota => context.t('ui_pill_free_short', {'n': '${auth.freeListingsLeft}'}),
         TGHeaderPillKind.noQuota => context.t('ui_pill_zero_free'),
@@ -426,7 +426,7 @@ class _AccountPill extends StatelessWidget {
   }
 
   String _tooltip(BuildContext context) {
-    final listings = auth.listingTooltipLines();
+    final listings = auth.listingTooltipLines(context);
     final head = switch (auth.pillKind) {
       TGHeaderPillKind.noListings => context.t('ui_tooltip_first_three', {
           'quota': '${PricingConfigService.instance.config.freeListingQuota}',

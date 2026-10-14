@@ -610,7 +610,7 @@ List<Widget> _restoDashboardCards(BuildContext context, FakeAuthState auth, Flut
                 'Equipment ${r.inventory.length} items · ${r.separatelyListedCount} listed separately',
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
-              subtitle: Text(post.equipmentCardCopy(r, freeLeft: auth.freeListingsLeft)),
+              subtitle: Text(post.equipmentCardCopy(r, freeLeft: auth.freeListingsLeft).resolveOf(context)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go('/dashboard/bulk-add'),
             ),

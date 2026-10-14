@@ -5,6 +5,7 @@ import 'package:twoja_gastromania/tg_core/restaurant_config.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
+import 'package:twoja_gastromania/tg_core/tg_user_locales.dart';
 import 'package:twoja_gastromania/tg_models/tg_restaurant_listing.dart';
 import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -249,14 +250,14 @@ class RestaurantLifecycleService extends ChangeNotifier {
         }
       }
       RestaurantService.instance.replace(r.copyWith(status: RestaurantListingStatus.expired));
-      _notify(r, 'expired', 'Expired. Renew for ${cfg.paidPricePln} PLN', 'Your restaurant listing has expired.', deep: true);
+      _notify(r, 'expired', params: {'price': '${cfg.paidPricePln}'}, deep: true);
       return;
     }
 
     if (r.status == RestaurantListingStatus.expired && r.expiresAt != null) {
       final since = now.difference(r.expiresAt!).inDays;
       if (since == 7) {
-        _notify(r, 'still_selling', 'Still selling?', 'Renew your restaurant listing for ${cfg.paidPricePln} PLN.', deep: true);
+        _notify(r, 'still_selling', params: {'price': '${cfg.paidPricePln}'}, deep: true);
       }
       return;
     }
@@ -271,19 +272,27 @@ class RestaurantLifecycleService extends ChangeNotifier {
         _notify(
           r,
           'perf_$ageDays',
-          'Listing performance · day $ageDays',
-          '${r.engagement.views} views, ${r.engagement.uniqueContacts} contacts, ${r.engagement.uniqueFavorites} favorites',
+          titleKey: 'notif_resto_perf_title',
+          bodyKey: 'notif_resto_perf_body',
+          params: {
+            'day': '$ageDays',
+            'views': '${r.engagement.views}',
+            'contacts': '${r.engagement.uniqueContacts}',
+            'favorites': '${r.engagement.uniqueFavorites}',
+          },
           deep: true,
         );
       }
       // Day 23 / 27 / 29 of the free period (N days left).
       if (ageDays == 23 || ageDays == 27 || ageDays == 29) {
         final nLeft = (cfg.freeDays - ageDays).clamp(1, cfg.freeDays);
+        final loc = TGUserLocales.of(r.ownerId, fallback: 'pl');
         _notify(
           r,
           'ends_day_$ageDays',
-          'Your free period ends in ${DurationFormatter.days(nLeft, 'en')}',
-          'Check performance and renew options.',
+          titleKey: 'notif_resto_ends_title',
+          bodyKey: 'notif_resto_ends_body',
+          params: {'n': DurationFormatter.days(nLeft, loc)},
           deep: true,
         );
       }
@@ -291,8 +300,12 @@ class RestaurantLifecycleService extends ChangeNotifier {
         _notify(
           r,
           'decision_30',
-          'Day 30 decision',
-          'Your free period ends today. Renew for ${cfg.paidPricePln} PLN / ${DurationFormatter.days(cfg.paidDays, 'en')}, or wait for the automatic extension check.',
+          titleKey: 'notif_resto_decision_30_title',
+          bodyKey: 'notif_resto_decision_30_body',
+          params: {
+            'price': '${cfg.paidPricePln}',
+            'period': DurationFormatter.days(cfg.paidDays, TGUserLocales.of(r.ownerId, fallback: 'pl')),
+          },
           deep: true,
         );
       }
@@ -302,8 +315,13 @@ class RestaurantLifecycleService extends ChangeNotifier {
           _notify(
             r,
             'paid_ends_$d',
-            'Listing ends in ${DurationFormatter.days(d, 'en')}',
-            'Renew for ${cfg.paidPricePln} PLN / ${DurationFormatter.days(cfg.paidDays, 'en')}.',
+            titleKey: 'notif_resto_paid_ends_title',
+            bodyKey: 'notif_resto_paid_ends_body',
+            params: {
+              'n': DurationFormatter.days(d, TGUserLocales.of(r.ownerId, fallback: 'pl')),
+              'price': '${cfg.paidPricePln}',
+              'period': DurationFormatter.days(cfg.paidDays, TGUserLocales.of(r.ownerId, fallback: 'pl')),
+            },
             deep: true,
           );
         }
@@ -312,8 +330,14 @@ class RestaurantLifecycleService extends ChangeNotifier {
         _notify(
           r,
           'paid_perf_$ageDays',
-          'Listing summary · day $ageDays',
-          '${r.engagement.views} views, ${r.engagement.uniqueContacts} contacts, ${r.engagement.uniqueFavorites} favorites',
+          titleKey: 'notif_resto_perf_title',
+          bodyKey: 'notif_resto_perf_body',
+          params: {
+            'day': '$ageDays',
+            'views': '${r.engagement.views}',
+            'contacts': '${r.engagement.uniqueContacts}',
+            'favorites': '${r.engagement.uniqueFavorites}',
+          },
           deep: true,
         );
       }
@@ -322,48 +346,33 @@ class RestaurantLifecycleService extends ChangeNotifier {
 
   void _notifyExtension(RestaurantListing r) {
     final e = r.engagement;
-    final lowViews = e.views < cfg.lowViewsHint;
-    final tips = lowViews
-        ? 'Suggestions: 1) Promote (${cfg.promote.durations.map((d) => '+${cfg.promote.pricePln(d)} PLN / ${DurationFormatter.days(d, 'en')}').join(', ')}, one tap). 2) Add photos and additional information.'
-        : 'Suggestions: 1) Review the price, transfer fee and photos. 2) Fill in additional information. 3) Promote.';
-    final median = _medianSimilarRentHint(r);
     _notify(
       r,
       'extension',
-      'We\'ve added ${cfg.freeExtensionDays} more free days.',
-      '${e.views} views, ${e.uniqueContacts} contacts, ${e.uniqueFavorites} favorites in ${DurationFormatter.days(cfg.freeDays, 'en')}. $tips$median '
-      'Advisory only — the platform makes no valuation and promises no result.',
+      titleKey: 'notif_resto_extension_title',
+      bodyKey: 'notif_resto_extension_body',
+      params: {
+        'n': '${cfg.freeExtensionDays}',
+        'views': '${e.views}',
+        'contacts': '${e.uniqueContacts}',
+        'favorites': '${e.uniqueFavorites}',
+        'period': DurationFormatter.days(cfg.freeDays, TGUserLocales.of(r.ownerId, fallback: 'pl')),
+        'tips': '',
+      },
       deep: true,
     );
   }
 
-  String _medianSimilarRentHint(RestaurantListing r) {
-    final peers = RestaurantService.instance.all
-        .where(
-          (x) =>
-              x.id != r.id &&
-              x.status == RestaurantListingStatus.active &&
-              !x.isHidden &&
-              x.businessType == r.businessType &&
-              x.city.toLowerCase() == r.city.toLowerCase(),
-        )
-        .map((x) => x.rentMonthly)
-        .toList()
-      ..sort();
-    if (peers.length < 5) return '';
-    final median = peers[peers.length ~/ 2];
-    return ' Median rent of similar listings: $median PLN/mo.';
-  }
-
-  void _notify(RestaurantListing r, String key, String title, String body, {bool deep = false}) {
+  void _notify(RestaurantListing r, String key, {String? titleKey, String? bodyKey, Map<String, String> params = const {}, bool deep = false}) {
     final seen = _notified.putIfAbsent(r.id, () => {});
     if (!seen.add(key)) return;
     NotificationService.instance.add(
       userId: r.ownerId,
       type: 'resto_$key',
       dealId: r.id,
-      title: title,
-      body: body,
+      titleKey: titleKey,
+      bodyKey: bodyKey,
+      params: params,
       deepLink: deep ? '/dashboard/listings?renew=${r.id}' : r.detailPath,
     );
   }

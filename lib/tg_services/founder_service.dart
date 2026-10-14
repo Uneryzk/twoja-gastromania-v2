@@ -102,11 +102,11 @@ class TGFounderService extends ChangeNotifier {
   TGQualifiedListingInfo evaluateListing(TGProduct p) {
     final reasons = <String>[];
     final pct = listingCompletionPct(p);
-    if (pct < 80) reasons.add('Completion $pct%');
-    if (p.gallery.length < 3) reasons.add('Needs 3 photos');
-    if (_looksLikeCopy(p)) reasons.add('Photo similarity / copy signal');
-    if (p.status == TGListingStatus.removed) reasons.add('Removed by moderation');
-    if (p.status != TGListingStatus.active) reasons.add('Not active');
+    if (pct < 80) reasons.add('founder_reason_completion');
+    if (p.gallery.length < 3) reasons.add('founder_reason_photos');
+    if (_looksLikeCopy(p)) reasons.add('founder_reason_copy');
+    if (p.status == TGListingStatus.removed) reasons.add('founder_reason_removed');
+    if (p.status != TGListingStatus.active) reasons.add('founder_reason_inactive');
     return TGQualifiedListingInfo(
       listingId: p.id,
       title: p.title,
@@ -144,8 +144,7 @@ class TGFounderService extends ChangeNotifier {
           userId: sellerId,
           type: 'founder_tier_up',
           dealId: 'founder',
-          title: 'Founder tier',
-          body: 'You reached the ${(cfg.discountForQualified(count) * 100).round()}% tier',
+          params: {'pct': '${(cfg.discountForQualified(count) * 100).round()}'},
           deepLink: '/dashboard/manufacturer?tab=programs',
         );
       } else if (tier < prev) {
@@ -153,8 +152,7 @@ class TGFounderService extends ChangeNotifier {
           userId: sellerId,
           type: 'founder_tier_down',
           dealId: 'founder',
-          title: 'Founder tier',
-          body: 'You dropped to ${tier == 0 ? 0 : (cfg.discountForQualified(count) * 100).round()}%: listings no longer qualify',
+          params: {'pct': '${tier == 0 ? 0 : (cfg.discountForQualified(count) * 100).round()}'},
           deepLink: '/dashboard/manufacturer?tab=programs',
         );
       }
@@ -271,10 +269,9 @@ class TGFounderService extends ChangeNotifier {
       userId: sellerId,
       type: 'founder_applied',
       dealId: app.id,
-      title: 'Application received',
-      body: status == TGFounderApplicationStatus.waitlisted
-          ? 'Applications are on a waitlist.'
-          : 'Your founding manufacturer application is under review.',
+      bodyKey: status == TGFounderApplicationStatus.waitlisted
+          ? 'notif_founder_applied_waitlist_body'
+          : 'notif_founder_applied_body',
       deepLink: '/dashboard/manufacturer?tab=programs',
     );
     TGAnalytics.track('founder_apply', {'sellerId': sellerId, 'status': status.name});
@@ -309,8 +306,6 @@ class TGFounderService extends ChangeNotifier {
         userId: app.sellerId,
         type: 'founder_approved',
         dealId: app.id,
-        title: 'Application update',
-        body: 'Your founding manufacturer application was approved.',
         deepLink: '/dashboard/manufacturer?tab=programs',
       );
     } else if (app.status == TGFounderApplicationStatus.approved && status != TGFounderApplicationStatus.approved) {
@@ -322,8 +317,6 @@ class TGFounderService extends ChangeNotifier {
         userId: app.sellerId,
         type: 'founder_rejected',
         dealId: app.id,
-        title: 'Application update',
-        body: 'Your founding manufacturer application was not approved.',
         deepLink: '/founders',
       );
     } else if (status == TGFounderApplicationStatus.waitlisted) {
@@ -331,8 +324,6 @@ class TGFounderService extends ChangeNotifier {
         userId: app.sellerId,
         type: 'founder_waitlisted',
         dealId: app.id,
-        title: 'Application update',
-        body: 'Your application is on the waitlist.',
         deepLink: '/dashboard/manufacturer?tab=programs',
       );
     }
@@ -410,8 +401,6 @@ class TGFounderService extends ChangeNotifier {
       userId: sellerId,
       type: 'founder_ended',
       dealId: 'founder',
-      title: 'Founder program ended',
-      body: 'Founder discounts are no longer active.',
       deepLink: '/dashboard/manufacturer?tab=programs',
     );
     TGAnalytics.track('founder_program_end', {'sellerId': sellerId, 'actor': actorId});
@@ -439,8 +428,7 @@ class TGFounderService extends ChangeNotifier {
           userId: e.key,
           type: 'founder_ending',
           dealId: 'founder',
-          title: 'Founder program',
-          body: 'Founder discount ends in 30 days (${fmtDate(ends)}).',
+          params: {'n': '30', 'date': fmtDate(ends)},
           deepLink: '/dashboard/manufacturer?tab=programs',
         );
       }
@@ -449,8 +437,7 @@ class TGFounderService extends ChangeNotifier {
           userId: e.key,
           type: 'founder_ending',
           dealId: 'founder',
-          title: 'Founder program',
-          body: 'Founder discount ends in 7 days (${fmtDate(ends)}).',
+          params: {'n': '7', 'date': fmtDate(ends)},
           deepLink: '/dashboard/manufacturer?tab=programs',
         );
       }
@@ -461,8 +448,6 @@ class TGFounderService extends ChangeNotifier {
             userId: e.key,
             type: 'founder_free_ending',
             dealId: 'founder',
-            title: 'Free access ending',
-            body: 'Free Founder access ends in 7 days.',
             deepLink: '/dashboard/manufacturer?tab=programs',
           );
         }
@@ -472,8 +457,6 @@ class TGFounderService extends ChangeNotifier {
           userId: e.key,
           type: 'founder_ended',
           dealId: 'founder',
-          title: 'Founder program ended',
-          body: 'Founder discounts are no longer active.',
           deepLink: '/dashboard/manufacturer?tab=programs',
         );
         TGAnalytics.track('founder_program_end', {'sellerId': e.key});

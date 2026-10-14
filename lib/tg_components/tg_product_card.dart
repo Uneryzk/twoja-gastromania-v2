@@ -11,6 +11,7 @@ import 'package:twoja_gastromania/login/login_widget.dart' show LoginPageWidget;
 import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_hover_card.dart';
+import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_components/tg_listing_no_line.dart';
 import 'package:twoja_gastromania/tg_core/tg_contact.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
@@ -68,6 +69,7 @@ class TGProductCard extends StatefulWidget {
     this.promotionId,
     this.forceFeaturedBadge = false,
     this.isPromoRepeat = false,
+    this.previewAsStandard = false,
   });
 
   final TGProduct product;
@@ -93,6 +95,9 @@ class TGProductCard extends StatefulWidget {
 
   /// Spotlight repeat slot — exposed to screen readers.
   final bool isPromoRepeat;
+
+  /// Draft / wizard / free-preview cards: ignore live promotions and never bold the title.
+  final bool previewAsStandard;
 
   /// Total height of a grid card that is [cardWidth] wide.
   ///
@@ -189,6 +194,7 @@ class _TGProductCardState extends State<TGProductCard> with SingleTickerProvider
   }
 
   PromotionTier? get _tier {
+    if (widget.previewAsStandard) return null;
     if (widget.promotionTier != null) return widget.promotionTier;
     return PromotionService.instance.effectiveListingPromo(widget.product)?.tier;
   }
@@ -328,13 +334,14 @@ class _GridBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TGUserText(
                   product.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.titleMedium.override(
                     fontSize: 16,
-                    fontWeight: titleBold ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: titleBold ? FontWeight.w700 : FontWeight.w400,
+                    letterSpacing: 0.25,
                     lineHeight: 1.3,
                   ),
                 ),
@@ -414,19 +421,20 @@ class _WideListBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TGUserText(
                     product.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.titleLarge.override(
-                      fontWeight: titleBold ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: titleBold ? FontWeight.w700 : FontWeight.w400,
+                      letterSpacing: 0.3,
                       lineHeight: 1.2,
                     ),
                   ),
                   const SizedBox(height: 4),
                   TGListingNoPlain(product: product),
                   const SizedBox(height: 6),
-                  Text(
+                  TGUserText(
                     product.description ?? '—',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -455,7 +463,7 @@ class _WideListBody extends StatelessWidget {
                   const Spacer(),
                   Align(alignment: Alignment.centerRight, child: _PhoneLink(phone: product.phone)),
                   const SizedBox(height: 8),
-                  _GhostCTAButton(label: 'View listing', icon: Icons.arrow_forward_rounded, onPressed: onOpen),
+                  _GhostCTAButton(label: context.t('ui_view_listing'), icon: Icons.arrow_forward_rounded, onPressed: onOpen),
                 ],
               ),
             ),
@@ -519,12 +527,13 @@ class _CompactListBody extends StatelessWidget {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(right: 32),
-                        child: Text(
+                        child: TGUserText(
                           product.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.titleSmall.override(
-                            fontWeight: titleBold ? FontWeight.w700 : FontWeight.w500,
+                            fontWeight: titleBold ? FontWeight.w700 : FontWeight.w400,
+                            letterSpacing: 0.2,
                             lineHeight: 1.2,
                           ),
                         ),
@@ -995,9 +1004,9 @@ class _PhoneLink extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     return Semantics(
       button: true,
-      label: 'Copy phone number $phone',
+      label: context.t('ui_copy_phone_number', {'phone': phone}),
       child: Tooltip(
-        message: 'Click to copy',
+        message: context.t('ui_click_to_copy'),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => copyPhoneNumber(context, phone),
@@ -1194,13 +1203,13 @@ class _LoginRequiredSheet extends StatelessWidget {
                         child: Icon(Icons.lock_outline, color: theme.primary, size: 22),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(child: Text('Login required', style: theme.titleMedium.override(fontWeight: FontWeight.w900))),
+                      Expanded(child: Text(context.t('ui_login_required'), style: theme.titleMedium.override(fontWeight: FontWeight.w900))),
                       GestureDetector(onTap: () => context.pop(), child: Icon(Icons.close, color: theme.secondaryText)),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Please log in to save listings to favorites.',
+                    context.t('ui_login_favorites'),
                     style: theme.bodyMedium.override(color: theme.secondaryText, lineHeight: 1.5),
                   ),
                   const SizedBox(height: 14),
