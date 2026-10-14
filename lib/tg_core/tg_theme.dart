@@ -41,7 +41,7 @@ ThemeData buildTGDarkTheme() {
   );
   TextStyle heading(TextStyle? style, double letterSpacing) =>
       (style ?? const TextStyle()).copyWith(
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w700,
         letterSpacing: letterSpacing,
       );
   final textTheme = rawTextTheme.copyWith(
@@ -51,9 +51,9 @@ ThemeData buildTGDarkTheme() {
     headlineLarge: heading(rawTextTheme.headlineLarge, 0.35),
     headlineMedium: heading(rawTextTheme.headlineMedium, 0.3),
     headlineSmall: heading(rawTextTheme.headlineSmall, 0.3),
-    titleLarge: heading(rawTextTheme.titleLarge, 0.35),
-    titleMedium: heading(rawTextTheme.titleMedium, 0.3),
-    titleSmall: heading(rawTextTheme.titleSmall, 0.3),
+    titleLarge: heading(rawTextTheme.titleLarge, 0.25),
+    titleMedium: heading(rawTextTheme.titleMedium, 0.22),
+    titleSmall: heading(rawTextTheme.titleSmall, 0.2),
   );
 
   OutlineInputBorder inputBorder(Color color, [double width = 1]) =>
@@ -163,29 +163,5 @@ ThemeData buildTGDarkTheme() {
     ),
     dividerTheme: const DividerThemeData(color: TGColors.border, thickness: 1, space: 1),
     progressIndicatorTheme: const ProgressIndicatorThemeData(color: TGColors.cta),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        foregroundColor: TGColors.onCta,
-        backgroundColor: TGColors.cta,
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.35),
-      ),
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.35),
-      ),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: TGColors.cta,
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.35),
-      ),
-    ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: TGColors.cta,
-        textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.35),
-      ),
-    ),
   );
 }

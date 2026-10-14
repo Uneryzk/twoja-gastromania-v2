@@ -166,14 +166,14 @@ void main() {
       final product = tester.widget<TGProductCard>(card).product;
       final title = tester.widget<Text>(_within(card, find.text(product.title)).first);
       expect(title.style?.fontWeight, weight);
-      expect(title.style?.letterSpacing, greaterThanOrEqualTo(0.3));
-      expect(title.style?.letterSpacing, lessThanOrEqualTo(0.5));
+      expect(title.style?.letterSpacing, greaterThanOrEqualTo(0.2));
+      expect(title.style?.letterSpacing, lessThanOrEqualTo(0.4));
     }
 
     expectTitle('p020', FontWeight.w400);
     expectTitle('p021', FontWeight.w400);
     expectTitle('p024', FontWeight.w400);
-    expectTitle('p022', FontWeight.w500);
-    expectTitle('p023', FontWeight.w500);
+    expectTitle('p022', FontWeight.w700);
+    expectTitle('p023', FontWeight.w700);
   });
 }

@@ -579,11 +579,7 @@ class _PdpBodyState extends State<_PdpBody> with SingleTickerProviderStateMixin 
                           _CardRail(title: context.t('ui_more_from_seller'), products: more),
                         ],
                         const SizedBox(height: 28),
-                        TGSpecialOrderBand(
-                          kind: product.listingType == TGListingType.rent
-                              ? TGNeedMoreBandKind.rent
-                              : TGNeedMoreBandKind.sale,
-                        ),
+                        const TGSpecialOrderBand(),
                         if (canReport && !_desktop) ...[
                           const SizedBox(height: 12),
                           _ReportListingButton(buttonKey: const Key('pdp-report-footer'), onPressed: _reportListing),
@@ -1567,15 +1563,15 @@ class _AttentionBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: TGColors.error.withValues(alpha: 0.14),
+        color: TGColors.rating.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: TGColors.error.withValues(alpha: 0.6)),
+        border: Border.all(color: TGColors.rating.withValues(alpha: 0.6)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.gpp_maybe_outlined, color: TGColors.error),
+          const Icon(Icons.gpp_maybe_outlined, color: TGColors.rating),
           const SizedBox(width: 8),
-          Expanded(child: Text(context.t('ui_pdp_needs_attention'), style: theme.titleSmall.override(fontWeight: FontWeight.w700, color: TGColors.error, letterSpacing: 0.3))),
+          Expanded(child: Text(context.t('ui_pdp_needs_attention'), style: theme.titleSmall.override(fontWeight: FontWeight.w800))),
         ],
       ),
     );

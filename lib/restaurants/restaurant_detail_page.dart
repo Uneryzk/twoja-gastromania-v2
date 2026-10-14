@@ -613,7 +613,7 @@ class _RestoBodyState extends State<_RestoBody> {
                                 ],
                               ],
                               const SizedBox(height: 28),
-                              const TGSpecialOrderBand(kind: TGNeedMoreBandKind.restaurants),
+                              const TGSpecialOrderBand(),
                               const SizedBox(height: 24),
                               const TGFooter(),
                             ],

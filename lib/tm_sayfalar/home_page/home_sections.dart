@@ -61,7 +61,7 @@ class HomeSectionTitle extends StatelessWidget {
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 6),
-                Text(subtitle!, style: theme.bodyMedium.override(color: theme.secondaryText, lineHeight: 1.45, fontSize: phone ? 14 : 16, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
+                Text(subtitle!, style: theme.bodyMedium.override(color: theme.secondaryText, lineHeight: 1.45, fontSize: phone ? 14 : 16)),
               ],
             ],
           ),
@@ -595,7 +595,7 @@ class _CategoryCard extends StatelessWidget {
                             color: Colors.white,
                             fontSize: compact ? 13 : 16,
                             fontWeight: FontWeight.w700,
-                            letterSpacing: 0.35,
+                            letterSpacing: 0.25,
                             lineHeight: 1.2,
                           ),
                         ),
@@ -630,22 +630,14 @@ class _CategoryCard extends StatelessWidget {
 // Promoted / featured listings (private-seller first catalogue strip)
 // ---------------------------------------------------------------------------
 
-/// Homepage category strip: 3 Spotlight, 3 Glow, 3 Bold, 3 standard.
+/// Homepage featured products (VITRIN-1):
+/// Spotlight → Glow only; FEATURED only on Glow / Spotlight; no auto-advance.
+/// Desktop: 5 cards wide · ≤5 static · 6–10 two rows · >10 manual carousel.
 class HomePromotedSection extends StatefulWidget {
-  const HomePromotedSection({
-    super.key,
-    required this.products,
-    this.tiers = const {},
-    this.titleKey = 'ui_promoted_listings',
-    this.subtitleKey = 'ui_promoted_listings_sub',
-    this.onViewAll,
-  });
+  const HomePromotedSection({super.key, required this.products, this.tiers = const {}});
 
   final List<TGProduct> products;
   final Map<String, PromotionTier?> tiers;
-  final String titleKey;
-  final String subtitleKey;
-  final VoidCallback? onViewAll;
 
   @override
   State<HomePromotedSection> createState() => _HomePromotedSectionState();
@@ -690,10 +682,10 @@ class _HomePromotedSectionState extends State<HomePromotedSection> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSectionTitle(
-          title: context.t(widget.titleKey),
-          subtitle: context.t(widget.subtitleKey),
+          title: context.t('ui_promoted_listings'),
+          subtitle: context.t('ui_promoted_listings_sub'),
           action: TextButton(
-            onPressed: widget.onViewAll ?? () => TGNav.products(context),
+            onPressed: () => TGNav.products(context),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1086,7 +1078,7 @@ class _HomeStatCardState extends State<HomeStatCard> {
                   style: theme.titleMedium.override(
                     fontSize: widget.large ? 16 : 14,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.35,
+                    letterSpacing: 0.22,
                     lineHeight: 1.2,
                   ),
                 ),

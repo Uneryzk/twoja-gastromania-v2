@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:twoja_gastromania/tg_components/tg_ranking_info.dart';
-import 'package:twoja_gastromania/tg_components/tg_special_order_band.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_card.dart';
@@ -466,8 +465,6 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
           ),
           const SizedBox(height: 24),
           if (phone) _mobileShowMore(query, results.total) else _pagination(query, results.total),
-          const SizedBox(height: 32),
-          const TGSpecialOrderBand(kind: TGNeedMoreBandKind.restaurants),
         ],
       ),
     );

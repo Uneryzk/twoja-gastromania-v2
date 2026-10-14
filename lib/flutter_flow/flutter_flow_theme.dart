@@ -231,73 +231,73 @@ class ThemeTypography extends Typography {
   bool get displayLargeIsCustom => false;
   TextStyle get displayLarge => GoogleFonts.interTight(
         color: theme.primaryText,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w700,
         fontSize: 64.0,
-        letterSpacing: 0.5,
+        letterSpacing: 0.45,
       );
   String get displayMediumFamily => 'Inter Tight';
   bool get displayMediumIsCustom => false;
   TextStyle get displayMedium => GoogleFonts.interTight(
         color: theme.primaryText,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w700,
         fontSize: 44.0,
-        letterSpacing: 0.45,
+        letterSpacing: 0.4,
       );
   String get displaySmallFamily => 'Inter Tight';
   bool get displaySmallIsCustom => false;
   TextStyle get displaySmall => GoogleFonts.interTight(
         color: theme.primaryText,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w700,
         fontSize: 36.0,
-        letterSpacing: 0.4,
+        letterSpacing: 0.35,
       );
   String get headlineLargeFamily => 'Inter Tight';
   bool get headlineLargeIsCustom => false;
   TextStyle get headlineLarge => GoogleFonts.interTight(
         color: theme.primaryText,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w700,
         fontSize: 32.0,
-        letterSpacing: 0.4,
+        letterSpacing: 0.35,
       );
   String get headlineMediumFamily => 'Inter Tight';
   bool get headlineMediumIsCustom => false;
   TextStyle get headlineMedium => GoogleFonts.interTight(
         color: theme.primaryText,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w700,
         fontSize: 28.0,
-        letterSpacing: 0.35,
+        letterSpacing: 0.3,
       );
   String get headlineSmallFamily => 'Inter Tight';
   bool get headlineSmallIsCustom => false;
   TextStyle get headlineSmall => GoogleFonts.interTight(
         color: theme.primaryText,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w700,
         fontSize: 24.0,
-        letterSpacing: 0.35,
+        letterSpacing: 0.3,
       );
   String get titleLargeFamily => 'Inter Tight';
   bool get titleLargeIsCustom => false;
   TextStyle get titleLarge => GoogleFonts.interTight(
         color: theme.primaryText,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w700,
         fontSize: 20.0,
-        letterSpacing: 0.35,
+        letterSpacing: 0.25,
       );
   String get titleMediumFamily => 'Inter Tight';
   bool get titleMediumIsCustom => false;
   TextStyle get titleMedium => GoogleFonts.interTight(
         color: theme.primaryText,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w700,
         fontSize: 18.0,
-        letterSpacing: 0.3,
+        letterSpacing: 0.22,
       );
   String get titleSmallFamily => 'Inter Tight';
   bool get titleSmallIsCustom => false;
   TextStyle get titleSmall => GoogleFonts.interTight(
         color: theme.primaryText,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w700,
         fontSize: 16.0,
-        letterSpacing: 0.3,
+        letterSpacing: 0.2,
       );
   String get labelLargeFamily => 'Inter';
   bool get labelLargeIsCustom => false;

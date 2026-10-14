@@ -74,7 +74,7 @@ void main() {
         expect(_within(f, find.text('SPONSORLU')), findsNothing);
         expect(_within(f, find.text('ÖNE ÇIKAN')), findsNothing);
         final title = tester.widget<Text>(_within(f, find.text(card.product.title)).first);
-        expect(title.style?.fontWeight, FontWeight.w500);
+        expect(title.style?.fontWeight, FontWeight.w700);
       }
       expect(_within(featured.first, find.text('ÖNE ÇIKAN')), findsWidgets);
       expect(find.text('SPONSORLU'), findsNothing);
