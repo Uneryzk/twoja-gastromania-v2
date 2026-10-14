@@ -2,7 +2,7 @@
 ///
 /// English strings are the source of truth for tests. Other locales, especially
 /// Polish (`pl`) and Turkish (`tr`), are filled in here and merged into
-/// [kTranslationsMap] so FlutterFlow keys like `x5fioudz` ("Buy") pick them up.
+/// [kTranslationsMap] so FlutterFlow keys like `x5fioudz` ("For sale") pick them up.
 library;
 
 Map<String, String> _l({
@@ -1191,8 +1191,8 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'so_consent_channel_sms': _d('SMS', pl: 'SMS', tr: 'SMS'),
   'ui_so_status_awaiting_consent': _d('Awaiting your confirmation', pl: 'Czeka na Twoje potwierdzenie', tr: 'Onayınızı bekliyor'),
   // ----- Nav / header -----
-  'ui_buy': _l(en: 'Buy', pl: 'Kup', tr: 'Satın Al', de: 'Kaufen', cs: 'Koupit', sk: 'Kúpiť', uk: 'Купити', be: 'Купіць', lt: 'Pirkti', ru: 'Купить'),
-  'ui_rent': _l(en: 'Rent', pl: 'Wynajem', tr: 'Kiralık', de: 'Mieten', cs: 'Pronájem', sk: 'Prenájom', uk: 'Оренда', be: 'Арэнда', lt: 'Nuoma', ru: 'Аренда'),
+  'ui_buy': _l(en: 'For sale', pl: 'Na sprzedaż', tr: 'Satılık', de: 'Zu verkaufen', cs: 'Na prodej', sk: 'Na predaj', uk: 'На продаж', be: 'На продаж', lt: 'Parduodama', ru: 'Продажа'),
+  'ui_rent': _l(en: 'For rent', pl: 'Na wynajem', tr: 'Kiralık', de: 'Zu mieten', cs: 'Pronájem', sk: 'Prenájom', uk: 'Оренда', be: 'Арэнда', lt: 'Nuoma', ru: 'Аренда'),
   'ui_add_product': _l(en: 'Add Product', pl: 'Dodaj produkt', tr: 'Ürün Ekle', de: 'Produkt hinzufügen', cs: 'Přidat produkt', sk: 'Pridať produkt', uk: 'Додати товар', be: 'Дадаць тавар', lt: 'Pridėti produktą', ru: 'Добавить товар'),
   'ui_add_product_plus': _l(en: '+ Add Product', pl: '+ Dodaj produkt', tr: '+ Ürün Ekle', de: '+ Produkt hinzufügen', cs: '+ Přidat produkt', sk: '+ Pridať produkt', uk: '+ Додати товар', be: '+ Дадаць тавар', lt: '+ Pridėti produktą', ru: '+ Добавить товар'),
   'ui_restaurants': _l(en: 'Restaurants for Sale', pl: 'Restauracje na sprzedaż', tr: 'Satılık Restoranlar', de: 'Restaurants zu verkaufen', cs: 'Restaurace na prodej', sk: 'Reštaurácie na predaj', uk: 'Ресторани на продаж', be: 'Рэстараны на продаж', lt: 'Restoranai pardavimui', ru: 'Рестораны на продажу'),
@@ -1318,6 +1318,8 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'ui_search_brand': _l(en: 'Search brand…', pl: 'Szukaj marki…', tr: 'Marka ara…', de: 'Marke suchen…', cs: 'Hledat značku…', sk: 'Hľadať značku…', uk: 'Пошук бренду…', be: 'Пошук брэнда…', lt: 'Ieškoti prekės ženklo…', ru: 'Поиск бренда…'),
   'ui_netto': _l(en: 'Netto', pl: 'Netto', tr: 'Net', de: 'Netto', cs: 'Netto', sk: 'Netto', uk: 'Нетто', be: 'Нета', lt: 'Neto', ru: 'Нетто'),
   'ui_brutto': _l(en: 'Brutto', pl: 'Brutto', tr: 'Brüt', de: 'Brutto', cs: 'Brutto', sk: 'Brutto', uk: 'Брутто', be: 'Брута', lt: 'Bruto', ru: 'Брутто'),
+  'ui_netto_inline': _l(en: 'netto', pl: 'netto', tr: 'net', de: 'netto', cs: 'netto', sk: 'netto', uk: 'нетто', be: 'нета', lt: 'neto', ru: 'нетто'),
+  'ui_brutto_inline': _l(en: 'brutto', pl: 'brutto', tr: 'brüt', de: 'brutto', cs: 'brutto', sk: 'brutto', uk: 'брутто', be: 'брута', lt: 'bruto', ru: 'брутто'),
 
   // ----- Results / sort -----
   'ui_sort_listings': _l(en: 'Sort listings', pl: 'Sortuj ogłoszenia', tr: 'İlanları sırala', de: 'Anzeigen sortieren', cs: 'Seřadit inzeráty', sk: 'Zoradiť inzeráty', uk: 'Сортувати оголошення', be: 'Сартаваць аб’явы', lt: 'Rūšiuoti skelbimus', ru: 'Сортировать объявления'),
@@ -3602,8 +3604,8 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'ui_mfr_promote_from': _d("From {price} PLN / ${_dd('days', 'en')}", pl: "Od {price} PLN / ${_dd('days', 'pl')}", tr: "${_dd('days', 'tr')} {price} PLN'den başlayan"),
   'ui_mfr_promote_preview': _d('Preview', pl: 'Podgląd', tr: 'Önizleme'),
   'ui_mfr_promote_done': _d('Payment received. Your card style is active.', pl: 'Płatność przyjęta. Styl karty jest aktywny.', tr: 'Ödeme alındı. Kart stiliniz aktif.'),
-  'ui_home_mfr_title': _d('Special Order Manufacturers', pl: 'Producenci na zamówienie', tr: 'Özel Sipariş Üreticileri'),
-  'ui_home_mfr_sub': _d('Collect quotes for your custom fabrication project.', pl: 'Zbierz oferty na swój projekt wykonania na wymiar.', tr: 'Özel imalat projeniz için teklif toplayın.'),
+  'ui_home_mfr_title': _d('Featured Manufacturers', pl: 'Wyróżnieni producenci', tr: 'Öne çıkan üreticiler'),
+  'ui_home_mfr_sub': _d('B2B fabrication partners for custom equipment.', pl: 'Partnerzy B2B do produkcji sprzętu na wymiar.', tr: 'Özel ekipman için B2B imalat ortakları.'),
   'ui_admin_promo_title': _d('Promotion packages', pl: 'Pakiety promocji', tr: 'Promosyon paketleri'),
   'ui_admin_promo_sub': _d('Bold / Glow / Spotlight prices and capacity. Used by listings, restaurants and manufacturer cards.', pl: 'Ceny i limity Bold / Glow / Spotlight. Dotyczą ogłoszeń, restauracji i kart producentów.', tr: 'Bold / Glow / Spotlight fiyat ve kapasiteleri. İlanlar, restoranlar ve üretici kartları için geçerlidir.'),
   'ui_admin_promo_capacity': _d('Max active', pl: 'Maks. aktywnych', tr: 'Maks. aktif'),
@@ -4086,6 +4088,7 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'ref_code_valid': _d('Code valid: {name}', pl: 'Kod prawidłowy: {name}', tr: 'Kod geçerli: {name}'),
   'ref_code_unknown': _d('Code not recognized', pl: 'Nie rozpoznano kodu', tr: 'Kod tanınmadı'),
   'ref_code_limited': _d('Too many attempts. Try again later.', pl: 'Zbyt wiele prób. Spróbuj później.', tr: 'Çok fazla deneme. Daha sonra tekrar deneyin.'),
+  'ref_code_signup_only': _d('This code can only be used when you create an account.', pl: 'Ten kod można użyć tylko przy zakładaniu konta.', tr: 'Bu kod yalnızca hesap oluştururken kullanılabilir.'),
   'ref_consent_draft': _d('DRAFT - legal review required', pl: 'SZKIC — wymagana recenzja prawna', tr: 'TASLAK — hukuki inceleme gerekli'),
   'ref_consent_body': _d(
     'If you enter this code, the representative who issued it will see a summary of your account (listing counts, view counts and amounts paid). They will not see your phone, email, messages or payment method.',
@@ -4225,6 +4228,7 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'gr_correct_assignment': _d('Correct assignment', pl: 'Popraw przypisanie', tr: 'Atamayı düzelt'),
   'gr_reason': _d('Reason', pl: 'Powód', tr: 'Neden'),
   'gr_reason_required': _d('A reason is required', pl: 'Wymagany jest powód', tr: 'Neden zorunludur'),
+  'gr_pln_invalid': _d('Enter an amount with at most two decimal places.', pl: 'Podaj kwotę z maksymalnie dwoma miejscami po przecinku.', tr: 'En fazla iki ondalık basamaklı tutar girin.'),
   'gr_signup_timeline': _d('Sign-up timeline', pl: 'Oś rejestracji', tr: 'Kayıt zaman çizelgesi'),
   'gr_attr_flags': _d('Attribution flags (signals only, no automatic decision)', pl: 'Flagi atrybucji (tylko sygnały, bez automatycznej decyzji)', tr: 'Atıf bayrakları (yalnızca işaret, otomatik karar yok)'),
   'gr_flag_sameCluster': _d('Several sign-ups from the same device/network cluster', pl: 'Wiele rejestracji z tego samego klastra urządzenia/sieci', tr: 'Aynı cihaz/ağ kümesinden birden fazla kayıt'),
@@ -4364,7 +4368,7 @@ final Map<String, Map<String, String>> kUiTranslations = {
 
 /// Merges FlutterFlow groups with [kUiTranslations] and copies full-language
 /// rows onto generated keys whose English text matches a chrome string
-/// (so `x5fioudz` / "Buy" becomes "Satın Al" in Turkish).
+/// (so `x5fioudz` / "For sale" becomes "Satılık" in Turkish).
 Map<String, Map<String, String>> mergeTranslations(
   Iterable<Map<String, Map<String, String>>> groups,
 ) {

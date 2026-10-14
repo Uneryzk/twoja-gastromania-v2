@@ -247,7 +247,7 @@ class _MobileLogo extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: url != null
           ? Image.asset(url!, fit: BoxFit.cover)
-          : Center(child: Text(name.isEmpty ? '?' : name[0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 28))),
+          : Center(child: Text(name.isEmpty ? '?' : tgToUpperTr(name[0]), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 28))),
     );
   }
 }

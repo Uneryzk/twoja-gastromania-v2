@@ -834,7 +834,7 @@ class _Logo extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     final child = url != null
         ? ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.asset(url!, width: size, height: size, fit: BoxFit.cover))
-        : Center(child: Text(name.isEmpty ? '?' : name[0].toUpperCase(), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)));
+        : Center(child: Text(name.isEmpty ? '?' : tgToUpperTr(name[0]), style: theme.headlineSmall.override(fontWeight: FontWeight.w900)));
     return Container(
       width: size,
       height: size,

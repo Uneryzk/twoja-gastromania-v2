@@ -7,9 +7,11 @@ import 'package:twoja_gastromania/tg_services/referral_repository.dart';
 
 /// Optional referral code + consent. Used on every register surface.
 class ReferralCodeField extends StatefulWidget {
-  const ReferralCodeField({super.key, this.initialCode});
+  const ReferralCodeField({super.key, this.initialCode, this.signupLocked = false, this.applicantUserId});
 
   final String? initialCode;
+  final bool signupLocked;
+  final String? applicantUserId;
 
   @override
   State<ReferralCodeField> createState() => ReferralCodeFieldState();
@@ -30,7 +32,9 @@ class ReferralCodeFieldState extends State<ReferralCodeField> {
     _consent = repo.sessionConsent;
     if (seed.isNotEmpty) {
       repo.setSessionCode(seed);
-      _check = repo.checkCode(seed, recordFailure: false);
+      _check = widget.signupLocked
+          ? const TGReferralCodeCheck(result: TGReferralCodeResult.signupOnly)
+          : repo.checkCode(seed, recordFailure: false, applicantUserId: widget.applicantUserId);
     }
   }
 
@@ -46,7 +50,11 @@ class ReferralCodeFieldState extends State<ReferralCodeField> {
     repo.setSessionConsent(false);
     setState(() {
       _consent = false;
-      _check = raw.trim().isEmpty ? null : repo.checkCode(raw);
+      _check = raw.trim().isEmpty
+          ? null
+          : widget.signupLocked
+              ? const TGReferralCodeCheck(result: TGReferralCodeResult.signupOnly)
+              : repo.checkCode(raw, applicantUserId: widget.applicantUserId);
     });
   }
 
@@ -59,9 +67,10 @@ class ReferralCodeFieldState extends State<ReferralCodeField> {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    final valid = _check?.result == TGReferralCodeResult.valid;
+    final valid = _check?.result == TGReferralCodeResult.valid && !widget.signupLocked;
     final limited = _check?.result == TGReferralCodeResult.rateLimited;
     final unknown = _check?.result == TGReferralCodeResult.unrecognized;
+    final signupOnly = widget.signupLocked || _check?.result == TGReferralCodeResult.signupOnly;
     return Column(
       key: const Key('referral-code-field'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -77,7 +86,10 @@ class ReferralCodeFieldState extends State<ReferralCodeField> {
             prefixIcon: const Icon(Icons.card_giftcard_outlined),
           ),
         ),
-        if (valid) ...[
+        if (signupOnly && _ctrl.text.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(context.t('ref_code_signup_only'), key: const Key('referral-code-signup-only'), style: theme.bodySmall.override(color: theme.secondaryText)),
+        ] else if (valid) ...[
           const SizedBox(height: 8),
           Semantics(
             liveRegion: true,

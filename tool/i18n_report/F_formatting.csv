@@ -1,0 +1,42 @@
+file,line,kind,excerpt,group
+lib/add_product/publish_success_page.dart,51,DateFormat_no_locale,DateFormat('d MMM y'),add-product/checkout
+lib/admin/admin_ads_page.dart,143,DateFormat_no_locale,DateFormat('d MMM yyyy'),admin
+lib/admin/admin_case_page.dart,168,DateFormat_no_locale,DateFormat('d MMM yyyy · HH:mm'),admin
+lib/admin/admin_console_pages.dart,31,DateFormat_no_locale,DateFormat('d MMM y HH:mm'),admin
+lib/admin/admin_console_pages.dart,480,DateFormat_no_locale,DateFormat('d MMM y'),admin
+lib/admin/admin_console_pages.dart,1141,DateFormat_no_locale,DateFormat('yyyyMMdd'),admin
+lib/admin/admin_deal_case_page.dart,174,DateFormat_no_locale,DateFormat('d MMM · HH:mm'),admin
+lib/admin/admin_deal_case_page.dart,243,DateFormat_no_locale,DateFormat('d MMM'),admin
+lib/admin/admin_pages.dart,112,DateFormat_no_locale,DateFormat('d MMM yyyy'),admin
+lib/admin/admin_pages.dart,151,DateFormat_no_locale,DateFormat('d MMM yyyy HH:mm'),admin
+lib/admin/admin_target_pages.dart,54,DateFormat_no_locale,DateFormat('d MMM yyyy · HH:mm'),admin
+lib/dashboard/listings_dashboard_widget.dart,160,DateFormat_no_locale,DateFormat('d MMM y'),dashboard
+lib/dashboard/renew_sheet.dart,261,DateFormat_no_locale,DateFormat('d MMM'),dashboard
+lib/deals/deal_row.dart,80,DateFormat_no_locale,DateFormat('d MMM'),deals/reviews/reports
+lib/deals/deal_row.dart,185,DateFormat_no_locale,DateFormat('d MMM'),deals/reviews/reports
+lib/deals/evidence_uploader.dart,119,DateFormat_no_locale,"DateFormat('d MMM, HH:mm')",deals/reviews/reports
+lib/deals/evidence_uploader.dart,140,DateFormat_no_locale,DateFormat('d MMM'),deals/reviews/reports
+lib/deals/notifications_page.dart,136,DateFormat_no_locale,DateFormat('d MMM · HH:mm'),deals/reviews/reports
+lib/deals/review_composer.dart,325,DateFormat_no_locale,DateFormat('MMMM y'),deals/reviews/reports
+lib/deals/sold_flow_sheet.dart,629,DateFormat_no_locale,DateFormat('d MMM'),deals/reviews/reports
+lib/tg_components/tg_restaurant_showcase.dart,118,DateFormat_no_locale,DateFormat('d MMM'),other
+lib/tg_components/tg_showcase_section.dart,144,DateFormat_no_locale,DateFormat('d MMM'),other
+lib/tg_core/restaurant_config.dart,71,hardcoded_unit,/// Mirrors [PricingConfig.defaults] so PLN / day figures are not a second source.   stat,other
+lib/tg_core/tg_tokens.dart,114,hardcoded_unit,// Gross price (23% VAT included) in PLN per month.   final int monthlyPricePln; }  /// Co,other
+lib/tg_models/tg_pricing_config.dart,168,hardcoded_unit,"ePln, int days) => days <= 0 ? 0 : pricePln / days;    /// ""1,63 PLN/day"" style (comma de",other
+lib/tg_models/tg_pricing_config.dart,170,hardcoded_unit,"= 0 ? 0 : pricePln / days;    /// ""1,63 PLN/day"" style (comma decimal, 2 places).   Str",other
+lib/tg_models/tg_pricing_config.dart,171,hardcoded_unit,"int pricePln, int days, {String unit = 'PLN/day'}) {     final v = perDay(pricePln, day",other
+lib/tg_models/tg_pricing_config.dart,171,hardcoded_unit,perDayLabel default unit = 'PLN/day',other
+lib/tg_services/restaurant_inventory_sync_service.dart,138,DateFormat_no_locale,DateFormat('d MMM'),other
+lib/tg_services/restaurant_lifecycle_service.dart,355,hardcoded_unit,an rent of similar listings: $median PLN/mo.';   }    void _notify(RestaurantListin,other
+lib/product_detail/product_detail_widget.dart,1026,DateFormat_no_locale,DateFormat('d MMM y'),product-detail
+lib/restaurants/restaurant_detail_page.dart,862,DateFormat_no_locale,DateFormat('d MMM yyyy'),restaurants
+lib/restaurants/restaurant_detail_page.dart,1180,DateFormat_no_locale,DateFormat('d MMM yyyy'),restaurants
+lib/restaurants/restaurant_detail_sections.dart,102,DateFormat_no_locale,DateFormat('d MMM yyyy'),restaurants
+lib/restaurants/restaurant_detail_sections.dart,461,DateFormat_no_locale,DateFormat('d MMM yyyy'),restaurants
+lib/restaurants/restaurant_detail_sections.dart,480,DateFormat_no_locale,DateFormat('d MMM yyyy'),restaurants
+lib/restaurants/restaurant_detail_sections.dart,613,DateFormat_no_locale,DateFormat('MMM yyyy'),restaurants
+lib/restaurants/restaurant_detail_sections.dart,625,DateFormat_no_locale,DateFormat('d MMM yyyy'),restaurants
+lib/restaurants/restaurant_renew_sheet.dart,146,DateFormat_no_locale,DateFormat('d MMM yyyy'),restaurants
+lib/restaurants/restaurant_success_page.dart,80,DateFormat_no_locale,DateFormat('d MMM yyyy'),restaurants
+lib/restaurants/restaurant_wizard_page.dart,705,DateFormat_no_locale,DateFormat('d MMM yyyy'),restaurants

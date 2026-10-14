@@ -11,6 +11,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_core/promotion_engine.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'home_manufacturers_strip.dart';
@@ -71,7 +72,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     final active = _all.where((p) => p.isActive && p.isPubliclyVisible).toList();
     final now = TGClock.now();
     final sessionSeed = now.day * 17 + now.month * 3;
-    final featuredSlots = PromotionEngine.composeHomeFeatured<TGProduct>(
+    final featuredSlots = PromotionEngine.compose<TGProduct>(
+      surface: PromotionSurface.home,
       candidates: active,
       idOf: (p) => p.id,
       promoOf: (p) => PromotionService.instance.effectiveListingPromo(p),
@@ -128,8 +130,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                     },
                   )),
                 section(const HomeRestaurantsStrip()),
-                section(const HomeBestSellers()),
                 if (HomeManufacturersStrip.items().isNotEmpty) section(const HomeManufacturersStrip()),
+                section(const HomeBestSellers()),
                 section(const HomeStatsSection()),
                 const SizedBox(height: 72),
                 const TGFooter(),

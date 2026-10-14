@@ -176,7 +176,7 @@ class PromotionStat {
 }
 
 /// Surface context for [PromotionEngine.compose].
-enum PromotionSurface { homeFeatured, homeRestaurant, products, restaurants }
+enum PromotionSurface { home, homeFeatured, homeRestaurant, products, restaurants }
 
 enum PromotionSortMode { recommended, other }
 

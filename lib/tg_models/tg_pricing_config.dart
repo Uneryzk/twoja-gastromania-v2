@@ -99,6 +99,8 @@ class PricingConfig {
     this.basicStoreMonthlyPln = 199,
     this.proStoreMonthlyPln = 499,
     this.enterpriseStoreMonthlyPln = 899,
+    this.storeSixMonthDiscountBps = 1000,
+    this.storeYearlyFreeMonths = 2,
     this.storeNudgeMinListings = 4,
     this.storeNudgeThresholdPln = 196,
     this.promotions = PromotionConfig.defaults,
@@ -120,6 +122,10 @@ class PricingConfig {
   final int basicStoreMonthlyPln;
   final int proStoreMonthlyPln;
   final int enterpriseStoreMonthlyPln;
+  /// Prepaid 6-month discount in basis points (1000 = 10%).
+  final int storeSixMonthDiscountBps;
+  /// Months waived on a yearly plan (2 → pay 10 × monthly).
+  final int storeYearlyFreeMonths;
   final int storeNudgeMinListings;
   final int storeNudgeThresholdPln;
   final PromotionConfig promotions;
@@ -139,14 +145,20 @@ class PricingConfig {
 
   int get defaultListingFeePln => listingFeePln(defaultListingDays);
 
-  /// Monthly gross price by plan name (`basic` / `pro` / `enterprise`,
-  /// case-insensitive, optional " Store" suffix); null when unknown.
-  int? storeMonthlyPln(String plan) => switch (plan.toLowerCase().replaceAll(' store', '').trim()) {
-        'basic' => basicStoreMonthlyPln,
-        'pro' => proStoreMonthlyPln,
-        'enterprise' => enterpriseStoreMonthlyPln,
-        _ => null,
-      };
+  /// Monthly gross price by plan id (`basic` / `pro` / `enterprise`).
+  int? storeMonthlyPln(String plan) {
+    final k = plan.trim().replaceAll(' Store', '').replaceAll(' store', '');
+    return switch (k) {
+      'basic' || 'Basic' => basicStoreMonthlyPln,
+      'pro' || 'Pro' => proStoreMonthlyPln,
+      'enterprise' || 'Enterprise' => enterpriseStoreMonthlyPln,
+      _ => null,
+    };
+  }
+
+  int storeSixMonthsPln(int monthly) => monthly * 6 * (10000 - storeSixMonthDiscountBps) ~/ 10000;
+
+  int storeYearlyPln(int monthly) => monthly * (12 - storeYearlyFreeMonths);
 
   int restaurantFeePln(int days) => restaurantPrices[days] ?? 0;
 
@@ -221,6 +233,8 @@ class PricingConfig {
     int? basicStoreMonthlyPln,
     int? proStoreMonthlyPln,
     int? enterpriseStoreMonthlyPln,
+    int? storeSixMonthDiscountBps,
+    int? storeYearlyFreeMonths,
     int? storeNudgeMinListings,
     int? storeNudgeThresholdPln,
     PromotionConfig? promotions,
@@ -240,6 +254,8 @@ class PricingConfig {
         basicStoreMonthlyPln: basicStoreMonthlyPln ?? this.basicStoreMonthlyPln,
         proStoreMonthlyPln: proStoreMonthlyPln ?? this.proStoreMonthlyPln,
         enterpriseStoreMonthlyPln: enterpriseStoreMonthlyPln ?? this.enterpriseStoreMonthlyPln,
+        storeSixMonthDiscountBps: storeSixMonthDiscountBps ?? this.storeSixMonthDiscountBps,
+        storeYearlyFreeMonths: storeYearlyFreeMonths ?? this.storeYearlyFreeMonths,
         storeNudgeMinListings: storeNudgeMinListings ?? this.storeNudgeMinListings,
         storeNudgeThresholdPln: storeNudgeThresholdPln ?? this.storeNudgeThresholdPln,
         promotions: promotions ?? this.promotions,

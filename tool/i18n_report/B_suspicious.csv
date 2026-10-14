@@ -1,0 +1,246 @@
+key,en,tr,pl,reason,group,source
+ui_banner_entitlement_week,"Enterprise: one banner per month at no fee · ${_dd('days', 'en')}.","Enterprise: ayda bir banner ücretsiz · ${_dd('days', 'tr')}.","Enterprise: jeden baner miesięcznie bez opłaty · ${_dd('days', 'pl')}.",TR_has_EN_words:days; PL_has_EN_words:days,add-product/checkout,tg_l10n
+ui_feat_parking,Parking,Otopark,Parking,PL==EN,add-product/checkout,tg_l10n
+ui_plan_basic,Basic,Basic,Basic,TR==EN; PL==EN,add-product/checkout,tg_l10n
+ui_plan_enterprise,Enterprise,Enterprise,Enterprise,TR==EN; PL==EN,add-product/checkout,tg_l10n
+ui_plan_pro,Pro,Pro,Pro,TR==EN; PL==EN,add-product/checkout,tg_l10n
+ui_plans_priority_title,Priority Manufacturer,Öncelikli Üretici,Priority Manufacturer,PL==EN,add-product/checkout,tg_l10n
+ui_promote_14,+{fee} PLN · {period},+{fee} PLN · {period},+{fee} PLN · {period},TR==EN; PL==EN,add-product/checkout,tg_l10n
+ui_promote_30,+{fee} PLN · {period},+{fee} PLN · {period},+{fee} PLN · {period},TR==EN; PL==EN,add-product/checkout,tg_l10n
+ui_store_nudge,{n} × {fee} = {basket} PLN vs Basic Store {store} PLN,{n} × {fee} = {basket} PLN vs Basic Store {store} PLN,{n} × {fee} = {basket} PLN vs Basic Store {store} PLN,TR==EN; PL==EN,add-product/checkout,tg_l10n
+ui_wiz_approx_brutto,≈ {amount} PLN brutto,≈ {amount} PLN brutto,≈ {amount} PLN brutto,TR==EN; PL==EN,add-product/checkout,tg_l10n
+ui_wiz_approx_netto,≈ {amount} PLN netto,≈ {amount} PLN netto,≈ {amount} PLN netto,TR==EN; PL==EN,add-product/checkout,tg_l10n
+ui_wiz_free_extension,"If you get no contacts and no favorites in ${_dd('free', 'en')}, we add {extra, plural, one{# more free day} other{# more free days}}. Afterwards {price} PLN / ${_dd('paid', 'en')}.","${_dd('free', 'tr')} içinde iletişim veya favori olmazsa {extra, plural, other{# ücretsiz gün}} ekleriz. Sonrasında {price} PLN / ${_dd('paid', 'tr')}.","Jeśli w ciągu {free, plural, one{# dnia} other{# dni}} nie będzie kontaktów ani ulubionych, dodamy {extra, plural, one{# darmowy dzień} few{# darmowe dni} other{# darmowych dni}}. Potem {price} PLN / ${_dd('paid', 'pl')}.",TR_has_EN_words:free; PL_has_EN_words:free,add-product/checkout,tg_l10n
+ui_wiz_listing_free,"Restaurant listing · ${_dd('days', 'en')} · Free","Restoran ilanı · ${_dd('days', 'tr')} · Ücretsiz","Ogłoszenie restauracji · ${_dd('days', 'pl')} · Za darmo",TR_has_EN_words:days; PL_has_EN_words:days,add-product/checkout,tg_l10n
+ui_wiz_listing_paid,"Restaurant listing · ${_dd('days', 'en')} · {price},00 PLN","Restoran ilanı · ${_dd('days', 'tr')} · {price},00 PLN","Ogłoszenie restauracji · ${_dd('days', 'pl')} · {price},00 PLN",TR_has_EN_words:days; PL_has_EN_words:days,add-product/checkout,tg_l10n
+ui_wiz_promote_days,"+{price} PLN · ${_dd('days', 'en')}","+{price} PLN · ${_dd('days', 'tr')}","+{price} PLN · ${_dd('days', 'pl')}",TR_has_EN_words:days; PL_has_EN_words:days,add-product/checkout,tg_l10n
+adm_conv_reason_spam,Spam,Spam,Spam,TR==EN; PL==EN,admin,tg_l10n
+ui_admin,Admin,Admin,Admin,TR==EN; PL==EN,admin,tg_l10n
+ui_admin_banner_ads_cfg,"Banner ads: {prices} · Enterprise free ${_dd('free', 'en')} {inc}/mo · max {max} sponsored/day","Banner: {prices} · Enterprise ücretsiz ${_dd('free', 'tr')} {inc}/ay · günde en fazla {max} sponsorlu","Banery: {prices} · Enterprise za darmo ${_dd('free', 'pl')} {inc}/mies. · maks. {max} sponsorowanych/dzień",TR_has_EN_words:free; PL_has_EN_words:free,admin,tg_l10n
+ui_admin_risk_label,Risk: {flags},Risk: {flags},Ryzyko: {flags},TR==EN,admin,tg_l10n
+ui_admin_status,Status,Durum,Status,PL==EN,admin,tg_l10n
+bill_col_net,Net,Net,Netto,TR==EN,dashboard,tg_l10n
+bill_col_status,Status,Durum,Status,PL==EN,dashboard,tg_l10n
+bill_col_vat,VAT 23%,KDV %23,VAT 23%,PL==EN,dashboard,tg_l10n
+bill_f_status,Status,Durum,Status,PL==EN,dashboard,tg_l10n
+dash_quota_free_note,Free listings never expire; each listing runs {days} days.,Ücretsiz ilan hakları sona ermez; her ilan {days} gün yayında kalır.,Darmowe ogłoszenia nie wygasają; każde jest aktywne {days} dni.,TR_has_EN_words:days; PL_has_EN_words:days,dashboard,tg_l10n
+notif_ch_email,E-mail,E-posta,E-mail,PL==EN,dashboard,tg_l10n
+notif_ch_push,Push,Anlık bildirim,Push,PL==EN,dashboard,tg_l10n
+set_del_what_body,"Your listings are hidden right away. After {days} days your profile, contact details and messages are erased. Until then you can cancel here.","İlanlarınız hemen gizlenir. {days} gün sonra profiliniz, iletişim bilgileriniz ve mesajlarınız silinir. O zamana kadar buradan iptal edebilirsiniz.","Ogłoszenia zostaną od razu ukryte. Po {days} dniach usuniemy profil, dane kontaktowe i wiadomości. Do tego czasu możesz anulować tutaj.",TR_has_EN_words:days; PL_has_EN_words:days,dashboard,tg_l10n
+ui_free_listings_body,"Each listing runs ${_dd('days', 'en')} from its own publish date. Unused free slots never expire.","Her ilan, yayın tarihinden itibaren ${_dd('days', 'tr')} sürer. Kullanılmayan ücretsiz haklar dolmaz.","Każde ogłoszenie trwa ${_dd('days', 'pl')} od daty publikacji. Nieużywane darmowe sloty nie wygasają.",TR_has_EN_words:days; PL_has_EN_words:days,dashboard,tg_l10n
+ui_pill_store_short,{used}/{limit},{used}/{limit},{used}/{limit},TR==EN; PL==EN,dashboard,tg_l10n
+uyum_bulk_line,"Equipment listing · ${_dd('days', 'en')} · {fee} PLN × {n}","Ekipman ilanı · ${_dd('days', 'tr')} · {fee} PLN × {n}","Ogłoszenie sprzętu · ${_dd('days', 'pl')} · {fee} PLN × {n}",TR_has_EN_words:days; PL_has_EN_words:days,dashboard,tg_l10n
+uyum_credit_covers,The credit covers {tier} for {days}.,Kredi {tier} için {days} süreyi kapsar.,Kredyt pokrywa {tier} na {days}.,TR_has_EN_words:days; PL_has_EN_words:days,dashboard,tg_l10n
+vc_email_title,E-mail,E-posta,E-mail,PL==EN,dashboard,tg_l10n
+ver_admin_override_badge,Override {v} · {reason},Override {v} · {reason},Nadpisanie {v} · {reason},TR==EN,dashboard,tg_l10n
+07sg5qrr,Products,(defaults to EN),Products,PL==EN,home,internationalization.dart
+0ea2dpwc,Rest. for Sale,(defaults to EN),Rest. for Sale,PL==EN,home,internationalization.dart
+0loae64d,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+12y5ugqc,"""This advertising page will be active soon!""",(defaults to EN),"""This advertising page will be active soon!""",PL==EN,home,internationalization.dart
+1c6hbmjq,Home,(defaults to EN),Home,PL==EN,home,internationalization.dart
+1dj4026m,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+1wlzqmd4,Special Order,(defaults to EN),"Special Order
+",PL==EN,home,internationalization.dart
+20976tzx,Home,(defaults to EN),Home,PL==EN,home,internationalization.dart
+23nhkzhd,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+23qc5i3e,Search...,(defaults to EN),Search...,PL==EN,home,internationalization.dart
+25fyjd0b,Restaurants for Sale,(defaults to EN),Restaurants for Sale,PL==EN,home,internationalization.dart
+26gk2tw0,Search...,(defaults to EN),Search...,PL==EN,home,internationalization.dart
+27crp9jm,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+32tshi4e,"The best deals on new and
+ used food service equipment.",(defaults to EN),"The best deals on new and
+ used food service equipment.","PL==EN; PL_has_EN_words:The,and",home,internationalization.dart
+38ja0yke,1426,(defaults to EN),1426,PL==EN,home,internationalization.dart
+46ywvsmm,Search...,(defaults to EN),Search...,PL==EN,home,internationalization.dart
+47njv3h2,"Professional 2-group espresso machine with
+steam wand, 230 V",(defaults to EN),"Professional 2-group espresso machine with
+steam wand, 230 V",PL==EN,home,internationalization.dart
+48nowz7l,"""This advertising page will be active soon!""",(defaults to EN),"""This advertising page will be active soon!""",PL==EN,home,internationalization.dart
+4ty1zusx,Products,(defaults to EN),Products,PL==EN,home,internationalization.dart
+4u93q9h1,Equipment name - Brand,(defaults to EN),Equipment name - Brand,PL==EN,home,internationalization.dart
+5303zvt8,Log in,(defaults to EN),Log in,PL==EN,home,internationalization.dart
+59oi91um,Products,(defaults to EN),Products,PL==EN,home,internationalization.dart
+5ar55al9,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+5l4h3wu9,"Electric Deck Pizza Oven Ideal for pizzerias, 
+restaurants,",(defaults to EN),"Electric Deck Pizza Oven Ideal for pizzerias, 
+restaurants, ",PL==EN,home,internationalization.dart
+5mtqglf8,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+63ofn1a4,Home,(defaults to EN),Home,PL==EN,home,internationalization.dart
+6bqlf0br,Search...,(defaults to EN),Search...,PL==EN,home,internationalization.dart
+6etf37ml,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+6re77w1s,Home,(defaults to EN),Home,PL==EN,home,internationalization.dart
+6z9sh9z6,Verified Seller,(defaults to EN),Verified Seller,PL==EN; PL_has_EN_words:Seller,home,internationalization.dart
+76kthqx7,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+7gubhem3,Verified Seller,(defaults to EN),Verified Seller,PL==EN; PL_has_EN_words:Seller,home,internationalization.dart
+7qu6uj5f,Equipment name,(defaults to EN),Equipment name ,PL==EN,home,internationalization.dart
+83vfx3yz,"The best deals on new and
+ used food service equipment.",(defaults to EN),"The best deals on new and
+ used food service equipment.","PL==EN; PL_has_EN_words:The,and",home,internationalization.dart
+88dfqvdt,Rybnik,(defaults to EN),Rybnik,PL==EN,home,internationalization.dart
+8ftowg17,Rest. for Sale,(defaults to EN),Rest. for Sale,PL==EN,home,internationalization.dart
+8yl5pps4,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+9cgbzuxc,+48 (532) 784-074,(defaults to EN), +48 (532) 784-074,PL==EN,home,internationalization.dart
+9me9cojr,Special Order,(defaults to EN),Special Order,PL==EN,home,internationalization.dart
+9rrf1elm,Electric,(defaults to EN),Electric,PL==EN,home,internationalization.dart
+a4y5cxzk,+48 (532) 784-074,(defaults to EN), +48 (532) 784-074,PL==EN,home,internationalization.dart
+aqgybebk,REFRIGERATED PREPARATION STATION,(defaults to EN),REFRIGERATED PREPARATION STATION,PL==EN,home,internationalization.dart
+au4lv5on,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+ay1m6ate,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+bg7wx26t,+48 (532) 784-074,(defaults to EN), +48 (532) 784-074,PL==EN,home,internationalization.dart
+bgh1mx16,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+bt6xvzwo,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+bzn0a3mp,Search...,(defaults to EN),Search...,PL==EN,home,internationalization.dart
+c9w49cnd,to offer a unique product or serviceess?,(defaults to EN),to offer a unique product or serviceess?,PL==EN,home,internationalization.dart
+cpih39gi,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+d782wr2l,+48 (532) 784-074,(defaults to EN), +48 (532) 784-074,PL==EN,home,internationalization.dart
+dlqzxlbc,"""This advertising page will be active soon!""",(defaults to EN),"""This advertising page will be active soon!""",PL==EN,home,internationalization.dart
+dse9kwrm,Restaurants for Sale,(defaults to EN),Restaurants for Sale,PL==EN,home,internationalization.dart
+e3amhf7n,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+e471tjoy,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+ez9byhwt,Rest. for Sale,(defaults to EN),Rest. for Sale,PL==EN,home,internationalization.dart
+f5p5n0cp,Restaurants for Sale,(defaults to EN),Restaurants for Sale,PL==EN,home,internationalization.dart
+fyq8srxv,Verified Seller,(defaults to EN),Verified Seller,PL==EN; PL_has_EN_words:Seller,home,internationalization.dart
+gi9u2us2,Special Order,(defaults to EN),Special Order,PL==EN,home,internationalization.dart
+ha3jf9ll,What factors contribute to the profitability of a food and beverage business?,(defaults to EN),What factors contribute to the profitability of a food and beverage business?,"PL==EN; PL_has_EN_words:and,the",home,internationalization.dart
+hfv8t9st,Special Order,(defaults to EN),Special Order,PL==EN,home,internationalization.dart
+i0r5mu12,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+inx41xc2,Log in,(defaults to EN),Log in,PL==EN,home,internationalization.dart
+iq4uz3b3,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+j7ebtgo7,Special Order,(defaults to EN),"Special Order
+",PL==EN,home,internationalization.dart
+jarfuz0t,Equipment name,(defaults to EN),Equipment name ,PL==EN,home,internationalization.dart
+jcoz0j60,Featured Offers,(defaults to EN),Featured Offers,PL==EN,home,internationalization.dart
+jjbaftm6,Log in,(defaults to EN),Log in,PL==EN,home,internationalization.dart
+jjq4vbsg,Verified Seller,(defaults to EN),Verified Seller,PL==EN; PL_has_EN_words:Seller,home,internationalization.dart
+juy1o8vy,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+kby504r4,Special Order,(defaults to EN),"Special Order
+",PL==EN,home,internationalization.dart
+kuhwqpgw,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+kwg92828,Special Order,(defaults to EN),Special Order,PL==EN,home,internationalization.dart
+l2bcp2lt,REFRIGERATED PREPARATION STATION,(defaults to EN),REFRIGERATED PREPARATION STATION,PL==EN,home,internationalization.dart
+l2ozfxa6,Verified Seller,(defaults to EN),Verified Seller,PL==EN; PL_has_EN_words:Seller,home,internationalization.dart
+lpytiz0d,Verified Seller,(defaults to EN),Verified Seller,PL==EN; PL_has_EN_words:Seller,home,internationalization.dart
+m0r15zel,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+m8a9s7qf,Equipment name,(defaults to EN),Equipment name ,PL==EN,home,internationalization.dart
+mlw53iyj,Special Order,(defaults to EN),"Special Order
+",PL==EN,home,internationalization.dart
+n82svq5m,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+nrljftmk,Equipment name,(defaults to EN),Equipment name ,PL==EN,home,internationalization.dart
+o05vvawl,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+o0m6z84m,Rest. for Sale,(defaults to EN),Rest. for Sale,PL==EN,home,internationalization.dart
+o7xd1sjn,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+oib93k7r,"""This advertising page will be active soon!""",(defaults to EN),"""This advertising page will be active soon!""",PL==EN,home,internationalization.dart
+oxuc635r,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+ppbzaye2,+48 (532) 784-074,(defaults to EN), +48 (532) 784-074,PL==EN,home,internationalization.dart
+pujmtcid,Equipment name,(defaults to EN),Equipment name ,PL==EN,home,internationalization.dart
+pv0lisaf,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+q4sa20zm,Restaurants for Sale,(defaults to EN),Restaurants for Sale,PL==EN,home,internationalization.dart
+qavnhw0p,Gas,(defaults to EN),Gas,PL==EN,home,internationalization.dart
+qovk7g7v,Products,(defaults to EN),Products,PL==EN,home,internationalization.dart
+qp384ho7,Katowice,(defaults to EN),Katowice,PL==EN,home,internationalization.dart
+rnzlc76f,Log in,(defaults to EN),Log in,PL==EN,home,internationalization.dart
+s08tmskc,Products,(defaults to EN),Products,PL==EN,home,internationalization.dart
+s7g9syzg,Electric,(defaults to EN),Electric,PL==EN,home,internationalization.dart
+seysxujz,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+t8itc4zt,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+tyqvfdlg,Electric,(defaults to EN),Electric,PL==EN,home,internationalization.dart
+udbfvg3a,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+uempq43k,"Running a profitable restaurant business requires not only delicious food, but also good management, financial control, and meeting customer expectations.",(defaults to EN),"Running a profitable restaurant business requires not only delicious food, but also good management, financial control, and meeting customer expectations.",PL==EN; PL_has_EN_words:and,home,internationalization.dart
+uyxzh0mp,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+vrnvrzc2,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+vtsxlyrl,Home,(defaults to EN),Home,PL==EN,home,internationalization.dart
+vxngjlo2,For rent,(defaults to EN),For rent,PL==EN,home,internationalization.dart
+w2dwtd94,Log in,(defaults to EN),Log in,PL==EN,home,internationalization.dart
+wfr70oun,Products,(defaults to EN),Products,PL==EN,home,internationalization.dart
+x5fioudz,For sale,(defaults to EN),For sale,PL==EN,home,internationalization.dart
+x6jpa9tr,Warsowa,(defaults to EN),Warsowa,PL==EN,home,internationalization.dart
+xni8isgr,Special Order,(defaults to EN),"Special Order
+",PL==EN,home,internationalization.dart
+xnqnc4k5,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+xwirrqt8,Electric,(defaults to EN),Electric,PL==EN,home,internationalization.dart
+yaxeeep1,Featured Offers,(defaults to EN),Featured Offers,PL==EN,home,internationalization.dart
+yrbrz1jd,Log in,(defaults to EN),Log in,PL==EN,home,internationalization.dart
+yyxm78jg,281,(defaults to EN),281,PL==EN,home,internationalization.dart
+yzc25hk4,"Refrigerated Bar Station Integrated 
+refrigeration for ingredients and beverages.",(defaults to EN),"Refrigerated Bar Station Integrated 
+refrigeration for ingredients and beverages.",PL==EN; PL_has_EN_words:and,home,internationalization.dart
+z9mxi2df,650,(defaults to EN),650,PL==EN,home,internationalization.dart
+zdgqeclk,Add Product,(defaults to EN),"Add Product
+",PL==EN,home,internationalization.dart
+dur_price_per,{price} PLN / {period},{price} PLN / {period},{price} PLN / {period},TR==EN; PL==EN,other,tg_l10n
+gr_exp_marketing,Marketing,Pazarlama,Marketing,PL==EN,other,tg_l10n
+gr_period_p0to3,0-3. ay,0-3. ay,0-3. ay,TR==EN; PL==EN,other,tg_l10n
+gr_period_p3to6,3-6. ay,3-6. ay,3-6. ay,TR==EN; PL==EN,other,tg_l10n
+gr_period_p6to12,6-12. ay,6-12. ay,6-12. ay,TR==EN; PL==EN,other,tg_l10n
+gr_q5_problem,Problem,Sorun,Problem,PL==EN,other,tg_l10n
+gr_sc_banner,Banner,Banner,Baner,TR==EN,other,tg_l10n
+gr_src_system,System,Sistem,System,PL==EN,other,tg_l10n
+gr_stream_banner,Banner,Banner,Baner,TR==EN,other,tg_l10n
+ref_col_status,Status,Durum,Status,PL==EN,other,tg_l10n
+regulamin_photo_license_status,DRAFT - legal review required,(defaults to EN),(defaults to EN),TR_defaults_to_EN; PL_defaults_to_EN,other,tg_l10n
+ui_listing_fee_body,"After the free tier, every listing costs {fee} PLN for ${_dd('days', 'en')}.","Ücretsiz kotadan sonra her ilan ${_dd('days', 'tr')} için {fee} PLN tutar.","Po darmowym limicie każde ogłoszenie kosztuje {fee} PLN za ${_dd('days', 'pl')}.",TR_has_EN_words:days; PL_has_EN_words:days,product-detail,tg_l10n
+ui_listing_fee_title,"{fee} PLN / ${_dd('days', 'en')} per listing","İlan başına {fee} PLN / ${_dd('days', 'tr')}","{fee} PLN / ${_dd('days', 'pl')} za ogłoszenie",TR_has_EN_words:days; PL_has_EN_words:days,product-detail,tg_l10n
+ui_listing_no_short,No. {n},No. {n},Nr {n},TR==EN,product-detail,tg_l10n
+ui_3ds_title,3-D Secure,3-D Secure,3-D Secure,TR==EN; PL==EN,products/cards,tg_l10n
+ui_basic_store_nudge,{n} × {fee} = {sum} PLN vs Basic Store {store} PLN,{n} × {fee} = {sum} PLN vs Basic Store {store} PLN,{n} × {fee} = {sum} PLN vs Basic Store {store} PLN,TR==EN; PL==EN,products/cards,tg_l10n
+ui_brutto,Brutto,Brüt,Brutto,PL==EN,products/cards,tg_l10n
+ui_brutto_inline,brutto,brüt,brutto,PL==EN,products/cards,tg_l10n
+ui_card_brands,"Visa, Mastercard","Visa, Mastercard","Visa, Mastercard",TR==EN; PL==EN,products/cards,tg_l10n
+ui_dev_admin,Admin,Admin,Admin,TR==EN; PL==EN,products/cards,tg_l10n
+ui_dev_moderator,Moderator,Moderatör,Moderator,PL==EN,products/cards,tg_l10n
+ui_duration_days_price,"${_dd('days', 'en')} · {fee} PLN","${_dd('days', 'tr')} · {fee} PLN","${_dd('days', 'pl')} · {fee} PLN",TR_has_EN_words:days; PL_has_EN_words:days,products/cards,tg_l10n
+ui_eq_brutto,= {n} PLN brutto,= {n} PLN brüt,= {n} PLN brutto,PL==EN,products/cards,tg_l10n
+ui_eq_netto,= {n} PLN netto,= {n} PLN net,= {n} PLN netto,PL==EN,products/cards,tg_l10n
+ui_faq,FAQ,SSS,FAQ,PL==EN,products/cards,tg_l10n
+ui_identity_kind_email,e-mail,e-posta,e-mail,PL==EN,products/cards,tg_l10n
+ui_logo,Logo,Logo,Logo,TR==EN; PL==EN,products/cards,tg_l10n
+ui_min,Min,Min,Min,TR==EN; PL==EN,products/cards,tg_l10n
+ui_model,Model,Model,Model,TR==EN; PL==EN,products/cards,tg_l10n
+ui_n_months,{n} mies.,{n} ay,{n} mies.,PL==EN,products/cards,tg_l10n
+ui_netto,Netto,Net,Netto,PL==EN,products/cards,tg_l10n
+ui_netto_inline,netto,net,netto,PL==EN,products/cards,tg_l10n
+ui_next_listing,"Next listing: {fee} PLN / ${_dd('days', 'en')}","Sonraki ilan: {fee} PLN / ${_dd('days', 'tr')}","Następne ogłoszenie: {fee} PLN / ${_dd('days', 'pl')}",TR_has_EN_words:days; PL_has_EN_words:days,products/cards,tg_l10n
+ui_next_listing_fee,"Next listing: {fee} PLN / ${_dd('days', 'en')}.","Sonraki ilan: {fee} PLN / ${_dd('days', 'tr')}.","Następne ogłoszenie: {fee} PLN / ${_dd('days', 'pl')}.",TR_has_EN_words:days; PL_has_EN_words:days,products/cards,tg_l10n
+ui_parking,Parking,Otopark,Parking,PL==EN,products/cards,tg_l10n
+ui_per_month,/ mies.,/ ay,/ mies.,PL==EN,products/cards,tg_l10n
+ui_platform,Platform,Platform,Platforma,TR==EN,products/cards,tg_l10n
+ui_plus_km,+{n} km,+{n} km,+{n} km,TR==EN; PL==EN,products/cards,tg_l10n
+ui_region,Region,Bölge,Region,PL==EN,products/cards,tg_l10n
+ui_role_admin,Admin,Yönetici,Admin,PL==EN,products/cards,tg_l10n
+ui_role_moderator,Moderator,Moderatör,Moderator,PL==EN,products/cards,tg_l10n
+ui_shown_of,{shown} / {total},{shown} / {total},{shown} / {total},TR==EN; PL==EN,products/cards,tg_l10n
+ui_sms_phone_hint,___ ___ ___,___ ___ ___,___ ___ ___,TR==EN; PL==EN,products/cards,tg_l10n
+ui_status,Status,Durum,Status,PL==EN,products/cards,tg_l10n
+ui_sub_espresso,Espresso,Espresso,Espresso,TR==EN; PL==EN,products/cards,tg_l10n
+ui_svc_leasing,Leasing,Leasing,Leasing,TR==EN; PL==EN,products/cards,tg_l10n
+ui_voivodeship,Województwo,Voyvodalık,Województwo,PL==EN,products/cards,tg_l10n
+resto_eq_bar_blender,Bar blender,Bar blender,Blender barowy,TR==EN,restaurants,tg_l10n
+resto_eq_bar_speed_rail,Speed rail,Speed rail,Speed rail,TR==EN; PL==EN,restaurants,tg_l10n
+resto_eq_coffee_blender,Bar blender,Bar blender,Blender barowy,TR==EN,restaurants,tg_l10n
+resto_type_bar,Bar,Bar,Bar,TR==EN; PL==EN,restaurants,tg_l10n
+resto_type_catering,Catering / dark kitchen,Catering / dark kitchen,Catering / dark kitchen,TR==EN; PL==EN,restaurants,tg_l10n
+resto_type_fast_food,Fast food,Hamburgerci,Fast food,PL==EN,restaurants,tg_l10n
+resto_type_pizzeria,Pizzeria,Pizzacı,Pizzeria,PL==EN,restaurants,tg_l10n
+so_consent_cancelled,"Request cancelled. We keep your draft for ${_dd('days', 'en')}.","Talep iptal edildi. Taslağınızı ${_dd('days', 'tr')} saklarız.","Zapytanie anulowane. Szkic przechowamy przez ${_dd('days', 'pl')}.",TR_has_EN_words:days; PL_has_EN_words:days,special-order,tg_l10n
+so_consent_channel_email,e-mail,e-posta,e-mail,PL==EN,special-order,tg_l10n
+ui_mfr_priority,Priority,Priority,Priority,TR==EN; PL==EN,special-order,tg_l10n
+ui_mfr_promote_from,"From {price} PLN / ${_dd('days', 'en')}","${_dd('days', 'tr')} {price} PLN'den başlayan","Od {price} PLN / ${_dd('days', 'pl')}",TR_has_EN_words:days; PL_has_EN_words:days,special-order,tg_l10n
+ui_mfr_sponsor_sub,"One sponsor per project type × region at a time · from {price} PLN / ${_dd('days', 'en')}. Paid slots go live after admin approval.","Proje türü × bölge başına aynı anda bir sponsor · ${_dd('days', 'tr')} için {price} PLN'den başlayan fiyatlarla. Ödenen slotlar admin onayından sonra yayına girer.","Jeden sponsor na typ projektu × region naraz · od {price} PLN / ${_dd('days', 'pl')}. Opłacone sloty startują po akceptacji admina.",TR_has_EN_words:days; PL_has_EN_words:days,special-order,tg_l10n
+ui_so_admin_routing,Routing / LeadAccess,Yönlendirme / LeadAccess,Routing / LeadAccess,PL==EN,special-order,tg_l10n
+ui_so_completion_status,Status: {s},Durum: {s},Status: {s},PL==EN,special-order,tg_l10n
+ui_so_mat_aisi304,AISI 304,AISI 304,AISI 304,TR==EN; PL==EN,special-order,tg_l10n
+ui_so_mat_aisi430,AISI 430,AISI 430,AISI 430,TR==EN; PL==EN,special-order,tg_l10n
+ui_so_mat_aluminium,Aluminium,Alüminyum,Aluminium,PL==EN,special-order,tg_l10n
+ui_so_price_line,"{net} PLN {netto}
+{gross} PLN {brutto} ({vat}% {vatLabel})","{net} PLN {netto}
+{gross} PLN {brutto} (%{vat} {vatLabel})","{net} PLN {netto}
+{gross} PLN {brutto} ({vat}% {vatLabel})",PL==EN,special-order,tg_l10n

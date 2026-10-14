@@ -235,10 +235,13 @@ class _ScenLine extends StatelessWidget {
           SizedBox(
             width: 72,
             child: TextFormField(
-              initialValue: '${priceGrosz ~/ 100}',
-              keyboardType: TextInputType.number,
+              initialValue: GrowthMoney.inputFromGrosz(priceGrosz),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(isDense: true, suffixText: 'PLN'),
-              onChanged: (v) => onPrice((int.tryParse(v) ?? 0) * 100),
+              onChanged: (v) {
+                final grosz = GrowthMoney.tryParsePlnToGrosz(v);
+                if (grosz != null) onPrice(grosz);
+              },
             ),
           ),
         ],
@@ -380,7 +383,7 @@ class _GrowthBudgetTabState extends State<GrowthBudgetTab> {
   }
 
   Future<void> _form(BuildContext context, [GrowthExpense? existing]) async {
-    final amount = TextEditingController(text: existing == null ? '' : '${existing.amountGrosz / 100}');
+    final amount = TextEditingController(text: existing == null ? '' : GrowthMoney.inputFromGrosz(existing.amountGrosz));
     final desc = TextEditingController(text: existing?.description ?? '');
     final vendor = TextEditingController(text: existing?.vendor ?? '');
     final inv = TextEditingController(text: existing?.invoiceRef ?? '');
@@ -416,7 +419,11 @@ class _GrowthBudgetTabState extends State<GrowthBudgetTab> {
                   TextField(key: const Key('gr-exp-overrun'), controller: overrun, decoration: InputDecoration(labelText: context.t('gr_overrun_note'))),
                   FilledButton(
                     onPressed: () {
-                      final grosz = _plnToGrosz(amount.text);
+                      final grosz = GrowthMoney.tryParsePlnToGrosz(amount.text);
+                      if (grosz == null) {
+                        Navigator.pop(ctx, 'pln_invalid');
+                        return;
+                      }
                       final draft = GrowthExpense(
                         id: existing?.id ?? '',
                         date: date,
@@ -446,7 +453,12 @@ class _GrowthBudgetTabState extends State<GrowthBudgetTab> {
       },
     );
     if (context.mounted && err != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t(err == 'overrun_note_required' ? 'gr_overrun_required' : 'gr_reason_required'))));
+      final key = switch (err) {
+        'overrun_note_required' => 'gr_overrun_required',
+        'pln_invalid' => 'gr_pln_invalid',
+        _ => 'gr_reason_required',
+      };
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t(key))));
     }
   }
 
@@ -697,15 +709,6 @@ class _GrowthWeeklyTabState extends State<GrowthWeeklyTab> {
   }
 }
 
-int _plnToGrosz(String raw) {
-  final t = raw.trim().replaceAll(' ', '').replaceAll(',', '.');
-  if (t.isEmpty) return 0;
-  final parts = t.split('.');
-  final zl = int.tryParse(parts.first) ?? 0;
-  final frac = parts.length > 1 ? parts[1].padRight(2, '0') : '00';
-  final gr = int.tryParse(frac.substring(0, 2)) ?? 0;
-  return zl * 100 + gr;
-}
 
 class _Col extends StatelessWidget {
   const _Col({required this.title, required this.child});

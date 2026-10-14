@@ -12,6 +12,7 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_components/tg_inline_translate.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
@@ -399,7 +400,7 @@ class _RightColumn extends StatelessWidget {
             children: [
               Text(seller?.name ?? context.t('ui_seller'), style: theme.titleSmall.override(fontWeight: FontWeight.w900)),
               const SizedBox(height: 4),
-              Text(seller == null ? '' : adminSellerKindL10n(context, seller.type, verified: seller.verified), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w700)),
+              Text(seller == null ? '' : adminSellerKindL10n(context, seller.type, verified: seller != null && tgShowsVerifiedSellerBadge(seller)), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Text(context.t('ui_account_age', {'n': '$age'}), style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
               Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [

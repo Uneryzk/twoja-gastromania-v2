@@ -5,6 +5,7 @@ import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_models/tg_deal.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
@@ -317,7 +318,7 @@ class DealService extends ChangeNotifier {
         city: listing.city,
         listingType: listing.listingType.key,
         sellerName: listing.seller.name,
-        sellerVerified: listing.seller.verified,
+        sellerVerified: tgShowsVerifiedSellerBadge(listing.seller),
       );
 
   Future<TGDeal?> finalizeSold({
@@ -643,7 +644,7 @@ class DealService extends ChangeNotifier {
         price: cached.price,
         city: cached.city,
         sellerName: cached.seller.name,
-        sellerVerified: cached.seller.verified,
+        sellerVerified: tgShowsVerifiedSellerBadge(cached.seller),
         status: cached.status,
         ownerId: cached.ownerId,
       );

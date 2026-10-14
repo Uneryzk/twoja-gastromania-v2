@@ -33,4 +33,4 @@ TGSeller tgWithVerification(TGSeller seller) {
 }
 
 TGSeller tgSellerFromProfile(TGStoreProfile p) =>
-    TGSeller(id: p.sellerKey, name: p.name, type: p.type, verified: p.verified, rating: p.rating);
+    TGSeller(id: p.sellerKey, name: p.name, type: p.type, verified: false, rating: p.rating);

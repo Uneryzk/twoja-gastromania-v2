@@ -96,18 +96,29 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
       }
     }
     context.read<FakeAuthState>().logIn();
-    if (_model.isRegister) _applyReferral(context.read<FakeAuthState>());
+    final auth = context.read<FakeAuthState>();
+    if (_model.isRegister && _isNewAccountThisSession(auth)) {
+      _applyReferral(auth, accountCreatedThisSession: true);
+    }
     showTGToast(context, context.t('ui_signed_in_demo'));
     TGNav.home(context);
   }
 
-  void _applyReferral(FakeAuthState auth, {String email = '', String phone = ''}) {
+  bool _isNewAccountThisSession(FakeAuthState auth) {
+    if (auth.referredAt != null) return false;
+    if (auth.referredByRepId != null && auth.referredByRepId!.isNotEmpty) return false;
+    return !ReferralRepository.instance.isSignupLocked(auth.userId);
+  }
+
+  void _applyReferral(FakeAuthState auth, {String email = '', String phone = '', required bool accountCreatedThisSession}) {
+    if (!accountCreatedThisSession || !_isNewAccountThisSession(auth)) return;
     final acc = ReferralRepository.instance.applySessionOnSignup(
       userId: auth.userId,
       displayName: auth.displayName,
       segment: TGReferralSegment.individual,
       email: email,
       phone: phone,
+      accountCreatedThisSession: true,
     );
     auth.applyReferralMirror(acc);
   }
@@ -143,7 +154,10 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
       AccountIdentityService.instance.claim(email: email, phone: phone);
     }
     context.read<FakeAuthState>().logIn();
-    if (_model.isRegister) _applyReferral(context.read<FakeAuthState>(), email: email, phone: phone);
+    final auth = context.read<FakeAuthState>();
+    if (_model.isRegister && _isNewAccountThisSession(auth)) {
+      _applyReferral(auth, email: email, phone: phone, accountCreatedThisSession: true);
+    }
     showTGToast(context, context.t('ui_signed_in_demo'));
     TGNav.home(context);
   }
@@ -194,6 +208,8 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                       conflict: _conflict,
                       onReportIssue: _reportIssue,
                       referralCode: widget.referralCode,
+                      applicantUserId: context.read<FakeAuthState>().userId,
+                      signupLocked: ReferralRepository.instance.isSignupLocked(context.read<FakeAuthState>().userId),
                       onTogglePasswordVisibility: () => safeSetState(
                         () => _model.passwordVisibility = !_model.passwordVisibility,
                       ),
@@ -321,6 +337,8 @@ class LoginCard extends StatelessWidget {
     this.conflict,
     this.onReportIssue,
     this.referralCode,
+    this.signupLocked = false,
+    this.applicantUserId,
   });
 
   final String logoAssetPath;
@@ -337,6 +355,8 @@ class LoginCard extends StatelessWidget {
   final TGIdentityConflict? conflict;
   final VoidCallback? onReportIssue;
   final String? referralCode;
+  final bool signupLocked;
+  final String? applicantUserId;
   final VoidCallback onTogglePasswordVisibility;
   final VoidCallback onToggleMode;
   final VoidCallback onForgotPassword;
@@ -447,7 +467,7 @@ class LoginCard extends StatelessWidget {
                 prefixIcon: Icons.phone_outlined,
               ),
               const SizedBox(height: 12),
-              ReferralCodeField(initialCode: referralCode),
+              ReferralCodeField(initialCode: referralCode, signupLocked: signupLocked, applicantUserId: applicantUserId),
             ],
             if (conflict != null) ...[
               const SizedBox(height: 12),

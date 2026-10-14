@@ -306,7 +306,7 @@ List<_ChipSpec> _chipSpecs(BuildContext context, TGProductsQueryState q) {
   for (final c in q.categories) {
     add(categoryLabel(c, t: t), q.copyWith(categories: {...q.categories}..remove(c)));
   }
-  final basis = q.priceFilterBasis == TGPriceFilterBasis.brutto ? t('ui_brutto').toLowerCase() : t('ui_netto').toLowerCase();
+  final basis = q.priceFilterBasis == TGPriceFilterBasis.brutto ? t('ui_brutto_inline') : t('ui_netto_inline');
   if (q.minPrice != null) add(t('ui_from_price', {'price': formatPln(q.minPrice!), 'basis': basis}), q.copyWith(minPriceToNull: true));
   if (q.maxPrice != null) add(t('ui_up_to_price', {'price': formatPln(q.maxPrice!), 'basis': basis}), q.copyWith(maxPriceToNull: true));
   if (!q.includeNoPrice) add(t('ui_without_price_hidden'), q.copyWith(includeNoPrice: true));

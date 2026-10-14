@@ -35,6 +35,33 @@ class PromotionEngine {
     return out;
   }
 
+  /// Dispatches by [surface]. Homepage (`home` / `homeFeatured`) is Spotlight → Glow only; never Bold.
+  static List<PromotionSlot<T>> compose<T>({
+    required PromotionSurface surface,
+    required List<T> candidates,
+    required String Function(T item) idOf,
+    required Promotion? Function(T item) promoOf,
+    required int sessionSeed,
+    PromotionSortMode sort = PromotionSortMode.recommended,
+    int page = 1,
+  }) {
+    switch (surface) {
+      case PromotionSurface.home:
+      case PromotionSurface.homeFeatured:
+        return composeHomeFeatured(candidates: candidates, idOf: idOf, promoOf: promoOf, sessionSeed: sessionSeed);
+      case PromotionSurface.homeRestaurant:
+        return composeHomeRestaurant(candidates: candidates, idOf: idOf, promoOf: promoOf, sessionSeed: sessionSeed);
+      case PromotionSurface.products:
+      case PromotionSurface.restaurants:
+        return composeCatalogue(
+          filteredOrganic: candidates,
+          idOf: idOf,
+          promoOf: promoOf,
+          context: PromotionComposeContext(surface: surface, sort: sort, page: page, sessionSeed: sessionSeed),
+        ).pinned;
+    }
+  }
+
   /// Homepage equipment strip: Spotlight → Glow only, max [homeFeaturedMax]. No Bold.
   static List<PromotionSlot<T>> composeHomeFeatured<T>({
     required List<T> candidates,

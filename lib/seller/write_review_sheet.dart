@@ -11,6 +11,7 @@ import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
 import 'package:twoja_gastromania/tg_core/tg_toast.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
@@ -55,7 +56,7 @@ Future<void> showWriteReviewFlow(BuildContext context, TGStoreProfile profile) a
     sellerId: profile.sellerKey,
     sellerName: profile.name,
     listingNo: confirmed?.listingNo ?? existing?.listingNo,
-    sellerVerified: profile.verified,
+    sellerVerified: tgShowsVerifiedSellerBadge(tgSellerFromProfile(profile)),
   );
 }
 

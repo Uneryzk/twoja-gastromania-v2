@@ -37,8 +37,12 @@ class ReferralRepository extends ChangeNotifier {
 
   int _seq = 1;
   bool _seeded = false;
+  final Set<String> _signedUpUserIds = {};
 
   bool get _hideMock => TGRevenueConfigService.instance.productionMode;
+
+  /// Seed / debug writers: debug builds only, and never in Production Mode.
+  bool get _allowDevReferralWrites => kDebugMode && !_hideMock;
 
   void reset() {
     _reps.clear();
@@ -54,22 +58,37 @@ class ReferralRepository extends ChangeNotifier {
     sessionConsent = false;
     _seq = 1;
     _seeded = false;
+    _signedUpUserIds.clear();
     config = const TGReferralConfig();
     notifyListeners();
   }
 
   void ensureSeeded() {
-    if (_hideMock) return;
+    if (!_allowDevReferralWrites) return;
     if (_seeded) return;
     _seeded = true;
     _seedMocks();
   }
 
   @visibleForTesting
-  void debugAddRep(TGRepresentative r) => _reps.add(r);
+  void debugAddRep(TGRepresentative r) {
+    if (!_allowDevReferralWrites) return;
+    _reps.add(r);
+  }
 
   @visibleForTesting
-  void debugAddAccount(TGReferredAccount a) => _accounts[a.userId] = a;
+  void debugAddAccount(TGReferredAccount a) {
+    if (!_allowDevReferralWrites) return;
+    _accounts[a.userId] = a;
+    _signedUpUserIds.add(a.userId);
+  }
+
+  /// Account already completed signup — referral cannot be attached later.
+  bool isSignupLocked(String userId) {
+    if (userId.isEmpty) return false;
+    if (_accounts.containsKey(userId)) return true;
+    return _signedUpUserIds.contains(userId);
+  }
 
   // ---------------------------------------------------------------------------
   // Code normalisation
@@ -125,7 +144,10 @@ class ReferralRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  TGReferralCodeCheck checkCode(String raw, {bool recordFailure = true}) {
+  TGReferralCodeCheck checkCode(String raw, {bool recordFailure = true, String? applicantUserId}) {
+    if (applicantUserId != null && applicantUserId.isNotEmpty && isSignupLocked(applicantUserId)) {
+      return const TGReferralCodeCheck(result: TGReferralCodeResult.signupOnly);
+    }
     final now = TGClock.now();
     _failedChecks.removeWhere((t) => now.difference(t) > const Duration(hours: 1));
     if (_failedChecks.length >= config.maxFailedChecksPerHour) {
@@ -156,8 +178,9 @@ class ReferralRepository extends ChangeNotifier {
   // Signup / user fields
   // ---------------------------------------------------------------------------
 
-  /// Applies the session code only when consent is true and the code is active.
-  /// Returns the stored account, or null when the code is not applied.
+  /// Applies the session code only when this call is the real new-account
+  /// create of [userId]. Existing assignment / prior signup is a silent no-op.
+  /// Consent is written in the same step as the assignment — never before.
   TGReferredAccount? applySessionOnSignup({
     required String userId,
     required String displayName,
@@ -165,20 +188,26 @@ class ReferralRepository extends ChangeNotifier {
     String email = '',
     String phone = '',
     bool phoneVerified = false,
+    bool accountCreatedThisSession = false,
   }) {
+    if (!accountCreatedThisSession) return null;
     ensureSeeded();
+    if (isSignupLocked(userId) || _accounts.containsKey(userId)) return null;
     if (!sessionConsent || sessionCode.isEmpty) {
+      _signedUpUserIds.add(userId);
       clearSession();
       return null;
     }
     final checked = checkCode(sessionCode, recordFailure: false);
     if (checked.result != TGReferralCodeResult.valid || checked.rep == null) {
+      _signedUpUserIds.add(userId);
       clearSession();
       return null;
     }
     final rep = checked.rep!;
     if (_isSelfReferral(rep, userId: userId, email: email, phone: phone)) {
       noteSelfReferralAttempt();
+      _signedUpUserIds.add(userId);
       clearSession();
       return null;
     }
@@ -196,6 +225,7 @@ class ReferralRepository extends ChangeNotifier {
       phoneVerified: phoneVerified,
     );
     _accounts[userId] = acc;
+    _signedUpUserIds.add(userId);
     TGAnalytics.track('referral_signup_success', {'repId': rep.id, 'userId': userId});
     clearSession();
     notifyListeners();
@@ -818,6 +848,7 @@ class ReferralRepository extends ChangeNotifier {
         listings: listings,
         isMock: true,
       );
+      _signedUpUserIds.add(id);
     }
 
     const oven = TGRefListingMeta(

@@ -788,8 +788,17 @@ class _HomeBestSellersState extends State<HomeBestSellers> {
 
   @override
   Widget build(BuildContext context) {
-    final sellers = TGSellerProfileService.instance.bestSellers;
-    if (sellers.isEmpty) return const SizedBox.shrink();
+    return ListenableBuilder(
+      listenable: Listenable.merge([TGSellerProfileService.instance, TGRevenueConfigService.instance]),
+      builder: (context, _) {
+        final sellers = TGSellerProfileService.instance.bestSellers;
+        if (sellers.length < TGSellerProfileService.minBestSellers) return const SizedBox.shrink();
+        return _bestSellersBody(context, sellers);
+      },
+    );
+  }
+
+  Widget _bestSellersBody(BuildContext context, List<TGStoreProfile> sellers) {
     final theme = FlutterFlowTheme.of(context);
     final l10n = FFLocalizations.of(context);
     final wide = MediaQuery.sizeOf(context).width >= TGBreakpoints.phone;

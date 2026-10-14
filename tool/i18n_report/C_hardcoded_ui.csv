@@ -1,0 +1,145 @@
+file,line,construct,text,group
+lib/payment/payment_form.dart,354,Semantics.title,BLIK,add-product/checkout
+lib/admin/admin_case_page.dart,220,Text,· $d,admin
+lib/admin/admin_chrome.dart,209,Text,Twoja Gastromania,admin
+lib/admin/admin_deal_modals.dart,88,Text,· $r,admin
+lib/admin/admin_growth_page.dart,702,labelText,userId,admin
+lib/login/login_widget.dart,406,Text,Step into the world of gastronomy,auth/header/nav/footer
+lib/login/login_widget.dart,482,Text,Forgot password?,auth/header/nav/footer
+lib/login/login_widget.dart,575,Text,Twoja Gastromania,auth/header/nav/footer
+lib/tg_components/tg_footer.dart,203,tooltip,Click to copy,auth/header/nav/footer
+lib/tg_components/tg_footer.dart,209,tooltip,Send an e-mail,auth/header/nav/footer
+lib/tg_components/tg_header.dart,202,Text,Twoja Gastromania,auth/header/nav/footer
+lib/tg_components/tg_header.dart,214,Semantics.label,Twoja Gastromania – home,auth/header/nav/footer
+lib/dashboard/billing_page.dart,1165,hintText,MM/YY,dashboard
+lib/dashboard/bulk_add_page.dart,233,Text,"Location, phone and seller are automatic from your account.",dashboard
+lib/dashboard/bulk_add_page.dart,246,Text,Save all as drafts,dashboard
+lib/dashboard/bulk_add_page.dart,254,Text,Upload photos to create draft rows,dashboard
+lib/dashboard/bulk_add_page.dart,336,labelText,Title,dashboard
+lib/dashboard/bulk_add_page.dart,342,labelText,Category,dashboard
+lib/dashboard/bulk_add_page.dart,350,Text,NOWY,dashboard
+lib/dashboard/bulk_add_page.dart,351,Text,UŻYWANY,dashboard
+lib/dashboard/bulk_add_page.dart,356,labelText,Price PLN,dashboard
+lib/dashboard/listing_row.dart,220,Text,Banner ad,dashboard
+lib/dashboard/listing_row.dart,473,Text,Qualifies for founder tier,dashboard
+lib/dashboard/listings_dashboard_widget.dart,594,Text,"Filters use garden, alcohol permit and play area.",dashboard
+lib/dashboard/listings_dashboard_widget.dart,657,Text,How many are left?,dashboard
+lib/dashboard/listings_dashboard_widget.dart,660,labelText,Quantity left,dashboard
+lib/dashboard/listings_dashboard_widget.dart,664,Text,Save,dashboard
+lib/dashboard/listings_dashboard_widget.dart,681,Text,Edit description,dashboard
+lib/dashboard/rep_share_report_page.dart,38,Semantics.label,noindex,dashboard
+lib/dashboard/representative_page.dart,181,Semantics.label,$label $value,dashboard
+lib/deals/sold_flow_sheet.dart,247,Text,This item is also on your restaurant listing’s equipment list. We’ll ask you to update it.,deals/reviews/reports
+lib/tm_sayfalar/home_page/home_sections.dart,545,semanticLabel,Browse $title,home
+lib/flutter_flow/nav/nav.dart,65,Text,Page not found,other
+lib/tg_components/founder_price_row.dart,36,Text,Founder discount −$pct%,other
+lib/tg_components/tg_account_sheets.dart,279,Text,"Owner (individual, free start available)",other
+lib/tg_components/tg_account_sheets.dart,280,Text,Owner (free start used),other
+lib/tg_components/tg_account_sheets.dart,281,Text,Agent (Basic store),other
+lib/tg_components/tg_account_sheets.dart,282,Text,With expired listing,other
+lib/tg_components/tg_account_sheets.dart,283,Text,With listing under review,other
+lib/tg_components/tg_account_sheets.dart,289,Text,Advance $d business days,other
+lib/tg_components/tg_account_sheets.dart,336,tooltip,Close,other
+lib/tg_components/tg_account_sheets.dart,809,Text,DEMO · switch account state,other
+lib/tg_components/tg_manufacturer_promote_panel.dart,251,Semantics.label,$name. $where. $price,other
+lib/tg_components/tg_map_card.dart,72,Semantics.label,Map showing $address. Opens in maps.,other
+lib/product_detail/report_listing_sheet.dart,603,Text,5 MB+,product-detail
+lib/products/products_filters.dart,489,Semantics.label,$label ($count),products/cards
+lib/products/products_filters.dart,515,Text,($count),products/cards
+lib/tg_components/tg_product_card.dart,996,Semantics.label,Copy phone number $phone,products/cards
+lib/tg_components/tg_product_card.dart,996,Semantics.message,Click to copy,products/cards
+lib/tg_components/tg_product_card.dart,1197,Text,Login required,products/cards
+lib/tg_components/tg_product_card.dart,1202,Text,Please log in to save listings to favorites.,products/cards
+lib/tg_components/tg_product_card.dart,1219,Text,Not now,products/cards
+lib/tg_components/tg_product_card.dart,1234,Text,Login,products/cards
+lib/restaurants/restaurant_card.dart,222,tooltip,Favourite,restaurants
+lib/restaurants/restaurant_detail_page.dart,667,Text,Message,restaurants
+lib/restaurants/restaurant_details_editor.dart,103,Text,Back,restaurants
+lib/restaurants/restaurant_details_editor.dart,132,Text,Listing details,restaurants
+lib/restaurants/restaurant_details_editor.dart,144,Text,All optional. Autosaved. Declared by you · not verified.,restaurants
+lib/restaurants/restaurant_details_editor.dart,304,Text,Listed on delivery platforms / has online presence,restaurants
+lib/restaurants/restaurant_details_editor.dart,312,labelText,Equipment & systems,restaurants
+lib/restaurants/restaurant_details_editor.dart,321,labelText,"Brand & assets (name, recipes, social, domain)",restaurants
+lib/restaurants/restaurant_details_editor.dart,335,labelText,Anything else you’d like buyers to know?,restaurants
+lib/restaurants/restaurant_details_editor.dart,390,labelText,Area m²,restaurants
+lib/restaurants/restaurant_details_editor.dart,400,labelText,Last outdoor-seating fee (PLN),restaurants
+lib/restaurants/restaurant_details_editor.dart,433,Text,This is only your statement. Permits are tied to the operator and premises. Buyers should confirm with the local authority.,restaurants
+lib/restaurants/restaurant_details_editor.dart,460,Text,Class,restaurants
+lib/restaurants/restaurant_details_editor.dart,486,Text,Scope,restaurants
+lib/restaurants/restaurant_details_editor.dart,562,Text,No tax advice. Total shown is net only from items with a known netto basis.,restaurants
+lib/restaurants/restaurant_details_editor.dart,563,Text,Known net total: $netKnown PLN,restaurants
+lib/restaurants/restaurant_details_editor.dart,569,Text,+ $label,restaurants
+lib/restaurants/restaurant_details_editor.dart,584,Text,+ Add custom item,restaurants
+lib/restaurants/restaurant_details_editor.dart,596,labelText,Amount PLN,restaurants
+lib/restaurants/restaurant_details_editor.dart,678,Text,Included in rent,restaurants
+lib/restaurants/restaurant_listing_row.dart,130,Text,Renew,restaurants
+lib/restaurants/restaurant_listing_row.dart,131,Text,Promote,restaurants
+lib/restaurants/restaurant_listing_row.dart,132,Text,Banner ad,restaurants
+lib/restaurants/restaurant_listing_row.dart,133,Text,Mark as transferred,restaurants
+lib/restaurants/restaurant_listing_row.dart,134,Text,Remove,restaurants
+lib/restaurants/restaurant_listing_row.dart,161,tooltip,Promote,restaurants
+lib/restaurants/restaurant_listing_row.dart,167,Text,Promote listing,restaurants
+lib/restaurants/restaurant_listing_row.dart,268,Text,Upload proof of authorization,restaurants
+lib/restaurants/restaurant_listing_row.dart,270,Text,"Lease page, owner letter, or agent (pośrednik) contract. Only moderators can see this file.",restaurants
+lib/restaurants/restaurant_listing_row.dart,279,SnackBar.label,Upload document,restaurants
+lib/restaurants/restaurant_message_sheet.dart,39,Text,Sign in to send a message. Calling does not require login.,restaurants
+lib/restaurants/restaurant_message_sheet.dart,140,Text,Send message,restaurants
+lib/restaurants/restaurant_message_sheet.dart,194,hintText,Write your message…,restaurants
+lib/restaurants/restaurant_next_steps_sheet.dart,94,Text,Your listing is live!,restaurants
+lib/restaurants/restaurant_next_steps_sheet.dart,96,Text,Buyers decide faster when they see the full picture. Add what you like and skip the rest.,restaurants
+lib/restaurants/restaurant_next_steps_sheet.dart,137,Text,Maybe later,restaurants
+lib/restaurants/restaurant_renew_sheet.dart,143,Text,"Total (brutto, VAT 23% included): $_total,00 PLN",restaurants
+lib/restaurants/restaurant_success_page.dart,82,Text,Upload proof of authorization from your dashboard. The listing stays hidden until approved.,restaurants
+lib/restaurants/restaurant_success_page.dart,118,Text,Go to dashboard,restaurants
+lib/restaurants/restaurant_success_page.dart,126,Text,Copy link,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,189,Text,Back,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,221,Text,Why are you closing this listing?,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,238,Text,Fees are not refunded.,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,247,Text,Did you find the buyer through Twoja Gastromania?,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,249,Text,Restaurant listings are not a review anchor — no deal or review flow.,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,263,Text,Yes,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,274,Text,No,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,289,Text,Your linked equipment listings,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,291,Text,Keep (default) or remove when the transfer closes.,restaurants
+lib/restaurants/restaurant_transfer_sheet.dart,309,Text,Unchecked = keep. Checked = remove from public catalogue.,restaurants
+lib/restaurants/restaurant_wizard_page.dart,822,Text,+ $name,restaurants
+lib/restaurants/restaurant_wizard_page.dart,1098,hintText,+48 XXX XXX XXX,restaurants
+lib/seller/seller_profile_panels.dart,819,Text,Completed via platform,seller
+lib/seller/seller_profile_widget.dart,734,Text,+$extraCats,seller
+lib/seller/store_owner_edit.dart,199,Text,· $tip,seller
+lib/seller/store_owner_edit.dart,596,hintText,"Gliwice, Katowice, Chorzów",seller
+lib/seller/store_owner_edit.dart,625,labelText,Facebook,seller
+lib/seller/store_owner_edit.dart,631,labelText,Instagram,seller
+lib/seller/store_reviews_panel.dart,175,Text,No custom project reviews yet.,seller
+lib/special_order/founders_page.dart,65,Text,Founding manufacturers,special-order
+lib/special_order/founders_page.dart,77,Text,Program is not open in this phase.,special-order
+lib/special_order/founders_page.dart,103,Text,Manufacturer account required,special-order
+lib/special_order/founders_page.dart,154,Text,Topic,special-order
+lib/special_order/founders_page.dart,155,Text,Rule,special-order
+lib/special_order/founders_page.dart,217,Text,Apply,special-order
+lib/special_order/founders_page.dart,219,labelText,Company,special-order
+lib/special_order/founders_page.dart,222,Text,Profile completion: $pct%,special-order
+lib/special_order/founders_page.dart,225,Text,Reference projects: $projects,special-order
+lib/special_order/founders_page.dart,232,Text,Add projects in store gallery,special-order
+lib/special_order/founders_page.dart,251,Text,Pick call date (mock calendar),special-order
+lib/special_order/founders_page.dart,280,SnackBar.label,Apply,special-order
+lib/special_order/founders_page.dart,280,Text,Under review,special-order
+lib/special_order/manufacturer_dashboard_page.dart,651,Text,Qualified listings $q / $target5 for 20% · $target10 for 40%,special-order
+lib/special_order/manufacturer_dashboard_page.dart,656,Semantics.label,Founder progress,special-order
+lib/special_order/manufacturer_dashboard_page.dart,708,Text,Listings,special-order
+lib/special_order/manufacturer_dashboard_page.dart,716,Text,Fix,special-order
+lib/special_order/manufacturer_dashboard_page.dart,719,Text,Savings history,special-order
+lib/special_order/manufacturer_dashboard_page.dart,721,Text,No discounted purchases yet.,special-order
+lib/special_order/seller_leads_page.dart,340,Text,See Priority,special-order
+lib/special_order/seller_leads_page.dart,347,tooltip,Dismiss,special-order
+lib/special_order/seller_leads_page.dart,398,Text,Early,special-order
+lib/special_order/seller_leads_page.dart,529,Text,Revise quote,special-order
+lib/special_order/seller_leads_page.dart,574,Text,Send your quote first,special-order
+lib/special_order/seller_leads_page.dart,767,Text,"Anonymous, aggregated statistics (count, price range, median lead time) may be shown to other manufacturers who have quoted on this request. Your company name and individual quote are never shown.",special-order
+lib/special_order/special_order_hub_widgets.dart,742,Text,+$moreSpecs,special-order
+lib/special_order/special_review_composer.dart,88,Text,Review custom project,special-order
+lib/special_order/special_review_composer.dart,93,Text,Overall,special-order
+lib/special_order/special_review_composer.dart,112,labelText,Your review (20–1000 characters),special-order
+lib/special_order/special_review_composer.dart,119,Text,I confirm this review is based on a real completed project.,special-order
+lib/special_order/special_review_composer.dart,154,SnackBar.label,Submit review,special-order
+lib/special_order/special_review_composer.dart,154,Text,Review submitted — awaiting manufacturer response,special-order

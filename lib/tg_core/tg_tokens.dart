@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 
 /// Twoja Gastromania design system – single source of truth.
 ///
@@ -121,26 +122,25 @@ class TGStorePlan {
 /// constants match [PricingConfig.defaults] for legacy call sites / tests.
 abstract final class TGPricing {
   /// Number of free listings every account gets. Slots never expire.
-  static const int freeListingQuota = 3;
+  static int get freeListingQuota => PricingConfigService.instance.config.freeListingQuota;
 
   /// Each free listing stays live this many days from publish.
-  static const int freePeriodDays = 30;
+  static int get freePeriodDays => PricingConfigService.instance.config.freeListingDays;
 
-  /// Shortest paid listing fee (30d) — brutto PLN. Prefer PricingConfig.
-  static const int listingFeePln = 49;
-  static const int listingPeriodDays = 30;
-
-  /// @Deprecated — VITRIN-2 uses Glow tier prices from PromotionConfig (49/79).
-  static const int promote14Pln = 49;
-  static const int promote30Pln = 79;
+  /// Shortest paid listing fee — brutto PLN. Prefer PricingConfig.
+  static int get listingFeePln => PricingConfigService.instance.config.defaultListingFeePln;
+  static int get listingPeriodDays => PricingConfigService.instance.config.defaultListingDays;
 
   static const double vatRate = 0.23;
 
-  static const List<TGStorePlan> storePlans = [
-    TGStorePlan(name: 'Basic', monthlyPricePln: 199),
-    TGStorePlan(name: 'Pro', monthlyPricePln: 499),
-    TGStorePlan(name: 'Enterprise', monthlyPricePln: 899),
-  ];
+  static List<TGStorePlan> get storePlans {
+    final c = PricingConfigService.instance.config;
+    return [
+      TGStorePlan(name: 'Basic', monthlyPricePln: c.basicStoreMonthlyPln),
+      TGStorePlan(name: 'Pro', monthlyPricePln: c.proStoreMonthlyPln),
+      TGStorePlan(name: 'Enterprise', monthlyPricePln: c.enterpriseStoreMonthlyPln),
+    ];
+  }
 
   /// Net amount of a gross (VAT-inclusive) price.
   static double netFromGross(num gross) => gross / (1 + vatRate);
@@ -148,11 +148,9 @@ abstract final class TGPricing {
   /// VAT contained in a gross price.
   static double vatFromGross(num gross) => gross - netFromGross(gross);
 
-  /// 6 months prepaid at −10%.
-  static double storeSixMonths(int monthly) => monthly * 6 * 0.9;
+  static int storeSixMonths(int monthly) => PricingConfigService.instance.config.storeSixMonthsPln(monthly);
 
-  /// Yearly: 2 months free (10 × monthly).
-  static int storeYearly(int monthly) => monthly * 10;
+  static int storeYearly(int monthly) => PricingConfigService.instance.config.storeYearlyPln(monthly);
 
   static double storeSixMonthsMonthlyEq(int monthly) => storeSixMonths(monthly) / 6;
 
@@ -160,10 +158,30 @@ abstract final class TGPricing {
 
   static double storePrice(int monthly, TGBillingPeriod period) => switch (period) {
         TGBillingPeriod.monthly => monthly.toDouble(),
-        TGBillingPeriod.sixMonths => storeSixMonths(monthly),
+        TGBillingPeriod.sixMonths => storeSixMonths(monthly).toDouble(),
         TGBillingPeriod.yearly => storeYearly(monthly).toDouble(),
       };
 }
+
+/// Locale-safe uppercase for visible Turkish (and ASCII) letters.
+/// Dart [String.toUpperCase] maps `i` → `I` and drops the dot on `İ`.
+String tgToUpperTr(String value) {
+  const map = {'i': 'İ', 'ı': 'I', 'ğ': 'Ğ', 'ü': 'Ü', 'ş': 'Ş', 'ö': 'Ö', 'ç': 'Ç'};
+  return value.split('').map((c) => map[c] ?? c.toUpperCase()).join();
+}
+
+const kLangCodeLabel = {
+  'en': 'EN',
+  'pl': 'PL',
+  'tr': 'TR',
+  'de': 'DE',
+  'cs': 'CS',
+  'sk': 'SK',
+  'uk': 'UK',
+  'be': 'BE',
+  'lt': 'LT',
+  'ru': 'RU',
+};
 
 enum TGBillingPeriod { monthly, sixMonths, yearly }
 

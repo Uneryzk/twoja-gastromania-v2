@@ -38,18 +38,10 @@ class WatermarkedImage extends StatefulWidget {
 
   /// Staff-only original pointer (`originals/…`, `originalRef=`). Never render
   /// this URL on public surfaces — fall back to an empty / placeholder image.
-  static bool isPrivateOriginalRef(String url) {
-    final u = url.trim();
-    if (u.isEmpty) return false;
-    final lower = u.toLowerCase();
-    return lower.startsWith('originals/') ||
-        lower.contains('/originals/') ||
-        lower.contains('originalref=') ||
-        lower.contains('original_ref');
-  }
+  static bool isPrivateOriginalRef(String url) => ListingImage.publicVariant(url).isEmpty && url.trim().isNotEmpty;
 
   /// Public listing URL, or empty when [url] is a private original reference.
-  static String publicUrl(String url) => isPrivateOriginalRef(url) ? '' : url;
+  static String publicUrl(String url) => ListingImage.publicVariant(url);
 
   @override
   State<WatermarkedImage> createState() => _WatermarkedImageState();
@@ -60,7 +52,7 @@ class _WatermarkedImageState extends State<WatermarkedImage> {
   ImageStreamListener? _listener;
   Size? _intrinsic;
 
-  String get _url => WatermarkedImage.publicUrl(widget.url);
+  String get _url => ListingImage.publicVariant(widget.url);
 
   ImageProvider? get _provider {
     final u = _url;

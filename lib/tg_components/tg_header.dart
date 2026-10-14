@@ -321,7 +321,7 @@ class _LanguageMenu extends StatelessWidget {
             Text(flag(current), style: const TextStyle(fontSize: 18)),
             if (!compact) ...[
               const SizedBox(width: 8),
-              Text(current.toUpperCase(), style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
+              Text(kLangCodeLabel[current] ?? current, style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
             ],
             Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: theme.secondaryText),
           ],

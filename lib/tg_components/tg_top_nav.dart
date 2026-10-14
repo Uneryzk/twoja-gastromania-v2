@@ -51,7 +51,7 @@ class TGTopNav extends StatelessWidget {
     return Material(
       color: theme.primaryBackground,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(isPhone ? 16 : 24, 12, isPhone ? 16 : 24, 10),
+        padding: EdgeInsets.fromLTRB(isPhone ? 8 : 24, 12, isPhone ? 8 : 24, 10),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1280),

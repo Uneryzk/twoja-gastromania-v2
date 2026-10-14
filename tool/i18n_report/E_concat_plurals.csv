@@ -1,0 +1,6 @@
+file,line,excerpt,group,note
+lib/tm_sayfalar/home_page/home_sections.dart,591,count == 1 ? '1 listing',home,manual number+unit / plural; not DurationFormatter
+lib/tm_sayfalar/home_page/home_sections.dart,591,'$count listings',home,manual number+unit / plural; not DurationFormatter
+lib/tg_services/founder_service.dart,56,'$n of ${cfg.quota} spots taken',other,manual number+unit / plural; not DurationFormatter
+lib/restaurants/restaurant_renew_sheet.dart,146,'New end date:,restaurants,manual number+unit / plural; not DurationFormatter
+lib/restaurants/restaurant_success_page.dart,80,'Live until ,restaurants,manual number+unit / plural; not DurationFormatter

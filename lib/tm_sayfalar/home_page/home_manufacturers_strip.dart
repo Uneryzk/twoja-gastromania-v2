@@ -10,7 +10,7 @@ import 'package:twoja_gastromania/tg_services/seller_profile_service.dart';
 import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 import 'package:twoja_gastromania/tm_sayfalar/home_page/home_sections.dart';
 
-/// Home "Special Order Manufacturers" strip (VITRIN-4), placed under Best Sellers.
+/// Home "Featured Manufacturers" strip — sits directly under restaurant transfers.
 class HomeManufacturersStrip extends StatelessWidget {
   const HomeManufacturersStrip({super.key});
 

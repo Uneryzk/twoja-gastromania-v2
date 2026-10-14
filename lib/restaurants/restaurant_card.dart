@@ -427,18 +427,28 @@ class _RestaurantCardState extends State<RestaurantCard> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                r.phone,
-                                maxLines: 1,
-                                style: theme.bodySmall.override(
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  fontSize: 13,
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              runSpacing: 2,
+                              children: [
+                                Text(
+                                  context.t('ui_call'),
+                                  style: theme.bodySmall.override(
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFE8E8E8),
+                                    fontSize: 12,
+                                  ),
                                 ),
-                              ),
+                                Text(
+                                  r.phone,
+                                  style: theme.bodySmall.override(
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 8),

@@ -34,27 +34,35 @@ class TGNavPills extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final w = MediaQuery.sizeOf(context).width;
+    final isTight = w < 400;
     final isSmall = w < 430;
     final isMobile = w < 700;
-    final gap = isSmall ? 8.0 : 10.0;
-    final indicatorW = isSmall ? 72.0 : 110.0;
-    final horizontalPad = isSmall ? const EdgeInsets.symmetric(horizontal: 14) : const EdgeInsets.symmetric(horizontal: 18);
+    final gap = isTight ? 3.0 : (isSmall ? 6.0 : 10.0);
+    final indicatorW = isTight ? 48.0 : (isSmall ? 72.0 : 110.0);
+    final horizontalPad = isTight
+        ? const EdgeInsets.symmetric(horizontal: 6)
+        : (isSmall ? const EdgeInsets.symmetric(horizontal: 10) : const EdgeInsets.symmetric(horizontal: 18));
 
     final (effectiveItems, effectiveActiveIndex) = _maybeCollapseOthersMenu(context: context, isMobile: isMobile, items: items, activeIndex: activeIndex);
+
+    final pills = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < effectiveItems.length; i++) ...[
+          if (i > 0) SizedBox(width: gap),
+          _NavPill(item: effectiveItems[i], active: i == effectiveActiveIndex, padding: horizontalPad, compact: isTight),
+        ],
+      ],
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (var i = 0; i < effectiveItems.length; i++) ...[
-                _NavPill(item: effectiveItems[i], active: i == effectiveActiveIndex, padding: horizontalPad),
-                SizedBox(width: gap),
-              ]
-            ],
-          ),
+        Align(
+          alignment: Alignment.center,
+          child: isTight
+              ? FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.center, child: pills)
+              : SingleChildScrollView(scrollDirection: Axis.horizontal, child: pills),
         ),
         const SizedBox(height: 10),
         AnimatedContainer(
@@ -223,10 +231,11 @@ class _OthersMenuTileState extends State<_OthersMenuTile> {
 }
 
 class _NavPill extends StatelessWidget {
-  const _NavPill({required this.item, required this.active, required this.padding});
+  const _NavPill({required this.item, required this.active, required this.padding, this.compact = false});
   final TGNavItem item;
   final bool active;
   final EdgeInsets padding;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -238,8 +247,9 @@ class _NavPill extends StatelessWidget {
         label: item.label,
         icon: item.icon,
         variant: TGButtonVariant.primary,
-        height: 44,
+        height: compact ? 36 : 44,
         padding: padding,
+        dense: compact,
         borderRadius: BorderRadius.circular(theme.designToken.radius.full),
       );
     }
@@ -253,8 +263,9 @@ class _NavPill extends StatelessWidget {
         label: item.label,
         icon: item.icon,
         variant: active ? TGButtonVariant.outline : TGButtonVariant.ghost,
-        height: 44,
+        height: compact ? 36 : 44,
         padding: padding,
+        dense: compact,
         borderRadius: BorderRadius.circular(theme.designToken.radius.full),
       ),
     );

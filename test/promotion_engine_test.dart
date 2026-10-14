@@ -50,6 +50,15 @@ void main() {
     expect(slots.length, lessThanOrEqualTo(svc.config.homeFeaturedMax));
     expect(slots.every((s) => s.promotion?.tier != PromotionTier.bold), isTrue);
     expect(slots.every((s) => s.promotion != null), isTrue);
+
+    final viaCompose = PromotionEngine.compose(
+      surface: PromotionSurface.home,
+      candidates: products,
+      idOf: (p) => p.id,
+      promoOf: (p) => svc.effectiveListingPromo(p) ?? svc.activeFor(kind: PromotionTargetKind.listing, targetRef: p.id),
+      sessionSeed: 42,
+    );
+    expect(viaCompose.every((s) => s.promotion?.tier != PromotionTier.bold), isTrue);
   });
 
   test('legacy isPromoted maps to glow', () {

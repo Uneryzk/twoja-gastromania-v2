@@ -1,0 +1,13 @@
+file,approx_user_content_strings,examples,note
+lib/tg_services/product_service.dart,23,"Piec konwekcyjno-parowy 10x GN 1/1 – Bartscher | Stół ze stali nierdzewnej 180x70 – półka dolna | Zmywarka podblatowa z pompą – Öztiryakiler OBY-50T | Szafa chłodnicza 700L – inox, 3 półki | Bemar 3x GN 1/1 Komat – wanna bemarowa",Seed/mock marketplace content — do not translate as chrome
+lib/tg_services/restaurant_service.dart,25,"Restaurant with terrace – Mariacka, Katowice | Corner café with pastry counter – Rybnik | Cocktail bar – Gliwice centre | Pizzeria with delivery fleet – Kraków Kazimierz | Fast-food corner – Warszawa Mokotów",Seed/mock marketplace content — do not translate as chrome
+lib/tg_services/seller_profile_service.dart,25,$title ${i + 1} | Piec konwekcyjny 10 GN – Gastrosilesia | Szafa chłodnicza 1400L | Stół centralny 2000 mm | Zmywarka kapturowa Hobart,Seed/mock marketplace content — do not translate as chrome
+lib/tg_services/special_order_service.dart,36,Request expired | Request closing soon | No quotes yet | Request received | New Special Order,Seed/mock marketplace content — do not translate as chrome
+lib/tg_services/deal_service.dart,22,Piec pizza 4 pizze – 3 dni do końca | Piec pizza 4 pizze | Stół chłodniczy 2-drzwiowy | Stół chłodniczy 2-drzwiowy | Zmywarka podszafkowa,Seed/mock marketplace content — do not translate as chrome
+lib/tg_services/deal_moderation_service.dart,7,Piotr B. | Anna W. | Mateusz K. | Anna W. | Piotr B.,Seed/mock marketplace content — do not translate as chrome
+lib/tg_services/messaging_service.dart,0,,Seed/mock marketplace content — do not translate as chrome
+lib/tg_services/moderation_service.dart,41,Mikser planetarny 40L – under review | Mikser planetarny 40L – under review | Witryna chłodnicza 2-drzwiowa – hidden | Witryna chłodnicza 2-drzwiowa – hidden | Krajalnica chleba – removed,Seed/mock marketplace content — do not translate as chrome
+lib/tg_services/review_service.dart,0,,Seed/mock marketplace content — do not translate as chrome
+lib/state/fake_auth_state.dart,21,Kuchenka indukcyjna 4-palnikowa – linia demo | Piec konwekcyjny – slot 1 | Zmywarka kapturowa – slot 2 | Stół inox 180 – slot 3 | Kocioł warzelny 150L – uzupełnij informacje,Seed/mock marketplace content — do not translate as chrome
+lib/tg_core/restaurant_config.dart,0,,Seed/mock marketplace content — do not translate as chrome
+lib/tm_sayfalar/home_page/home_sections.dart,0,,Seed/mock marketplace content — do not translate as chrome

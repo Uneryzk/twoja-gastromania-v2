@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:twoja_gastromania/flutter_flow/tg_l10n.dart';
 import 'package:twoja_gastromania/tg_core/tg_analytics.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
@@ -13,6 +14,7 @@ import 'package:twoja_gastromania/tg_services/special_order_service.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_watermarked_image.dart';
+import 'package:twoja_gastromania/tg_models/tg_watermark.dart';
 import 'package:twoja_gastromania/tg_services/sponsor_slot_service.dart';
 
 void main() {
@@ -21,6 +23,10 @@ void main() {
   setUp(() {
     TGAnalytics.reset();
     TGRevenueConfigService.instance.reset();
+  });
+
+  test('dynamic listing images stay disabled', () {
+    expect(TGListingImages.kDisableDynamicListingImages, isTrue);
   });
 
   test('store nudge and plan prices come from PricingConfig', () {
@@ -49,7 +55,7 @@ void main() {
     }
   });
 
-  test('productionMode hides seed listings and Best Sellers', () async {
+  test('productionMode hides seed listings; Best Sellers need 3 real stores', () async {
     await TGProductService.instance.resetToSeed();
     expect((await TGProductService.instance.getAll()).length, greaterThan(0));
     expect(TGSellerProfileService.instance.bestSellers, isNotEmpty);
@@ -57,7 +63,7 @@ void main() {
     TGRevenueConfigService.instance.setProductionMode(true, actorId: 't', reason: 'test');
     expect(await TGProductService.instance.getAll(), isEmpty);
     expect(TGProductService.instance.cachedAll, isEmpty);
-    expect(TGSellerProfileService.instance.bestSellers, isEmpty);
+    expect(TGSellerProfileService.instance.bestSellers, isEmpty); // seed stores hidden; <3 real stores
 
     TGRevenueConfigService.instance.reset();
     await TGProductService.instance.resetToSeed();
@@ -125,6 +131,8 @@ void main() {
     expect(WatermarkedImage.publicUrl('originals/product:p001/0-abc'), isEmpty);
     expect(WatermarkedImage.isPrivateOriginalRef('https://cdn.example/img.jpg?originalRef=secret'), isTrue);
     expect(WatermarkedImage.publicUrl('assets/images/fridge.jpg'), 'assets/images/fridge.jpg');
+    expect(ListingImage.publicVariant('originals/product:p001/0-abc'), isEmpty);
+    expect(ListingImage.publicVariant('assets/images/fridge.jpg'), 'assets/images/fridge.jpg');
   });
 
   test('empty manufacturer match fires so_admin_crosscheck_none', () {

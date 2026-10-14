@@ -275,6 +275,38 @@ abstract final class GrowthMoney {
 
   static int plnToGrosz(int pln) => pln * 100;
 
+  /// PLN text → grosz. No float. `,` and `.` are decimal separators.
+  /// More than two fractional digits is rejected (not truncated).
+  static int? tryParsePlnToGrosz(String raw) {
+    final t = raw.trim().replaceAll(RegExp(r'[\s\u00a0]'), '');
+    if (t.isEmpty) return null;
+    if (!RegExp(r'^\d+([.,]\d{1,2})?$').hasMatch(t)) return null;
+    final sep = t.contains(',') ? ',' : (t.contains('.') ? '.' : null);
+    if (sep == null) {
+      final zl = int.tryParse(t);
+      if (zl == null) return null;
+      return zl * 100;
+    }
+    final i = t.indexOf(sep);
+    final zl = int.tryParse(t.substring(0, i));
+    if (zl == null) return null;
+    final fracRaw = t.substring(i + 1);
+    if (fracRaw.isEmpty || fracRaw.length > 2) return null;
+    final frac = int.tryParse(fracRaw.padRight(2, '0'));
+    if (frac == null) return null;
+    return zl * 100 + frac;
+  }
+
+  /// Form field text for [grosz] (`1000` / `19,99`) — no currency suffix.
+  static String inputFromGrosz(int grosz) {
+    final sign = grosz < 0 ? '-' : '';
+    final a = grosz.abs();
+    final zl = a ~/ 100;
+    final gr = a % 100;
+    if (gr == 0) return '$sign$zl';
+    return '$sign$zl,${gr.toString().padLeft(2, '0')}';
+  }
+
   /// `round(gross / 1.23)` at grosz precision, integer-only.
   static int netFromGross(int grossGrosz) {
     if (grossGrosz == 0) return 0;

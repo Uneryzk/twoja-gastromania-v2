@@ -1,0 +1,138 @@
+file,line,kind,produces,excerpt,group
+lib/state/fake_auth_state.dart,312,enum_label_getter,english_literal,Visitor; Seller; Store seller; Moderator; Admin; Buyer,other
+lib/tg_models/tg_account.dart,237,returned_english_string,english_literal,$f ${String.fromCharCode(l.runes.first)}.,other
+lib/tg_models/tg_account.dart,259,returned_english_string,english_literal,$cc••• ••• $tail,other
+lib/tg_models/tg_billing.dart,285,enum_label_getter,english_literal,"${switch (brand) {
+            TGCardBrand.visa => ; Mastercard; Amex; Card; BLIK; Przelewy24",other
+lib/tg_models/tg_growth.dart,336,returned_english_string,english_literal,"$sign${_group(zl)},$gr PLN",other
+lib/tg_models/tg_growth.dart,342,returned_english_string,english_literal,$sign${_group(a ~/ 100)} PLN,other
+lib/tg_models/tg_moderation.dart,441,enum_label_getter,english_literal,Fraud; Prohibited; Duplicate; Copied; Wrong category; Sold; Stolen content; Misleading,other
+lib/tg_models/tg_moderation.dart,473,enum_label_getter,english_literal,New; In review; Waiting for seller; Removed; No violation; Resolved,other
+lib/tg_models/tg_moderation.dart,487,enum_label_getter,english_literal,High; Medium; Low,other
+lib/tg_models/tg_moderation.dart,495,enum_label_getter,english_literal,Duplicate; Stolen content; Fraud; Prohibited; Misleading; Not authorized; Misleading figures; Other,other
+lib/tg_models/tg_pricing_config.dart,176,returned_english_string,english_literal,"$whole,$fracStr $unit",other
+lib/tg_models/tg_special_review.dart,222,returned_english_string,english_literal,Custom projects ★${average!.toStringAsFixed(1)} · $completedCount completed via Twoja Gastromania,other
+lib/tg_models/tg_special_review.dart,224,returned_english_string,english_literal,$completedCount completed via Twoja Gastromania,other
+lib/tg_services/ad_slot_service.dart,244,notification,english_literal,Banner dates available,dashboard
+lib/tg_services/ad_slot_service.dart,342,returned_english_string,english_literal,Target URL is required,other
+lib/tg_services/ad_slot_service.dart,344,returned_english_string,english_literal,Platform-internal links only,other
+lib/tg_services/ad_slot_service.dart,346,returned_english_string,english_literal,Use an internal path starting with /,other
+lib/tg_services/ad_slot_service.dart,412,returned_english_string,english_literal,Not found,other
+lib/tg_services/ad_slot_service.dart,414,returned_english_string,english_literal,Not pending,other
+lib/tg_services/ad_slot_service.dart,421,notification,english_literal,Banner ad approved,dashboard
+lib/tg_services/ad_slot_service.dart,438,returned_english_string,english_literal,Not found,other
+lib/tg_services/ad_slot_service.dart,445,notification,english_literal,Banner ad needs a correction,dashboard
+lib/tg_services/ad_slot_service.dart,459,returned_english_string,english_literal,Not found,other
+lib/tg_services/ad_slot_service.dart,478,returned_english_string,english_literal,Not found,other
+lib/tg_services/ad_slot_service.dart,484,notification,english_literal,Banner ad not published,dashboard
+lib/tg_services/ad_slot_service.dart,509,returned_english_string,english_literal,Not found,other
+lib/tg_services/ad_slot_service.dart,551,returned_english_string,english_literal,Not found,other
+lib/tg_services/ad_slot_service.dart,553,returned_english_string,english_literal,Not live,other
+lib/tg_services/ad_slot_service.dart,561,notification,english_literal,Banner ad ended,dashboard
+lib/tg_services/ad_slot_service.dart,596,notification,english_literal,Banner ad ended · report,dashboard
+lib/tg_services/billing_service.dart,487,notification,english_literal,Payment failed,dashboard
+lib/tg_services/billing_service.dart,535,notification,english_literal,Subscription ended,dashboard
+lib/tg_services/billing_service.dart,581,notification,english_literal,Payment received,dashboard
+lib/tg_services/deal_service.dart,247,notification,english_literal,Confirm this purchase,dashboard
+lib/tg_services/deal_service.dart,353,notification,english_literal,Confirm this purchase,dashboard
+lib/tg_services/deal_service.dart,401,notification,english_literal,Buyer confirmed,dashboard
+lib/tg_services/deal_service.dart,419,notification,english_literal,Deal update,dashboard
+lib/tg_services/deal_service.dart,445,notification,english_literal,Reminder: confirm this purchase,dashboard
+lib/tg_services/deal_service.dart,463,notification,english_literal,Please review this seller,dashboard
+lib/tg_services/deal_service.dart,485,notification,english_literal,Request expired,dashboard
+lib/tg_services/deal_service.dart,487,notification,english_literal,Request expired,dashboard
+lib/tg_services/deal_service.dart,492,notification,english_literal,4 days left to confirm,dashboard
+lib/tg_services/deal_service.dart,497,notification,english_literal,Reminder: confirm this purchase,dashboard
+lib/tg_services/deal_service.dart,921,notification,english_literal,"type,       body: title,       deepLink: deepLink,       params: {'title': title",dashboard
+lib/tg_services/founder_service.dart,55,returned_english_string,english_literal,Applications are on a waitlist,other
+lib/tg_services/founder_service.dart,56,returned_english_string,english_literal,$n of ${cfg.quota} spots taken,other
+lib/tg_services/founder_service.dart,57,returned_english_string,english_literal,${cfg.quota} founding manufacturer spots,other
+lib/tg_services/founder_service.dart,143,notification,english_literal,Founder tier,dashboard
+lib/tg_services/founder_service.dart,152,notification,english_literal,Founder tier,dashboard
+lib/tg_services/founder_service.dart,224,returned_english_string,english_literal,Program is not open,other
+lib/tg_services/founder_service.dart,225,returned_english_string,english_literal,This company already joined the program,other
+lib/tg_services/founder_service.dart,226,returned_english_string,english_literal,Profile completion must be at least 80%,other
+lib/tg_services/founder_service.dart,227,returned_english_string,english_literal,At least 3 reference projects required,other
+lib/tg_services/founder_service.dart,228,returned_english_string,english_literal,Feedback call required,other
+lib/tg_services/founder_service.dart,232,returned_english_string,english_literal,Application already submitted,other
+lib/tg_services/founder_service.dart,270,notification,english_literal,Application received,dashboard
+lib/tg_services/founder_service.dart,308,notification,english_literal,Application update,dashboard
+lib/tg_services/founder_service.dart,321,notification,english_literal,Application update,dashboard
+lib/tg_services/founder_service.dart,330,notification,english_literal,Application update,dashboard
+lib/tg_services/founder_service.dart,409,notification,english_literal,Founder program ended,dashboard
+lib/tg_services/founder_service.dart,438,notification,english_literal,Founder program,dashboard
+lib/tg_services/founder_service.dart,448,notification,english_literal,Founder program,dashboard
+lib/tg_services/founder_service.dart,460,notification,english_literal,Free access ending,dashboard
+lib/tg_services/founder_service.dart,471,notification,english_literal,Founder program ended,dashboard
+lib/tg_services/founder_service.dart,486,returned_english_string,english_literal,${d.day} ${months[d.month - 1]},other
+lib/tg_services/messaging_service.dart,365,notification,english_literal,new_message,dashboard
+lib/tg_services/priority_service.dart,218,notification,english_literal,Priority active,dashboard
+lib/tg_services/priority_service.dart,317,notification,english_literal,Quiet month credit,dashboard
+lib/tg_services/restaurant_inventory_sync_service.dart,59,notification,english_literal,You marked ${item.name} as sold,dashboard
+lib/tg_services/restaurant_inventory_sync_service.dart,139,returned_english_string,english_literal,This item was sold separately on $when. Is another unit available?,other
+lib/tg_services/restaurant_inventory_sync_service.dart,155,notification,english_literal,Update ${item.name} on your restaurant listing,dashboard
+lib/tg_services/restaurant_inventory_sync_service.dart,168,notification,english_literal,${item.name} removed from transfer list,dashboard
+lib/tg_services/restaurant_inventory_sync_service.dart,281,returned_english_string,english_literal,Case not found,other
+lib/tg_services/restaurant_inventory_sync_service.dart,283,returned_english_string,english_literal,Listing missing,other
+lib/tg_services/restaurant_inventory_sync_service.dart,288,returned_english_string,english_literal,Select a sentence,other
+lib/tg_services/restaurant_inventory_sync_service.dart,291,returned_english_string,english_literal,Provide edit,other
+lib/tg_services/restaurant_inventory_sync_service.dart,314,notification,english_literal,Your listing description was updated,dashboard
+lib/tg_services/restaurant_inventory_sync_service.dart,411,enum_label_getter,english_literal,Remove sentence; Edit minimally; Dismiss (no conflict),other
+lib/tg_services/restaurant_lifecycle_service.dart,51,returned_english_string,english_literal,The free start was already used for these premises.,other
+lib/tg_services/restaurant_lifecycle_service.dart,54,returned_english_string,english_literal,Free start limit reached for this account (max ${cfg.freeStartCapPer12m} / 12 months).,other
+lib/tg_services/restaurant_lifecycle_service.dart,56,returned_english_string,english_literal,Paid listing applies.,other
+lib/tg_services/restaurant_lifecycle_service.dart,355,returned_english_string,english_literal, Median rent of similar listings: $median PLN/mo.,other
+lib/tg_services/restaurant_lifecycle_service.dart,361,notification,english_literal,"title,       body: body,       deepLink: deep ? '/dashboard/listings?renew=${r.i",dashboard
+lib/tg_services/restaurant_lifecycle_service.dart,462,returned_english_string,english_literal,Listing not found,other
+lib/tg_services/restaurant_lifecycle_service.dart,469,returned_english_string,english_literal,Premises already at max live listings (${cfg.perPremisesMax}).,other
+lib/tg_services/restaurant_post_publish_service.dart,53,returned_english_string,english_literal,Selling some items separately?,other
+lib/tg_services/restaurant_post_publish_service.dart,57,returned_english_string,english_literal,Your first ${cfg.freeListingQuota} listings are free. $freeLeft left.,other
+lib/tg_services/restaurant_post_publish_service.dart,59,returned_english_string,english_literal,"${cfg.defaultListingFeePln} PLN / ${cfg.defaultListingDays} days each, or Basic Store ${cfg.basicStoreMonthlyPln} PLN for up to 15 listings",other
+lib/tg_services/restaurant_post_publish_service.dart,72,notification,english_literal,"age == 1 ? 'Add listing details' : 'Still missing listing details?',           b",dashboard
+lib/tg_services/review_service.dart,248,returned_english_string,english_literal,${parts.first} ${parts.last[0].toUpperCase()}.,other
+lib/tg_services/review_verified_service.dart,220,notification,english_literal,"type,           body: '',           deepLink: '/dashboard/verification',        ",dashboard
+lib/tg_services/special_consent_service.dart,110,returned_english_string,english_literal,${w.year}-${two(w.month)}-${two(w.day)} ${two(w.hour)}:${two(w.minute)} (${DurationService.timeZone}),other
+lib/tg_services/special_order_service.dart,91,notification,english_literal,"previewEmail('day10', r).subject,           body: previewEmail('day10', r).body,",dashboard
+lib/tg_services/special_order_service.dart,102,notification,english_literal,Request expired,dashboard
+lib/tg_services/special_order_service.dart,113,notification,english_literal,Request closing soon,dashboard
+lib/tg_services/special_order_service.dart,123,notification,english_literal,No quotes yet,dashboard
+lib/tg_services/special_order_service.dart,338,returned_english_string,english_literal,Request not found,special-order
+lib/tg_services/special_order_service.dart,343,returned_english_string,english_literal,Request closed,special-order
+lib/tg_services/special_order_service.dart,345,returned_english_string,english_literal,Already quoted,special-order
+lib/tg_services/special_order_service.dart,346,returned_english_string,english_literal,Quote limit reached,special-order
+lib/tg_services/special_order_service.dart,351,returned_english_string,english_literal,Quote limit reached for pool leads,special-order
+lib/tg_services/special_order_service.dart,354,returned_english_string,english_literal,One pool slot is reserved for the next wave.,special-order
+lib/tg_services/special_order_service.dart,503,notification,english_literal,Request received,dashboard
+lib/tg_services/special_order_service.dart,512,notification,english_literal,New Special Order,dashboard
+lib/tg_services/special_order_service.dart,585,notification,english_literal,"priorityInstant ? 'Priority early access lead' : 'New Special Order lead',      ",dashboard
+lib/tg_services/special_order_service.dart,648,notification,english_literal,New quote,dashboard
+lib/tg_services/special_order_service.dart,805,notification,english_literal,Request closed,dashboard
+lib/tg_services/special_order_service.dart,839,notification,english_literal,Request closed,dashboard
+lib/tg_services/special_order_service.dart,859,notification,english_literal,Matched Special Order,dashboard
+lib/tg_services/special_order_service.dart,868,notification,english_literal,More manufacturers matched,dashboard
+lib/tg_services/special_order_service.dart,1006,notification,english_literal,Matched Special Order lead,dashboard
+lib/tg_services/special_order_service.dart,1015,notification,english_literal,More manufacturers matched,dashboard
+lib/tg_services/special_order_service.dart,1037,notification,english_literal,Reminder: Special Order lead,dashboard
+lib/tg_services/special_order_service.dart,1087,notification,english_literal,"mail.subject,       body: body ?? mail.body,       deepLink: '/account/requests/",dashboard
+lib/tg_services/special_order_service.dart,1118,notification,english_literal,"mail.subject,         body: mail.body,         deepLink: '/account/requests/${cu",dashboard
+lib/tg_services/special_order_service.dart,1184,notification,english_literal,Report update,dashboard
+lib/tg_services/special_review_service.dart,124,returned_english_string,english_literal,Request not found,other
+lib/tg_services/special_review_service.dart,125,returned_english_string,english_literal,Only the buyer can review,other
+lib/tg_services/special_review_service.dart,126,returned_english_string,english_literal,No awarded manufacturer,other
+lib/tg_services/special_review_service.dart,127,returned_english_string,english_literal,Mark the project completed first,other
+lib/tg_services/special_review_service.dart,128,returned_english_string,english_literal,Review window closed (60 days),other
+lib/tg_services/special_review_service.dart,129,returned_english_string,english_literal,Already reviewed,other
+lib/tg_services/special_review_service.dart,130,returned_english_string,english_literal,Daily limit of 3 reviews reached,other
+lib/tg_services/special_review_service.dart,168,notification,english_literal,Confirm project completion,dashboard
+lib/tg_services/special_review_service.dart,300,notification,english_literal,Is the project completed?,dashboard
+lib/tg_services/special_review_service.dart,319,notification,english_literal,Confirm project completion,dashboard
+lib/tg_services/sponsor_slot_service.dart,122,returned_english_string,english_literal,Manufacturer profile required,other
+lib/tg_services/sponsor_slot_service.dart,124,returned_english_string,english_literal,Active Pro or Enterprise plan required,other
+lib/tg_services/sponsor_slot_service.dart,287,notification,english_literal,Sponsor slot,dashboard
+lib/tg_services/sponsor_slot_service.dart,312,notification,english_literal,Sponsor slot cancelled,dashboard
+lib/tg_services/sponsor_slot_service.dart,400,notification,english_literal,Sponsor slot ending,dashboard
+lib/tg_services/verification_service.dart,49,returned_english_string,english_literal,"+48 ${d.substring(0, 3)} ${d.substring(3, 6)} ${d.substring(6)}",other
+lib/tg_models/tg_product.dart,249,l10n_key_getter,l10n_key+params,ownerKey,other
+lib/tg_models/tg_special_review.dart,179,l10n_key_getter,l10n_key+params,segmentKey,other
+lib/tg_services/account_identity_service.dart,110,l10n_key_getter,l10n_key+params,titleKey,other
+lib/tg_services/dashboard_service.dart,67,l10n_key_getter,l10n_key+params,ctaKey,other

@@ -1,0 +1,13 @@
+group,A_missing,B_suspicious,C_hardcoded_ui,D_services_models,E_concat_plurals,F_formatting,total
+auth/header/nav/footer,0,0,7,0,0,0,7
+home,167,118,1,0,2,0,288
+products/cards,3,33,8,0,0,0,44
+product-detail,0,3,1,0,0,1,5
+add-product/checkout,0,15,1,0,0,1,17
+dashboard,0,14,18,65,0,2,99
+deals/reviews/reports,0,0,1,0,0,7,8
+special-order,0,11,32,6,0,0,49
+restaurants,0,7,52,0,2,10,71
+seller,0,0,7,0,0,0,7
+admin,0,5,4,0,0,10,19
+other,1,11,12,65,1,10,100

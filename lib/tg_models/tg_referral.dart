@@ -366,7 +366,7 @@ class TGReferralAudit {
   final String? reason;
 }
 
-enum TGReferralCodeResult { valid, unrecognized, rateLimited }
+enum TGReferralCodeResult { valid, unrecognized, rateLimited, signupOnly }
 
 @immutable
 class TGReferralCodeCheck {

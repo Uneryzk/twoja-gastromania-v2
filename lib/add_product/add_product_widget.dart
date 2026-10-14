@@ -2109,15 +2109,22 @@ class _LoginModalState extends State<_LoginModal> {
       }
     }
     context.read<FakeAuthState>().logIn();
-    if (_register) {
-      final auth = context.read<FakeAuthState>();
+    final auth = context.read<FakeAuthState>();
+    if (_register && _isNewAccountThisSession(auth)) {
       auth.applyReferralMirror(ReferralRepository.instance.applySessionOnSignup(
         userId: auth.userId,
         displayName: auth.displayName,
         segment: TGReferralSegment.individual,
+        accountCreatedThisSession: true,
       ));
     }
     widget.onDone();
+  }
+
+  bool _isNewAccountThisSession(FakeAuthState auth) {
+    if (auth.referredAt != null) return false;
+    if (auth.referredByRepId != null && auth.referredByRepId!.isNotEmpty) return false;
+    return !ReferralRepository.instance.isSignupLocked(auth.userId);
   }
 
   void _primary() {
@@ -2134,14 +2141,15 @@ class _LoginModalState extends State<_LoginModal> {
       AccountIdentityService.instance.claim(email: email, phone: phone);
     }
     context.read<FakeAuthState>().logIn();
-    if (_register) {
-      final auth = context.read<FakeAuthState>();
+    final auth = context.read<FakeAuthState>();
+    if (_register && _isNewAccountThisSession(auth)) {
       auth.applyReferralMirror(ReferralRepository.instance.applySessionOnSignup(
         userId: auth.userId,
         displayName: auth.displayName,
         segment: TGReferralSegment.individual,
         email: email,
         phone: phone,
+        accountCreatedThisSession: true,
       ));
     }
     widget.onDone();
@@ -2177,6 +2185,8 @@ class _LoginModalState extends State<_LoginModal> {
           }),
           onForgotPassword: () {},
           onPrimaryAction: _primary,
+          applicantUserId: context.read<FakeAuthState>().userId,
+          signupLocked: ReferralRepository.instance.isSignupLocked(context.read<FakeAuthState>().userId),
         ),
       ),
     );

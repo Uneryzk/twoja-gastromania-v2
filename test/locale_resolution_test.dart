@@ -23,10 +23,10 @@ void main() {
 
   test('chrome strings exist for every supported language', () {
     const key = 'ui_buy';
-    expect(FFLocalizations(const Locale('en')).getText(key), 'Buy');
-    expect(FFLocalizations(const Locale('pl')).getText(key), 'Kup');
-    expect(FFLocalizations(const Locale('tr')).getText(key), 'Satın Al');
-    expect(FFLocalizations(const Locale('de')).getText(key), 'Kaufen');
+    expect(FFLocalizations(const Locale('en')).getText(key), 'For sale');
+    expect(FFLocalizations(const Locale('pl')).getText(key), 'Na sprzedaż');
+    expect(FFLocalizations(const Locale('tr')).getText(key), 'Satılık');
+    expect(FFLocalizations(const Locale('de')).getText(key), 'Zu verkaufen');
   });
 
   test('promoted badge follows the selected language', () {
@@ -45,15 +45,15 @@ void main() {
   });
 
   test('FlutterFlow keys inherit chrome translations', () {
-    const key = 'x5fioudz'; // generated "Buy"
-    expect(FFLocalizations(const Locale('en')).getText(key), 'Buy');
-    expect(FFLocalizations(const Locale('pl')).getText(key), 'Kup');
-    expect(FFLocalizations(const Locale('tr')).getText(key), 'Satın Al');
+    const key = 'x5fioudz'; // generated "For sale"
+    expect(FFLocalizations(const Locale('en')).getText(key), 'For sale');
+    expect(FFLocalizations(const Locale('pl')).getText(key), 'Na sprzedaż');
+    expect(FFLocalizations(const Locale('tr')).getText(key), 'Satılık');
   });
 
   testWidgets('Turkish locale localizes header nav and filters', (tester) async {
     await pumpTgApp(tester, location: '/products', locale: const Locale('tr'));
-    expect(find.text('Satın Al'), findsWidgets);
+    expect(find.text('Satılık'), findsWidgets);
     expect(find.text('Kiralık'), findsWidgets);
     expect(find.text('Filtreler'), findsWidgets);
     expect(find.text('Ürün ara…'), findsWidgets);
@@ -63,8 +63,8 @@ void main() {
 
   testWidgets('Polish locale localizes header nav and filters', (tester) async {
     await pumpTgApp(tester, location: '/products', locale: const Locale('pl'));
-    expect(find.text('Kup'), findsWidgets);
-    expect(find.text('Wynajem'), findsWidgets);
+    expect(find.text('Na sprzedaż'), findsWidgets);
+    expect(find.text('Na wynajem'), findsWidgets);
     expect(find.text('Filtry'), findsWidgets);
     expect(find.text('Szukaj produktów…'), findsWidgets);
     expect(find.text('WYRÓŻNIONE'), findsWidgets);

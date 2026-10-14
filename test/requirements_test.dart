@@ -10,6 +10,7 @@ import 'package:twoja_gastromania/products/products_filters.dart';
 import 'package:twoja_gastromania/products/products_logic.dart';
 import 'package:twoja_gastromania/products/products_query.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
+import 'package:twoja_gastromania/tg_components/tg_nav_pills.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_hover_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
@@ -72,18 +73,18 @@ void main() {
       _expectNoErrors(app);
     });
 
-    testWidgets('home "Buy" opens /products?type=buy and shows only buy listings', (tester) async {
+    testWidgets('home "For sale" opens /products?type=buy and shows only buy listings', (tester) async {
       final app = await pumpTgApp(tester, location: '/');
-      await _tapText(tester, 'Buy');
+      await _tapText(tester, 'For sale');
       expect(app.location, '/products?type=buy');
       expect(find.text('13 results'), findsOneWidget);
       expect(_cards(tester).every((c) => c.product.listingType == TGListingType.buy), isTrue);
       _expectNoErrors(app);
     });
 
-    testWidgets('home "Rent" opens /products?type=rent and shows only rent listings', (tester) async {
+    testWidgets('home "For rent" opens /products?type=rent and shows only rent listings', (tester) async {
       final app = await pumpTgApp(tester, location: '/');
-      await _tapText(tester, 'Rent');
+      await _tapText(tester, 'For rent');
       expect(app.location, '/products?type=rent');
       expect(find.text('3 results'), findsOneWidget);
       expect(_cards(tester).every((c) => c.product.listingType == TGListingType.rent), isTrue);
@@ -144,38 +145,42 @@ void main() {
 
     testWidgets('header shows expired listings with priority over trial copy', (tester) async {
       final app = await pumpTgApp(tester, location: '/');
-      expect(find.text('2 expired · Renew'), findsOneWidget);
+      expect(find.text('3 expired · Renew'), findsOneWidget);
       _expectNoErrors(app);
     });
 
     testWidgets('on phones the pill is short and the site name stays in the header', (tester) async {
       final app = await pumpTgApp(tester, location: '/', size: TGSizes.phone);
       expect(find.text('Renew'), findsOneWidget);
-      expect(find.text('2 expired · Renew'), findsNothing);
+      expect(find.text('3 expired · Renew'), findsNothing);
       expect(tester.getTopLeft(find.text('Twoja Gastromania').first).dy, lessThan(80));
       _expectNoErrors(app);
     });
 
     testWidgets('on phones restaurants and special order sit under Others', (tester) async {
       final app = await pumpTgApp(tester, location: '/', size: TGSizes.phone);
-      expect(find.text('Buy'), findsWidgets);
-      expect(find.text('Rent'), findsOneWidget);
+      expect(find.text('For sale'), findsWidgets);
+      expect(find.text('For rent'), findsOneWidget);
       expect(find.text('+ Add Product'), findsOneWidget);
       expect(find.text('Others'), findsOneWidget);
       expect(find.byIcon(Icons.menu), findsWidgets);
-      expect(find.text('Restaurants for Sale'), findsNothing);
-      expect(find.text('Special Order'), findsNothing);
+      expect(find.descendant(of: find.byType(TGNavPills), matching: find.text('Restaurants for Sale')), findsNothing);
+      expect(find.descendant(of: find.byType(TGNavPills), matching: find.text('Special Order')), findsNothing);
+
+      final othersRect = tester.getRect(find.text('Others'));
+      expect(othersRect.left, greaterThanOrEqualTo(0));
+      expect(othersRect.right, lessThanOrEqualTo(TGSizes.phone.width + 0.5));
 
       await tester.tap(find.text('Others'));
       await tester.pumpAndSettle();
-      expect(find.text('Restaurants for Sale'), findsOneWidget);
+      expect(find.text('Restaurants for Sale'), findsWidgets);
       expect(find.text('Special Order'), findsOneWidget);
       _expectNoErrors(app);
     });
 
     testWidgets('signed-out visitors see "Login" and can log in (mock) to get the pill', (tester) async {
       final app = await pumpTgApp(tester, location: '/', signedIn: false);
-      expect(find.text('2 expired · Renew'), findsNothing);
+      expect(find.text('3 expired · Renew'), findsNothing);
       await _tapText(tester, 'Login');
       expect(app.location, '/login');
 
@@ -184,13 +189,13 @@ void main() {
       await _tapText(tester, 'LOG IN', last: true);
       expect(app.location, '/');
       expect(app.auth.isLoggedIn, isTrue);
-      expect(find.text('2 expired · Renew'), findsOneWidget);
+      expect(find.text('3 expired · Renew'), findsOneWidget);
       _expectNoErrors(app);
     });
 
     testWidgets('account pill reflects all seven mock entitlement scenarios', (tester) async {
       final app = await pumpTgApp(tester, location: '/');
-      expect(find.text('2 expired · Renew'), findsOneWidget);
+      expect(find.text('3 expired · Renew'), findsOneWidget);
 
       app.auth.setScenario(TGEntitlementScenario.noListings);
       await tester.pump();
@@ -211,7 +216,7 @@ void main() {
 
       app.auth.setScenario(TGEntitlementScenario.listingExpiringSoon);
       await tester.pump();
-      expect(find.text('1 listing ends in 3d'), findsOneWidget);
+      expect(find.text('1 listing ends in 3 days'), findsOneWidget);
       expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
 
       app.auth.setScenario(TGEntitlementScenario.storeSubscriber);
@@ -231,7 +236,7 @@ void main() {
       expect(find.byType(Switch), findsOneWidget);
       // Listing type
       expect(find.text('Listing type'), findsOneWidget);
-      for (final t in ['All', 'Buy', 'Rent']) {
+      for (final t in ['All', 'For sale', 'For rent']) {
         expect(find.text(t), findsWidgets);
       }
       // Condition
@@ -286,7 +291,7 @@ void main() {
       final app = await pumpTgApp(tester, location: '/products');
       final all = await _catalogue(tester);
 
-      await tester.tap(find.text('Rent').first);
+      await tester.tap(find.text('For rent').first);
       await pumpFor(tester, const Duration(milliseconds: 500));
       expect(app.location, '/products?type=rent');
       expect(find.text('${countResults(all, const TGProductsQueryState(listingType: TGListingType.rent))} results'), findsOneWidget);
@@ -510,7 +515,7 @@ void main() {
     for (final view in ['grid', 'list']) {
       testWidgets('card hover ($view): translateY(-4px) + turquoise glow, reset on exit', (tester) async {
         final app = await pumpTgApp(tester, location: view == 'list' ? '/products?view=list' : '/products');
-        final card = find.byType(TGHoverCard).first;
+        final card = find.byWidgetPredicate((w) => w is TGHoverCard && w.tier == null && !w.gradientBorder).first;
         await tester.ensureVisible(card);
         await pumpFor(tester, const Duration(milliseconds: 300));
 
@@ -719,7 +724,8 @@ void main() {
       final app = await pumpTgApp(tester, location: '/products');
       expect(tester.widget<Scaffold>(find.byType(Scaffold).first).backgroundColor, TGColors.background);
 
-      final cardSurface = tester.widget<DecoratedBox>(find.descendant(of: find.byType(TGHoverCard).first, matching: find.byType(DecoratedBox)).first);
+      final organic = find.byWidgetPredicate((w) => w is TGHoverCard && w.tier == null && !w.gradientBorder).first;
+      final cardSurface = tester.widget<DecoratedBox>(find.descendant(of: organic, matching: find.byType(DecoratedBox)).first);
       expect((cardSurface.decoration as BoxDecoration).color, TGColors.surface);
 
       // Primary CTA ("+ Add Product").

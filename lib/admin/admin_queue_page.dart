@@ -7,6 +7,7 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
@@ -389,7 +390,7 @@ class _QueueTable extends StatelessWidget {
     final seller = sellerOf(row.sellerId) ?? (product == null
         ? null
         : TGModerationSeller(seller: product.seller, phone: product.phone, accountCreatedAt: DateTime.now()));
-    final kind = seller == null ? '—' : adminSellerKindL10n(context, seller.seller.type, verified: seller.seller.verified);
+    final kind = seller == null ? '—' : adminSellerKindL10n(context, seller.seller.type, verified: tgShowsVerifiedSellerBadge(seller.seller));
     return DataRow(
       color: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.hovered) || focused) return TGColors.surfaceHover;

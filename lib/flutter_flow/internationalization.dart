@@ -215,16 +215,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
       'en': 'Add Product',
     },
     'x5fioudz': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     '0loae64d': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'uyxzh0mp': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     '9db86pnc': {
       'pl': '=',
@@ -281,16 +281,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
           'What factors contribute to the profitability of a food and beverage business?',
     },
     '76kthqx7': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'xnqnc4k5': {
       'pl': 'Add Product\n',
       'en': 'Add Product',
     },
     'ay1m6ate': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     'sijfpcvb': {
       'pl': 'Restaurants for Sale',
@@ -630,16 +630,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
   // BirinciReklamSayfasi
   {
     'o7xd1sjn': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'au4lv5on': {
       'pl': 'Add Product\n',
       'en': 'Add Product',
     },
     'vxngjlo2': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     '25fyjd0b': {
       'pl': 'Restaurants for Sale',
@@ -662,16 +662,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
       'en': 'Add Product',
     },
     'vrnvrzc2': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     't8itc4zt': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'e471tjoy': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     'w4z01j2y': {
       'pl': '=',
@@ -705,16 +705,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
       'en': 'Your Gastronomy',
     },
     '8yl5pps4': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'oxuc635r': {
       'pl': 'Add Product\n',
       'en': 'Add Product',
     },
     'cpih39gi': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     'q4sa20zm': {
       'pl': 'Restaurants for Sale',
@@ -737,16 +737,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
       'en': 'Add Product',
     },
     'm0r15zel': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'juy1o8vy': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'bt6xvzwo': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     '8ososa0n': {
       'pl': '=',
@@ -776,16 +776,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
   // UcuncuReklamSayfasi
   {
     '6etf37ml': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     '27crp9jm': {
       'pl': 'Add Product\n',
       'en': 'Add Product',
     },
     '1dj4026m': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     'dse9kwrm': {
       'pl': 'Restaurants for Sale',
@@ -808,16 +808,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
       'en': 'Add Product',
     },
     'bgh1mx16': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'e3amhf7n': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     '23nhkzhd': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     'axkruyym': {
       'pl': '=',
@@ -851,16 +851,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
   // DortuncuReklamSayfasi
   {
     'pv0lisaf': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'udbfvg3a': {
       'pl': 'Add Product\n',
       'en': 'Add Product',
     },
     'i0r5mu12': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     'f5p5n0cp': {
       'pl': 'Restaurants for Sale',
@@ -883,16 +883,16 @@ final kTranslationsMap = mergeTranslations(<Map<String, Map<String, String>>>[
       'en': 'Add Product',
     },
     'seysxujz': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     '5ar55al9': {
-      'pl': 'Buy',
-      'en': 'Buy',
+      'pl': 'For sale',
+      'en': 'For sale',
     },
     'kuhwqpgw': {
-      'pl': 'Rent',
-      'en': 'Rent',
+      'pl': 'For rent',
+      'en': 'For rent',
     },
     'khg7r2xk': {
       'pl': '=',

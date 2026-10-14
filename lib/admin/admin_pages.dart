@@ -20,6 +20,7 @@ import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_account.dart';
 import 'package:twoja_gastromania/tg_models/tg_moderation.dart';
+import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
@@ -120,7 +121,7 @@ class AdminSellersPage extends StatelessWidget {
             child: AdminCard(
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text('${s.seller.name} · ${adminSellerKindL10n(context, s.seller.type, verified: s.seller.verified)}'),
+                title: Text('${s.seller.name} · ${adminSellerKindL10n(context, s.seller.type, verified: tgShowsVerifiedSellerBadge(s.seller))}'),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

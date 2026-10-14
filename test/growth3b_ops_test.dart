@@ -47,6 +47,16 @@ void main() {
   });
 
   group('grosz', () {
+    test('PLN text parses to grosz without float; extra decimals are rejected', () {
+      expect(GrowthMoney.tryParsePlnToGrosz('19,99'), 1999);
+      expect(GrowthMoney.tryParsePlnToGrosz('19.99'), 1999);
+      expect(GrowthMoney.tryParsePlnToGrosz('1000'), 100000);
+      expect(GrowthMoney.tryParsePlnToGrosz('1,005'), isNull);
+      expect(GrowthMoney.tryParsePlnToGrosz('1.005'), isNull);
+      expect(GrowthMoney.inputFromGrosz(1999), '19,99');
+      expect(GrowthMoney.inputFromGrosz(100000), '1000');
+    });
+
     test('net from gross is integer-only and matches PDF / current prices', () {
       expect(GrowthMoney.netFromGross(616500), GrowthScenario.pdfNetGrosz);
       expect(GrowthScenario.pdfExample.grossGrosz, GrowthScenario.pdfGrossGrosz);

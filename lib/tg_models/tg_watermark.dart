@@ -229,6 +229,21 @@ class ListingImage {
 
   String variant(TGImageVariant v) => variants[v] ?? variants.values.first;
 
+  /// Single public access point for listing photo URLs. Staff `originalRef`
+  /// values (`originals/…`, `originalRef=`) never leave this method.
+  static String publicVariant(String url, [TGImageVariant variant = TGImageVariant.card]) {
+    final u = url.trim();
+    if (u.isEmpty) return '';
+    final lower = u.toLowerCase();
+    if (lower.startsWith('originals/') ||
+        lower.contains('/originals/') ||
+        lower.contains('originalref=') ||
+        lower.contains('original_ref')) {
+      return '';
+    }
+    return switch (variant) { _ => u };
+  }
+
   ListingImage copyWith({String? phash, bool? watermarked, int? watermarkVersion}) => ListingImage._(
         id: id,
         listingKey: listingKey,

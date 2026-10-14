@@ -15,6 +15,7 @@ class TGButton extends StatefulWidget {
     this.height = 44,
     this.padding = const EdgeInsets.symmetric(horizontal: 18),
     this.borderRadius,
+    this.dense = false,
   });
 
   final VoidCallback? onPressed;
@@ -24,6 +25,7 @@ class TGButton extends StatefulWidget {
   final double height;
   final EdgeInsets padding;
   final BorderRadius? borderRadius;
+  final bool dense;
 
   @override
   State<TGButton> createState() => _TGButtonState();
@@ -93,19 +95,26 @@ class _TGButtonState extends State<TGButton> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (widget.icon != null) ...[
-                        Icon(widget.icon, size: 18, color: effectiveFg),
-                        const SizedBox(width: 10),
+                        Icon(widget.icon, size: widget.dense ? 15 : 18, color: effectiveFg),
+                        SizedBox(width: widget.dense ? 4 : 10),
                       ],
-                      // Flexible + ellipsis so a long label can never overflow
-                      // a narrow button.
-                      Flexible(
-                        child: Text(
-                          widget.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.titleSmall.override(color: effectiveFg, fontSize: 14, letterSpacing: 0.1),
-                        ),
-                      ),
+                      // Dense pills size to the full label (parent FittedBox
+                      // scales the row). Wider buttons may ellipsis.
+                      widget.dense
+                          ? Text(
+                              widget.label,
+                              maxLines: 1,
+                              softWrap: false,
+                              style: theme.titleSmall.override(color: effectiveFg, fontSize: 12, letterSpacing: 0.1),
+                            )
+                          : Flexible(
+                              child: Text(
+                                widget.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.titleSmall.override(color: effectiveFg, fontSize: 14, letterSpacing: 0.1),
+                              ),
+                            ),
                     ],
                   ),
                 ),

@@ -1,10 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
+import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
+import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
+import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 
 /// Promote packages for restaurant listings: `{days: PLN}` (VAT-inclusive).
 @immutable
 class RestaurantPromotePrices {
-  const RestaurantPromotePrices({this.prices = const {14: 49, 30: 79}});
+  RestaurantPromotePrices({Map<int, int>? prices})
+      : prices = prices ?? Map<int, int>.from(PromotionConfig.defaults.prices[PromotionTier.glow] ?? const {});
 
   final Map<int, int> prices;
 
@@ -24,9 +28,10 @@ class RestaurantPromotePrices {
         for (final e in raw.entries) int.parse('${e.key}'): (e.value as num).toInt(),
       });
     }
+    final glow = PromotionConfig.defaults.prices[PromotionTier.glow] ?? const {};
     return RestaurantPromotePrices(prices: {
-      14: (json['pln14'] as num?)?.toInt() ?? 39,
-      30: (json['pln30'] as num?)?.toInt() ?? 69,
+      14: (json['pln14'] as num?)?.toInt() ?? glow[14] ?? 0,
+      30: (json['pln30'] as num?)?.toInt() ?? glow[30] ?? 0,
     });
   }
 }
@@ -63,21 +68,23 @@ class RestaurantConfig {
   final int lowViewsHint;
   final int soldItemReviewBusinessDays;
 
-  /// Defaults align with [PricingConfig.defaults] (VITRIN-2). Prefer PricingConfig for new UI.
-  static const RestaurantConfig defaults = RestaurantConfig(
-    freeDays: 30,
-    freeExtensionDays: 30,
-    paidPricePln: 149,
-    paidDays: 90,
-    renewEarlyDays: 14,
-    // Legacy 14/30 promote maps to Glow 2w / 1m (PromotionConfig).
-    promote: RestaurantPromotePrices(),
-    freeStartCapPer12m: 3,
-    perPremisesMax: 3,
-    dailyListingCap: 3,
-    lowViewsHint: 30,
-    soldItemReviewBusinessDays: 5,
-  );
+  /// Mirrors [PricingConfig.defaults] so PLN / day figures are not a second source.
+  static RestaurantConfig get defaults {
+    const p = PricingConfig.defaults;
+    return RestaurantConfig(
+      freeDays: p.freeListingDays,
+      freeExtensionDays: p.freeListingDays,
+      paidPricePln: p.restaurantFeePln(p.defaultRestaurantDays),
+      paidDays: p.defaultRestaurantDays,
+      renewEarlyDays: p.renewEarlyDays,
+      promote: RestaurantPromotePrices(prices: Map<int, int>.from(p.promotions.prices[PromotionTier.glow] ?? const {})),
+      freeStartCapPer12m: p.freeListingQuota,
+      perPremisesMax: 3,
+      dailyListingCap: 3,
+      lowViewsHint: 30,
+      soldItemReviewBusinessDays: 5,
+    );
+  }
 
   /// CTA label for hub / banners (config-driven free period).
   String get listCtaLabel => 'List your business · free for ${DurationFormatter.days(freeDays, 'en')}';
@@ -150,7 +157,17 @@ class RestaurantConfigService extends ChangeNotifier {
 
   RestaurantConfig _config = RestaurantConfig.defaults;
 
-  RestaurantConfig get config => _config;
+  RestaurantConfig get config {
+    final p = PricingConfigService.instance.config;
+    final glow = p.promotions.prices[PromotionTier.glow] ?? const <int, int>{};
+    return _config.copyWith(
+      freeDays: p.freeListingDays,
+      paidDays: p.defaultRestaurantDays,
+      paidPricePln: p.restaurantFeePln(p.defaultRestaurantDays),
+      renewEarlyDays: p.renewEarlyDays,
+      promote: RestaurantPromotePrices(prices: Map<int, int>.from(glow)),
+    );
+  }
 
   void reset() {
     _config = RestaurantConfig.defaults;

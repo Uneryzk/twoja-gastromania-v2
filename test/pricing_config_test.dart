@@ -21,6 +21,11 @@ void main() {
     expect(c.totalListingPlusPromo(listing: 30, tier: PromotionTier.glow, promoDuration: 30), 128);
     expect(c.totalListingPlusPromo(listing: 90, tier: PromotionTier.spotlight, promoDuration: 30), 198);
     expect(c.totalRestaurantPlusPromo(listing: 90, tier: PromotionTier.glow, promoDuration: 14), 198);
+    expect(c.basicStoreMonthlyPln, 199);
+    expect(c.proStoreMonthlyPln, 499);
+    expect(c.enterpriseStoreMonthlyPln, 899);
+    expect(c.storeSixMonthsPln(199), 1074);
+    expect(c.storeYearlyPln(199), 1990);
   });
 
   test('per-day label uses comma decimal', () {

@@ -25,11 +25,21 @@ class TGSellerProfileService extends ChangeNotifier {
 
   List<TGStoreProfile> get all => List.unmodifiable(_profiles);
 
+  /// Demo / investor presentation cards (Technica, Gastrosilesia, …).
+  static const Set<String> demoBestSellerPublicIds = {'2931', '1847', '4102', '5518', '1048'};
+
+  static const Set<int> seedPublicIds = {2931, 1847, 4102, 5518, 6120, 6121, 6122, 6123, 1048, 6620, 6621, 7703, 8804, 9901};
+
+  static const int minBestSellers = 3;
+
   List<TGStoreProfile> get bestSellers {
-    if (TGRevenueConfigService.instance.productionMode) return const [];
-    return _profiles
-        .where((p) => p.isStore && p.isLive && const {'2931', '1847', '4102', '5518', '1048'}.contains('${p.publicId}'))
-        .toList();
+    final live = _profiles.where((p) => p.isStore && p.isLive).toList();
+    if (TGRevenueConfigService.instance.productionMode) {
+      final real = live.where((p) => !seedPublicIds.contains(p.publicId)).toList();
+      if (real.length < minBestSellers) return const [];
+      return real;
+    }
+    return live.where((p) => demoBestSellerPublicIds.contains('${p.publicId}')).toList();
   }
 
   List<TGStoreProfile> get specialOrderManufacturers =>

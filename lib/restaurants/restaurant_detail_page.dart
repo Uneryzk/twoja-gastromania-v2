@@ -935,7 +935,7 @@ class _RestoBodyState extends State<_RestoBody> {
   Widget _sellerStrip(FlutterFlowTheme theme) {
     return Row(
       children: [
-        CircleAvatar(radius: 18, backgroundColor: TGColors.cta.withValues(alpha: 0.2), child: Text(r.seller.name.characters.first.toUpperCase())),
+        CircleAvatar(radius: 18, backgroundColor: TGColors.cta.withValues(alpha: 0.2), child: Text(tgToUpperTr(r.seller.name.characters.first))),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -1271,7 +1271,7 @@ class _ContactPanel extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    CircleAvatar(backgroundColor: TGColors.cta.withValues(alpha: 0.25), child: Text(r.seller.name.characters.first.toUpperCase(), style: const TextStyle(color: Colors.white))),
+                    CircleAvatar(backgroundColor: TGColors.cta.withValues(alpha: 0.25), child: Text(tgToUpperTr(r.seller.name.characters.first), style: const TextStyle(color: Colors.white))),
                     const SizedBox(width: 10),
                     Expanded(child: Text(r.seller.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
                   ],

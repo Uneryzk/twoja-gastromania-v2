@@ -390,31 +390,38 @@ class FakeAuthState extends ChangeNotifier {
   List<TGProduct> get ownedExpiringSoon => ownedActive.where((p) => p.isExpiringSoon).toList();
   List<TGProduct> get ownedNeedsAttention => ownedListings.where((p) => p.status == TGListingStatus.underReview).toList();
 
-  /// Product + restaurant expired count for header pill.
-  int get expiredListingCount => ownedExpired.length + RestaurantService.instance.ownedExpired(userId).length;
+  /// Restaurant rows belong on the mock seller's default (hasExpired) inventory.
+  /// Product-only entitlement scenarios must not be hijacked by seed restaurants.
+  bool get _headerCountsRestaurants => _scenario == TGEntitlementScenario.hasExpired;
+
+  int get _restoExpiredCount =>
+      _headerCountsRestaurants ? RestaurantService.instance.ownedExpired(userId).length : 0;
+
+  int get _restoExpiringCount =>
+      _headerCountsRestaurants ? RestaurantService.instance.ownedExpiringSoon(userId).length : 0;
+
+  /// Product + (default mock) restaurant expired count for header pill.
+  int get expiredListingCount => ownedExpired.length + _restoExpiredCount;
 
   /// Product + restaurant expiring ≤7d count for header pill ("ends in Nd").
-  int get expiringListingCount =>
-      ownedExpiringSoon.length + RestaurantService.instance.ownedExpiringSoon(userId).length;
+  int get expiringListingCount => ownedExpiringSoon.length + _restoExpiringCount;
 
   int get nearestExpiringDays {
     final productDays = ownedExpiringSoon.map((p) => p.daysUntilExpiry());
-    final restoDays = RestaurantService.instance.ownedExpiringSoon(userId).map((r) => r.daysUntilExpiry());
+    final restoDays = _headerCountsRestaurants
+        ? RestaurantService.instance.ownedExpiringSoon(userId).map((r) => r.daysUntilExpiry())
+        : const <int>[];
     final all = [...productDays, ...restoDays];
     if (all.isEmpty) return 0;
     return all.reduce((a, b) => a < b ? a : b);
   }
 
   TGHeaderPillKind get pillKind {
-    final restoExpired = RestaurantService.instance.ownedExpired(userId);
-    final restoExpiring = RestaurantService.instance.ownedExpiringSoon(userId);
     if (ownedNeedsAttention.isNotEmpty) return TGHeaderPillKind.needsAttention;
-    if (ownedExpired.isNotEmpty || restoExpired.isNotEmpty) return TGHeaderPillKind.expiredListings;
-    if (ownedExpiringSoon.isNotEmpty || restoExpiring.isNotEmpty) return TGHeaderPillKind.expiringListings;
+    if (ownedExpired.isNotEmpty || _restoExpiredCount > 0) return TGHeaderPillKind.expiredListings;
+    if (ownedExpiringSoon.isNotEmpty || _restoExpiringCount > 0) return TGHeaderPillKind.expiringListings;
     if (storePlan != null) return TGHeaderPillKind.store;
-    if (publishedListings.isEmpty && RestaurantService.instance.ownedBy(userId).isEmpty) {
-      return TGHeaderPillKind.noListings;
-    }
+    if (publishedListings.isEmpty) return TGHeaderPillKind.noListings;
     if (freeListingsLeft <= 0) return TGHeaderPillKind.noQuota;
     return TGHeaderPillKind.freeQuota;
   }
@@ -427,10 +434,10 @@ class FakeAuthState extends ChangeNotifier {
   int get mobileBadgeCount {
     if (pillKind == TGHeaderPillKind.needsAttention) return ownedNeedsAttention.length;
     if (pillKind == TGHeaderPillKind.expiredListings) {
-      return ownedExpired.length + RestaurantService.instance.ownedExpired(userId).length;
+      return expiredListingCount;
     }
     if (pillKind == TGHeaderPillKind.expiringListings) {
-      return ownedExpiringSoon.length + RestaurantService.instance.ownedExpiringSoon(userId).length;
+      return expiringListingCount;
     }
     if (storePlan != null) return 0;
     return freeListingsLeft;
@@ -605,7 +612,12 @@ class FakeAuthState extends ChangeNotifier {
   void logIn() {
     if (_isLoggedIn) return;
     _isLoggedIn = true;
-    if (role == TGUserRole.visitor) role = TGUserRole.seller;
+    if (role == TGUserRole.visitor) {
+      role = TGUserRole.seller;
+      if (ownedListings.isEmpty) {
+        setScenario(TGEntitlementScenario.hasExpired, notify: false);
+      }
+    }
     notifyListeners();
   }
 
@@ -705,11 +717,13 @@ class FakeAuthState extends ChangeNotifier {
   }
 
   void applyReferralMirror(TGReferredAccount? acc) {
-    referredByCode = acc?.referredByCode;
-    referredByRepId = acc?.referredByRepId;
-    referredAt = acc?.referredAt;
-    referralConsentAt = acc?.referralConsentAt;
-    referralVisibility = acc?.referralVisibility ?? TGReferralVisibility.on;
+    if (acc == null) return;
+    if ((referredByRepId != null && referredByRepId!.isNotEmpty) || referredAt != null) return;
+    referredByCode = acc.referredByCode;
+    referredByRepId = acc.referredByRepId;
+    referredAt = acc.referredAt;
+    referralConsentAt = acc.referralConsentAt;
+    referralVisibility = acc.referralVisibility;
     notifyListeners();
   }
 
@@ -1098,7 +1112,7 @@ TGProduct _own({
       expires = now.subtract(expiredAgo);
     } else {
       resolved = status ?? TGListingStatus.active;
-      expires = expiresAt ?? now.add(expiresIn ?? const Duration(days: TGPricing.listingPeriodDays));
+      expires = expiresAt ?? now.add(expiresIn ?? Duration(days: TGPricing.listingPeriodDays));
     }
   }
   if (listingNo != null) TGListingNo.reserve(listingNo);

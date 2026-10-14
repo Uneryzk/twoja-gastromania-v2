@@ -637,7 +637,7 @@ class TGProductService {
             'p007' => now.add(const Duration(days: 10)),
             _ => p.seller.type == TGSellerType.store
                 ? now.add(const Duration(days: 22))
-                : p.createdAt.add(const Duration(days: TGPricing.listingPeriodDays)),
+                : p.createdAt.add(Duration(days: TGPricing.listingPeriodDays)),
           },
           source: p.seller.type == TGSellerType.store ? TGListingSource.store : TGListingSource.free,
           promotedUntil: p.isPromoted ? now.add(const Duration(days: 7)) : null,

@@ -95,7 +95,7 @@ void main() {
       repo.setSessionCode('Marek-IND2026');
       repo.setSessionConsent(false);
       expect(
-        repo.applySessionOnSignup(userId: 'u1', displayName: 'Ada L.', segment: TGReferralSegment.individual),
+        repo.applySessionOnSignup(userId: 'u1', displayName: 'Ada L.', segment: TGReferralSegment.individual, accountCreatedThisSession: true),
         isNull,
       );
       expect(repo.accountOf('u1'), isNull);
@@ -106,7 +106,7 @@ void main() {
       repo.setSessionCode('Marek-IND2026');
       repo.setSessionConsent(true);
       expect(
-        repo.applySessionOnSignup(userId: 'rep_marek', displayName: 'Marek', segment: TGReferralSegment.individual),
+        repo.applySessionOnSignup(userId: 'rep_marek', displayName: 'Marek', segment: TGReferralSegment.individual, accountCreatedThisSession: true),
         isNull,
       );
       repo.setSessionCode('Marek-IND2026');
@@ -117,6 +117,7 @@ void main() {
           displayName: 'X',
           segment: TGReferralSegment.individual,
           email: 'marek.rep@example.com',
+          accountCreatedThisSession: true,
         ),
         isNull,
       );
@@ -128,6 +129,7 @@ void main() {
           displayName: 'Y',
           segment: TGReferralSegment.individual,
           phone: '+48100100100',
+          accountCreatedThisSession: true,
         ),
         isNull,
       );
@@ -137,7 +139,7 @@ void main() {
       final repo = ReferralRepository.instance..ensureSeeded();
       repo.setSessionCode('Marek-IND2026');
       repo.setSessionConsent(true);
-      final acc = repo.applySessionOnSignup(userId: 'pin', displayName: 'Ada Nowak', segment: TGReferralSegment.individual);
+      final acc = repo.applySessionOnSignup(userId: 'pin', displayName: 'Ada Nowak', segment: TGReferralSegment.individual, accountCreatedThisSession: true);
       expect(acc?.referredByRepId, 'rep_marek');
       expect(acc?.referredByCode, 'Marek-IND2026');
       expect(TGAnalytics.has('referral_signup_success'), isTrue);
@@ -151,6 +153,124 @@ void main() {
       expect(repo.accountOf('pin')!.referredByRepId, 'rep_piotr');
       expect(repo.accountOf('pin')!.referredAt, firstAt);
       expect(repo.audit.any((a) => a.action == 'referral_admin_correct' && a.reason == 'typo'), isTrue);
+    });
+
+    test('existing user in register mode cannot change assignment with another code', () {
+      final repo = ReferralRepository.instance..ensureSeeded();
+      repo.setSessionCode('Marek-IND2026');
+      repo.setSessionConsent(true);
+      final first = repo.applySessionOnSignup(
+        userId: 'exist',
+        displayName: 'Exist U.',
+        segment: TGReferralSegment.individual,
+        accountCreatedThisSession: true,
+      );
+      expect(first?.referredByRepId, 'rep_marek');
+      expect(first?.referralConsentAt, isNotNull);
+
+      repo.setSessionCode('Piotr-CORP2026');
+      repo.setSessionConsent(true);
+      expect(
+        repo.applySessionOnSignup(
+          userId: 'exist',
+          displayName: 'Exist U.',
+          segment: TGReferralSegment.individual,
+          accountCreatedThisSession: true,
+        ),
+        isNull,
+      );
+      expect(repo.accountOf('exist')!.referredByRepId, 'rep_marek');
+      expect(repo.accountOf('exist')!.referredByCode, 'Marek-IND2026');
+
+      repo.setSessionCode('Piotr-CORP2026');
+      repo.setSessionConsent(true);
+      expect(
+        repo.applySessionOnSignup(userId: 'exist', displayName: 'Exist U.', segment: TGReferralSegment.individual),
+        isNull,
+      );
+      expect(repo.accountOf('exist')!.referredByRepId, 'rep_marek');
+    });
+
+    test('signup without a code cannot attach one later', () {
+      final repo = ReferralRepository.instance..ensureSeeded();
+      expect(
+        repo.applySessionOnSignup(
+          userId: 'late',
+          displayName: 'Late U.',
+          segment: TGReferralSegment.individual,
+          accountCreatedThisSession: true,
+        ),
+        isNull,
+      );
+      expect(repo.accountOf('late'), isNull);
+      expect(repo.isSignupLocked('late'), isTrue);
+
+      repo.setSessionCode('Marek-IND2026');
+      repo.setSessionConsent(true);
+      expect(
+        repo.applySessionOnSignup(
+          userId: 'late',
+          displayName: 'Late U.',
+          segment: TGReferralSegment.individual,
+          accountCreatedThisSession: true,
+        ),
+        isNull,
+      );
+      expect(repo.accountOf('late'), isNull);
+      expect(repo.checkCode('Marek-IND2026', applicantUserId: 'late').result, TGReferralCodeResult.signupOnly);
+    });
+
+    test('only adminCorrectReferral mutates assignment and rejects an empty reason', () {
+      final repo = ReferralRepository.instance..ensureSeeded();
+      repo.setSessionCode('Marek-IND2026');
+      repo.setSessionConsent(true);
+      final acc = repo.applySessionOnSignup(
+        userId: 'only_admin',
+        displayName: 'Ada',
+        segment: TGReferralSegment.individual,
+        accountCreatedThisSession: true,
+      );
+      expect(acc?.referredByRepId, 'rep_marek');
+
+      repo.setSessionCode('Piotr-CORP2026');
+      repo.setSessionConsent(true);
+      repo.applySessionOnSignup(
+        userId: 'only_admin',
+        displayName: 'Ada',
+        segment: TGReferralSegment.individual,
+        accountCreatedThisSession: true,
+      );
+      expect(repo.accountOf('only_admin')!.referredByRepId, 'rep_marek');
+
+      expect(
+        repo.adminCorrectReferral(userId: 'only_admin', actorId: 'staff_admin', reason: '', newCode: 'Piotr-CORP2026'),
+        'reason_required',
+      );
+      expect(repo.accountOf('only_admin')!.referredByRepId, 'rep_marek');
+      expect(
+        repo.adminCorrectReferral(userId: 'only_admin', actorId: 'staff_admin', reason: 'correction', newCode: 'Piotr-CORP2026'),
+        isNull,
+      );
+      expect(repo.accountOf('only_admin')!.referredByRepId, 'rep_piotr');
+      expect(repo.audit.any((a) => a.action == 'referral_admin_correct' && a.reason == 'correction'), isTrue);
+    });
+
+    test('new account with consent and a valid code writes assignment', () {
+      final repo = ReferralRepository.instance..ensureSeeded();
+      repo.setSessionCode('Marek-IND2026');
+      repo.setSessionConsent(true);
+      final acc = repo.applySessionOnSignup(
+        userId: 'fresh_ok',
+        displayName: 'Fresh Ok',
+        segment: TGReferralSegment.individual,
+        accountCreatedThisSession: true,
+      );
+      expect(acc, isNotNull);
+      expect(acc!.referredByRepId, 'rep_marek');
+      expect(acc.referredByCode, 'Marek-IND2026');
+      expect(acc.referralConsentAt, isNotNull);
+      expect(acc.referredAt, isNotNull);
+      expect(repo.accountOf('fresh_ok')!.referredByRepId, 'rep_marek');
     });
   });
 
@@ -223,6 +343,25 @@ void main() {
       ReferralRepository.instance.ensureSeeded();
       expect(ReferralRepository.instance.profileForUser('rep_marek'), isNull);
       expect(ReferralRepository.instance.sellersFor('rep_marek'), isEmpty);
+    });
+
+    test('Production Mode blocks debugAddAccount and seed referral writes', () {
+      TGRevenueConfigService.instance.setProductionMode(true, actorId: 't', reason: 'test');
+      final repo = ReferralRepository.instance;
+      repo.ensureSeeded();
+      expect(repo.profileForUser('rep_marek'), isNull);
+      expect(repo.accountOf('ref_jan'), isNull);
+      repo.debugAddAccount(TGReferredAccount(
+        userId: 'prod_block',
+        displayName: 'Blocked',
+        segment: TGReferralSegment.individual,
+        referredByCode: 'Marek-IND2026',
+        referredByRepId: 'rep_marek',
+        referredAt: DateTime(2026),
+        referralConsentAt: DateTime(2026),
+      ));
+      expect(repo.accountOf('prod_block'), isNull);
+      expect(repo.isSignupLocked('prod_block'), isFalse);
     });
 
     testWidgets('non-representative gets 403 on /dashboard/representative', (tester) async {

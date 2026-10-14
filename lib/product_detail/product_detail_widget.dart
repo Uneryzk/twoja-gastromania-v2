@@ -830,9 +830,9 @@ class _PriceBlock extends StatelessWidget {
     String? other;
     if (hasPrice) {
       if (product.priceBasis == TGPriceBasis.netto) {
-        other = '${formatPln((product.price! * (1 + TGPricing.vatRate)).round())} ${context.t('ui_brutto').toLowerCase()}';
+        other = '${formatPln((product.price! * (1 + TGPricing.vatRate)).round())} ${context.t('ui_brutto_inline')}';
       } else {
-        other = '${formatPln(TGPricing.netFromGross(product.price!).round())} ${context.t('ui_netto').toLowerCase()}';
+        other = '${formatPln(TGPricing.netFromGross(product.price!).round())} ${context.t('ui_netto_inline')}';
       }
     }
 
