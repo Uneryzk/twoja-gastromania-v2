@@ -469,7 +469,10 @@ class _AccountPill extends StatelessWidget {
     final kind = auth.pillKind;
     final store = kind == TGHeaderPillKind.store;
     final warn = auth.pillIsProblem;
-    final borderColor = warn ? TGColors.rating : (store ? theme.success : theme.primary);
+    final attention = kind == TGHeaderPillKind.needsAttention;
+    final borderColor = attention
+        ? TGColors.error
+        : (warn ? TGColors.rating : (store ? theme.success : theme.primary));
     final label = _label(context);
 
     return Tooltip(
@@ -505,7 +508,12 @@ class _AccountPill extends StatelessWidget {
                         label,
                         maxLines: 1,
                         softWrap: false,
-                        style: theme.bodySmall.override(fontWeight: FontWeight.w700, fontSize: compact ? 12 : 13),
+                        style: theme.bodySmall.override(
+                          fontWeight: FontWeight.w700,
+                          fontSize: compact ? 12 : 13,
+                          letterSpacing: 0.3,
+                          color: attention ? TGColors.error : null,
+                        ),
                       ),
                     ),
                   ),
@@ -526,7 +534,10 @@ class _AccountPill extends StatelessWidget {
     }
     if (warn && !phone) {
       final icon = auth.pillKind == TGHeaderPillKind.needsAttention ? Icons.gpp_maybe_outlined : Icons.schedule_rounded;
-      return Padding(padding: const EdgeInsets.only(left: 6), child: Icon(icon, size: 18, color: TGColors.rating));
+      return Padding(
+        padding: const EdgeInsets.only(left: 6),
+        child: Icon(icon, size: 18, color: auth.pillKind == TGHeaderPillKind.needsAttention ? TGColors.error : TGColors.rating),
+      );
     }
     return SizedBox(
       width: 28,
@@ -550,7 +561,9 @@ class _AccountPill extends StatelessWidget {
                 height: 14,
                 padding: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
-                  color: auth.pillIsProblem ? TGColors.rating : theme.primary,
+                  color: auth.pillKind == TGHeaderPillKind.needsAttention
+                      ? TGColors.error
+                      : (auth.pillIsProblem ? TGColors.rating : theme.primary),
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(color: theme.secondaryBackground, width: 1),
                 ),
@@ -568,7 +581,11 @@ class _AccountPill extends StatelessWidget {
               child: Container(
                 width: 8,
                 height: 8,
-                decoration: BoxDecoration(color: TGColors.rating, shape: BoxShape.circle, border: Border.all(color: theme.secondaryBackground, width: 1)),
+                decoration: BoxDecoration(
+                  color: auth.pillKind == TGHeaderPillKind.needsAttention ? TGColors.error : TGColors.rating,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: theme.secondaryBackground, width: 1),
+                ),
               ),
             ),
         ],

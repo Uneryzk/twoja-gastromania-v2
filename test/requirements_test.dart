@@ -75,18 +75,20 @@ void main() {
 
     testWidgets('home "For sale" opens /products?type=buy and shows only buy listings', (tester) async {
       final app = await pumpTgApp(tester, location: '/');
-      await _tapText(tester, 'For sale');
+      await tester.tap(find.descendant(of: find.byType(TGNavPills), matching: find.text('For sale')));
+      await pumpFor(tester, const Duration(milliseconds: 600));
       expect(app.location, '/products?type=buy');
-      expect(find.text('13 results'), findsOneWidget);
+      expect(find.text('17 results'), findsOneWidget);
       expect(_cards(tester).every((c) => c.product.listingType == TGListingType.buy), isTrue);
       _expectNoErrors(app);
     });
 
     testWidgets('home "For rent" opens /products?type=rent and shows only rent listings', (tester) async {
       final app = await pumpTgApp(tester, location: '/');
-      await _tapText(tester, 'For rent');
+      await tester.tap(find.descendant(of: find.byType(TGNavPills), matching: find.text('For rent')));
+      await pumpFor(tester, const Duration(milliseconds: 600));
       expect(app.location, '/products?type=rent');
-      expect(find.text('3 results'), findsOneWidget);
+      expect(find.text('4 results'), findsOneWidget);
       expect(_cards(tester).every((c) => c.product.listingType == TGListingType.rent), isTrue);
       _expectNoErrors(app);
     });
@@ -157,24 +159,18 @@ void main() {
       _expectNoErrors(app);
     });
 
-    testWidgets('on phones restaurants and special order sit under Others', (tester) async {
+    testWidgets('on phones all five nav tabs fill the row', (tester) async {
       final app = await pumpTgApp(tester, location: '/', size: TGSizes.phone);
-      expect(find.text('For sale'), findsWidgets);
-      expect(find.text('For rent'), findsOneWidget);
-      expect(find.text('+ Add Product'), findsOneWidget);
-      expect(find.text('Others'), findsOneWidget);
-      expect(find.byIcon(Icons.menu), findsWidgets);
-      expect(find.descendant(of: find.byType(TGNavPills), matching: find.text('Restaurants for Sale')), findsNothing);
-      expect(find.descendant(of: find.byType(TGNavPills), matching: find.text('Special Order')), findsNothing);
+      expect(find.descendant(of: find.byType(TGNavPills), matching: find.text('For sale')), findsOneWidget);
+      expect(find.descendant(of: find.byType(TGNavPills), matching: find.text('For rent')), findsOneWidget);
+      expect(find.descendant(of: find.byType(TGNavPills), matching: find.text('+ Add Product')), findsOneWidget);
+      expect(find.descendant(of: find.byType(TGNavPills), matching: find.text('Restaurants for Sale')), findsOneWidget);
+      expect(find.descendant(of: find.byType(TGNavPills), matching: find.text('Special Order')), findsOneWidget);
+      expect(find.text('Others'), findsNothing);
 
-      final othersRect = tester.getRect(find.text('Others'));
-      expect(othersRect.left, greaterThanOrEqualTo(0));
-      expect(othersRect.right, lessThanOrEqualTo(TGSizes.phone.width + 0.5));
-
-      await tester.tap(find.text('Others'));
-      await tester.pumpAndSettle();
-      expect(find.text('Restaurants for Sale'), findsWidgets);
-      expect(find.text('Special Order'), findsOneWidget);
+      final pills = tester.getRect(find.byType(TGNavPills));
+      expect(pills.left, greaterThanOrEqualTo(-0.5));
+      expect(pills.right, lessThanOrEqualTo(TGSizes.phone.width + 0.5));
       _expectNoErrors(app);
     });
 

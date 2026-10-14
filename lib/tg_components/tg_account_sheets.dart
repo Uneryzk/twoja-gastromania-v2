@@ -560,7 +560,9 @@ class _QuotaCard extends StatelessWidget {
     final kind = auth.pillKind;
     final isStore = kind == TGHeaderPillKind.store;
     final warn = auth.pillIsProblem;
-    final color = isStore ? theme.success : (warn ? theme.warning : theme.primary);
+    final color = isStore
+        ? theme.success
+        : (kind == TGHeaderPillKind.needsAttention ? TGColors.error : (warn ? theme.warning : theme.primary));
 
     final String headline;
     final String detail;
@@ -616,7 +618,14 @@ class _QuotaCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(headline, style: theme.bodyLarge.override(fontWeight: FontWeight.w800)),
+          Text(
+            headline,
+            style: theme.bodyLarge.override(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+              color: kind == TGHeaderPillKind.needsAttention ? TGColors.error : null,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(detail, style: theme.bodySmall.override(color: theme.secondaryText)),
           const SizedBox(height: 10),

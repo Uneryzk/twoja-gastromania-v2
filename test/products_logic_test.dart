@@ -256,8 +256,9 @@ void main() {
       test('sort=${sort.name}: glow pins sticky, nothing else leaks in', () {
         final r = computeResults(products, TGProductsQueryState(sort: sort), promotedSeed: 7);
 
-        // Legacy isPromoted → glow; all four stay in the pin strip (under pinnedMaxOnSort).
-        expect(r.promoted, hasLength(4));
+        // Legacy isPromoted → glow. Recommended pins 3 per tier; other sorts pin up to pinnedMaxOnSort.
+        final pinnedCap = sort == TGProductsSort.recommended ? 3 : 4;
+        expect(r.promoted, hasLength(pinnedCap));
         expect(r.promoted.every((p) => p.isPromoted), isTrue);
         expect(r.promoById.values.every((t) => t == PromotionTier.glow), isTrue);
         final pinned = r.promoted.map((p) => p.id).toSet();

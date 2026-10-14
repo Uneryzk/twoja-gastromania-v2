@@ -67,20 +67,19 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final pad = phone ? 16.0 : 24.0;
 
-    // VITRIN-1: homepage featured = Spotlight → Glow only (no Bold, no organic fillers).
+    // Homepage category strips: 3 Spotlight, 3 Glow, 3 Bold, 3 standard per type.
     PromotionService.instance.ensureSeeded();
     final active = _all.where((p) => p.isActive && p.isPubliclyVisible).toList();
     final now = TGClock.now();
     final sessionSeed = now.day * 17 + now.month * 3;
-    final featuredSlots = PromotionEngine.compose<TGProduct>(
-      surface: PromotionSurface.home,
-      candidates: active,
-      idOf: (p) => p.id,
-      promoOf: (p) => PromotionService.instance.effectiveListingPromo(p),
-      sessionSeed: sessionSeed,
-    );
-    // Production mode: never fill with unpaid mock/organic cards.
-    final featured = featuredSlots.map((s) => s.item).toList();
+    List<PromotionSlot<TGProduct>> stripFor(TGListingType type) => PromotionEngine.composeHomeFeatured<TGProduct>(
+          candidates: active.where((p) => p.listingType == type).toList(),
+          idOf: (p) => p.id,
+          promoOf: (p) => PromotionService.instance.effectiveListingPromo(p),
+          sessionSeed: sessionSeed,
+        );
+    final buySlots = stripFor(TGListingType.buy);
+    final rentSlots = stripFor(TGListingType.rent);
     final counts = {for (final c in TGCategory.values) c: _all.where((p) => p.isPubliclyVisible && p.category == c).length};
 
     Widget section(Widget child, {double top = 56}) => Center(
@@ -122,12 +121,21 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   top: 12,
                 ),
                 section(HomeCategorySection(listingCounts: counts)),
-                if (featured.isNotEmpty)
+                if (buySlots.isNotEmpty)
                   section(HomePromotedSection(
-                    products: featured,
-                    tiers: {
-                      for (final s in featuredSlots) s.item.id: s.promotion?.tier,
-                    },
+                    products: [for (final s in buySlots) s.item],
+                    tiers: {for (final s in buySlots) s.item.id: s.promotion?.tier},
+                    titleKey: 'ui_buy',
+                    subtitleKey: 'ui_promoted_listings_sub',
+                    onViewAll: () => TGNav.buy(context),
+                  )),
+                if (rentSlots.isNotEmpty)
+                  section(HomePromotedSection(
+                    products: [for (final s in rentSlots) s.item],
+                    tiers: {for (final s in rentSlots) s.item.id: s.promotion?.tier},
+                    titleKey: 'ui_rent',
+                    subtitleKey: 'ui_promoted_listings_sub',
+                    onViewAll: () => TGNav.rent(context),
                   )),
                 section(const HomeRestaurantsStrip()),
                 if (HomeManufacturersStrip.items().isNotEmpty) section(const HomeManufacturersStrip()),

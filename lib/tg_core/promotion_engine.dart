@@ -35,7 +35,10 @@ class PromotionEngine {
     return out;
   }
 
-  /// Dispatches by [surface]. Homepage (`home` / `homeFeatured`) is Spotlight → Glow only; never Bold.
+  /// Cards per paid tier (and organic fillers) on homepage category strips.
+  static const int homeStripPerGroup = 3;
+
+  /// Dispatches by [surface]. Homepage strips: 3 Spotlight, 3 Glow, 3 Bold, 3 standard.
   static List<PromotionSlot<T>> compose<T>({
     required PromotionSurface surface,
     required List<T> candidates,
@@ -62,7 +65,7 @@ class PromotionEngine {
     }
   }
 
-  /// Homepage equipment strip: Spotlight → Glow only, max [homeFeaturedMax]. No Bold.
+  /// Homepage category strip: 3 Spotlight, 3 Glow, 3 Bold, then 3 organic/standard.
   static List<PromotionSlot<T>> composeHomeFeatured<T>({
     required List<T> candidates,
     required String Function(T item) idOf,
@@ -70,25 +73,44 @@ class PromotionEngine {
     required int sessionSeed,
     int? max,
   }) {
-    final cfg = PromotionService.instance.config;
-    final limit = max ?? cfg.homeFeaturedMax;
+    const per = homeStripPerGroup;
+    final limit = max ?? (per * 4);
     final byId = {for (final c in candidates) idOf(c): c};
-    final promos = <Promotion>[
-      for (final c in candidates)
-        if (promoOf(c) case final p?)
-          if (p.tier == PromotionTier.spotlight || p.tier == PromotionTier.glow) p,
-    ];
-    final spots = rotateTier([for (final p in promos) if (p.tier == PromotionTier.spotlight) p], sessionSeed);
-    final glows = rotateTier([for (final p in promos) if (p.tier == PromotionTier.glow) p], sessionSeed ^ 17);
-    final ordered = [...spots, ...glows];
+    final promoOfId = <String, Promotion>{};
+    for (final c in candidates) {
+      final p = promoOf(c);
+      if (p != null) promoOfId[idOf(c)] = p;
+    }
+    final spots = rotateTier([for (final p in promoOfId.values) if (p.tier == PromotionTier.spotlight) p], sessionSeed);
+    final glows = rotateTier([for (final p in promoOfId.values) if (p.tier == PromotionTier.glow) p], sessionSeed ^ 17);
+    final bolds = rotateTier([for (final p in promoOfId.values) if (p.tier == PromotionTier.bold) p], sessionSeed ^ 29);
     final out = <PromotionSlot<T>>[];
     final seen = <String>{};
-    for (final p in ordered) {
-      if (out.length >= limit) break;
-      if (!seen.add(p.targetRef)) continue;
-      final item = byId[p.targetRef];
-      if (item == null) continue;
-      out.add(PromotionSlot(item: item, promotion: p));
+
+    void takePaid(List<Promotion> list) {
+      var n = 0;
+      for (final p in list) {
+        if (n >= per || out.length >= limit) break;
+        if (!seen.add(p.targetRef)) continue;
+        final item = byId[p.targetRef];
+        if (item == null) continue;
+        out.add(PromotionSlot(item: item, promotion: p));
+        n++;
+      }
+    }
+
+    takePaid(spots);
+    takePaid(glows);
+    takePaid(bolds);
+
+    var organicTaken = 0;
+    for (final c in candidates) {
+      if (organicTaken >= per || out.length >= limit) break;
+      final id = idOf(c);
+      if (!seen.add(id)) continue;
+      if (promoOfId[id] != null) continue;
+      out.add(PromotionSlot(item: c));
+      organicTaken++;
     }
     return out;
   }
@@ -106,7 +128,7 @@ class PromotionEngine {
         idOf: idOf,
         promoOf: promoOf,
         sessionSeed: sessionSeed,
-        max: max ?? PromotionService.instance.config.homeRestaurantMax,
+        max: max ?? (homeStripPerGroup * 4),
       );
 
   /// Catalogue compose for /products and /restaurants.
@@ -140,14 +162,26 @@ class PromotionEngine {
     }
 
     if (context.sort == PromotionSortMode.recommended) {
+      var n = 0;
       for (final p in spots) {
+        if (n >= homeStripPerGroup) break;
+        final before = pinned.length;
         pushPinned(p);
+        if (pinned.length > before) n++;
       }
+      n = 0;
       for (final p in glows) {
+        if (n >= homeStripPerGroup) break;
+        final before = pinned.length;
         pushPinned(p);
+        if (pinned.length > before) n++;
       }
+      n = 0;
       for (final p in bolds) {
+        if (n >= homeStripPerGroup) break;
+        final before = pinned.length;
         pushPinned(p);
+        if (pinned.length > before) n++;
       }
     } else {
       final cap = cfg.pinnedMaxOnSort;
@@ -162,14 +196,12 @@ class PromotionEngine {
       final id = idOf(c);
       if (pinnedIds.contains(id)) continue;
       final promo = promoOf(c);
-      // On non-recommended sorts Bold may appear in organic with title weight only.
-      if (context.sort == PromotionSortMode.recommended && promo != null) continue;
       if (context.sort != PromotionSortMode.recommended &&
           promo != null &&
           (promo.tier == PromotionTier.spotlight || promo.tier == PromotionTier.glow)) {
         continue;
       }
-      organic.add(PromotionSlot(item: c, promotion: promo?.tier == PromotionTier.bold ? promo : null));
+      organic.add(PromotionSlot(item: c, promotion: promo));
     }
 
     // Repeats are injected per page at render time so they do not affect page counts.

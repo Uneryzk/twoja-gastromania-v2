@@ -33,7 +33,8 @@ void main() {
     expect(find.textContaining('brutto'), findsWidgets);
     expect(find.text('Similar listings'), findsOneWidget);
     expect(find.text('More from this seller'), findsOneWidget);
-    expect(find.text("Can't find it? Send a Special Order"), findsOneWidget);
+    expect(find.text("Can't find the product you need?"), findsOneWidget);
+    expect(find.text('Place a special order or rent instead!'), findsOneWidget);
     _expectNoErrors(app);
   });
 

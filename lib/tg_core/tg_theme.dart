@@ -163,5 +163,29 @@ ThemeData buildTGDarkTheme() {
     ),
     dividerTheme: const DividerThemeData(color: TGColors.border, thickness: 1, space: 1),
     progressIndicatorTheme: const ProgressIndicatorThemeData(color: TGColors.cta),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        foregroundColor: TGColors.onCta,
+        backgroundColor: TGColors.cta,
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.35),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.35),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: TGColors.cta,
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.35),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: TGColors.cta,
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.35),
+      ),
+    ),
   );
 }

@@ -16,6 +16,7 @@ class TGButton extends StatefulWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 18),
     this.borderRadius,
     this.dense = false,
+    this.expand = false,
   });
 
   final VoidCallback? onPressed;
@@ -26,6 +27,8 @@ class TGButton extends StatefulWidget {
   final EdgeInsets padding;
   final BorderRadius? borderRadius;
   final bool dense;
+  /// Stretch to the parent width (nav pills on a full-width row).
+  final bool expand;
 
   @override
   State<TGButton> createState() => _TGButtonState();
@@ -80,6 +83,7 @@ class _TGButtonState extends State<TGButton> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 140),
             height: widget.height,
+            width: widget.expand ? double.infinity : null,
             padding: widget.padding,
             decoration: BoxDecoration(
               color: effectiveBg,
@@ -91,31 +95,28 @@ class _TGButtonState extends State<TGButton> {
               children: [
                 Align(
                   alignment: Alignment.center,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.icon != null) ...[
-                        Icon(widget.icon, size: widget.dense ? 15 : 18, color: effectiveFg),
-                        SizedBox(width: widget.dense ? 4 : 10),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.icon != null) ...[
+                          Icon(widget.icon, size: widget.dense ? 15 : 18, color: effectiveFg),
+                          SizedBox(width: widget.dense ? 4 : 10),
+                        ],
+                        Text(
+                          widget.label,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: theme.titleSmall.override(
+                            color: effectiveFg,
+                            fontSize: widget.dense ? 12 : 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.35,
+                          ),
+                        ),
                       ],
-                      // Dense pills size to the full label (parent FittedBox
-                      // scales the row). Wider buttons may ellipsis.
-                      widget.dense
-                          ? Text(
-                              widget.label,
-                              maxLines: 1,
-                              softWrap: false,
-                              style: theme.titleSmall.override(color: effectiveFg, fontSize: 12, letterSpacing: 0.1),
-                            )
-                          : Flexible(
-                              child: Text(
-                                widget.label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.titleSmall.override(color: effectiveFg, fontSize: 14, letterSpacing: 0.1),
-                              ),
-                            ),
-                    ],
+                    ),
                   ),
                 ),
                 if (_focused)

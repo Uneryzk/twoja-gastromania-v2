@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
-import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_components/tg_buttons.dart';
 
 class TGNavItem {
@@ -34,23 +32,26 @@ class TGNavPills extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final w = MediaQuery.sizeOf(context).width;
-    final isTight = w < 400;
-    final isSmall = w < 430;
-    final isMobile = w < 700;
-    final gap = isTight ? 3.0 : (isSmall ? 6.0 : 10.0);
-    final indicatorW = isTight ? 48.0 : (isSmall ? 72.0 : 110.0);
-    final horizontalPad = isTight
+    final isMobile = w < 900;
+    final gap = isMobile ? 4.0 : 10.0;
+    final horizontalPad = isMobile
         ? const EdgeInsets.symmetric(horizontal: 6)
-        : (isSmall ? const EdgeInsets.symmetric(horizontal: 10) : const EdgeInsets.symmetric(horizontal: 18));
-
-    final (effectiveItems, effectiveActiveIndex) = _maybeCollapseOthersMenu(context: context, isMobile: isMobile, items: items, activeIndex: activeIndex);
+        : const EdgeInsets.symmetric(horizontal: 18);
 
     final pills = Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        for (var i = 0; i < effectiveItems.length; i++) ...[
+        for (var i = 0; i < items.length; i++) ...[
           if (i > 0) SizedBox(width: gap),
-          _NavPill(item: effectiveItems[i], active: i == effectiveActiveIndex, padding: horizontalPad, compact: isTight),
+          Expanded(
+            flex: items[i].label.trim().length.clamp(4, 28),
+            child: _NavPill(
+              item: items[i],
+              active: i == activeIndex,
+              padding: horizontalPad,
+              compact: isMobile,
+              expand: true,
+            ),
+          ),
         ],
       ],
     );
@@ -58,184 +59,40 @@ class TGNavPills extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Align(
-          alignment: Alignment.center,
-          child: isTight
-              ? FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.center, child: pills)
-              : SingleChildScrollView(scrollDirection: Axis.horizontal, child: pills),
-        ),
+        pills,
         const SizedBox(height: 10),
         AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           height: 2,
           decoration: BoxDecoration(color: theme.tertiary.withValues(alpha: 0.55)),
-          child: effectiveActiveIndex == null
+          child: activeIndex == null || items.length < 2
               ? null
               : Align(
-                  alignment: Alignment(-1 + (2 * (effectiveActiveIndex / (effectiveItems.length - 1).clamp(1, 999))), 0),
-                  child: Container(
-                    width: indicatorW,
-                    height: 2,
-                    color: theme.primary,
+                  alignment: Alignment(-1 + (2 * (activeIndex! / (items.length - 1).clamp(1, 999))), 0),
+                  child: FractionallySizedBox(
+                    widthFactor: 1 / items.length,
+                    child: Container(height: 2, color: theme.primary),
                   ),
                 ),
         ),
       ],
     );
   }
-
-  (List<TGNavItem>, int?) _maybeCollapseOthersMenu({required BuildContext context, required bool isMobile, required List<TGNavItem> items, required int? activeIndex}) {
-    if (!isMobile) return (items, activeIndex);
-
-    const collapseIds = {'restaurants', 'special_order'};
-    bool collapses(TGNavItem item) => item.id != null && collapseIds.contains(item.id);
-    final collapsedIndices = <int>[];
-    for (var i = 0; i < items.length; i++) {
-      if (collapses(items[i])) collapsedIndices.add(i);
-    }
-    if (collapsedIndices.isEmpty) return (items, activeIndex);
-
-    final othersActions = <TGNavItem>[];
-    final effective = <TGNavItem>[];
-
-    for (var i = 0; i < items.length; i++) {
-      final item = items[i];
-      if (collapses(item)) {
-        othersActions.add(item);
-        continue;
-      }
-      effective.add(item);
-    }
-
-    // Insert "Others" where the first collapsed item used to be, but clamp to list bounds.
-    final insertAt = collapsedIndices.first.clamp(0, effective.length);
-    effective.insert(
-      insertAt,
-      TGNavItem(
-        id: 'others',
-        label: context.t('ui_others'),
-        icon: Icons.menu,
-        onTap: () => _openOthersMenu(context, othersActions),
-      ),
-    );
-
-    if (activeIndex == null) return (effective, null);
-
-    final wasCollapsedActive = collapsedIndices.contains(activeIndex);
-    final effectiveActiveIndex = wasCollapsedActive
-        ? insertAt
-        : _remapActiveIndexAfterRemoval(activeIndex: activeIndex, removedIndices: collapsedIndices, insertAt: insertAt);
-    return (effective, effectiveActiveIndex);
-  }
-
-  int _remapActiveIndexAfterRemoval({required int activeIndex, required List<int> removedIndices, required int insertAt}) {
-    // If activeIndex is after any removed item, shift left by number of removed indices before it.
-    final removedBefore = removedIndices.where((i) => i < activeIndex).length;
-    var idx = activeIndex - removedBefore;
-    // If the insertion point is <= idx, shift right by 1 (because we inserted Others).
-    if (insertAt <= idx) idx += 1;
-    return idx.clamp(0, 9999);
-  }
-
-  void _openOthersMenu(BuildContext context, List<TGNavItem> items) {
-    final theme = FlutterFlowTheme.of(context);
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: theme.secondaryBackground,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(context.t('ui_others'), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
-                const SizedBox(height: 12),
-                for (var i = 0; i < items.length; i++) ...[
-                  _OthersMenuTile(
-                    icon: _iconForItem(items[i]),
-                    title: items[i].label,
-                    onTap: () {
-                      context.pop();
-                      items[i].onTap?.call();
-                    },
-                  ),
-                  if (i != items.length - 1) const SizedBox(height: 10),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  IconData _iconForItem(TGNavItem item) {
-    switch (item.id) {
-      case 'restaurants':
-        return Icons.storefront;
-      case 'special_order':
-        return Icons.assignment;
-      default:
-        return item.icon ?? Icons.chevron_right;
-    }
-  }
-}
-
-class _OthersMenuTile extends StatefulWidget {
-  const _OthersMenuTile({required this.icon, required this.title, required this.onTap});
-
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  @override
-  State<_OthersMenuTile> createState() => _OthersMenuTileState();
-}
-
-class _OthersMenuTileState extends State<_OthersMenuTile> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: () {
-        setState(() => _pressed = false);
-        widget.onTap();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: _pressed ? theme.tertiary.withValues(alpha: 0.35) : theme.alternate,
-          borderRadius: BorderRadius.circular(theme.designToken.radius.card),
-          border: Border.all(color: theme.tertiary, width: 1),
-        ),
-        child: Row(
-          children: [
-            Icon(widget.icon, size: 20, color: theme.primaryText),
-            const SizedBox(width: 12),
-            Expanded(child: Text(widget.title, style: theme.bodyMedium.override(fontWeight: FontWeight.w700))),
-            Icon(Icons.chevron_right, size: 20, color: theme.secondaryText),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _NavPill extends StatelessWidget {
-  const _NavPill({required this.item, required this.active, required this.padding, this.compact = false});
+  const _NavPill({
+    required this.item,
+    required this.active,
+    required this.padding,
+    this.compact = false,
+    this.expand = false,
+  });
   final TGNavItem item;
   final bool active;
   final EdgeInsets padding;
   final bool compact;
+  final bool expand;
 
   @override
   Widget build(BuildContext context) {
@@ -247,9 +104,10 @@ class _NavPill extends StatelessWidget {
         label: item.label,
         icon: item.icon,
         variant: TGButtonVariant.primary,
-        height: compact ? 36 : 44,
+        height: compact ? 40 : 44,
         padding: padding,
         dense: compact,
+        expand: expand,
         borderRadius: BorderRadius.circular(theme.designToken.radius.full),
       );
     }
@@ -263,9 +121,10 @@ class _NavPill extends StatelessWidget {
         label: item.label,
         icon: item.icon,
         variant: active ? TGButtonVariant.outline : TGButtonVariant.ghost,
-        height: compact ? 36 : 44,
+        height: compact ? 40 : 44,
         padding: padding,
         dense: compact,
+        expand: expand,
         borderRadius: BorderRadius.circular(theme.designToken.radius.full),
       ),
     );

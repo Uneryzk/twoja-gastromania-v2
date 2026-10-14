@@ -35,30 +35,25 @@ void main() {
     PromotionService.instance.resetForTests();
   });
 
-  test('home featured never includes Bold and caps at homeFeaturedMax', () {
+  test('home featured is 3 Spotlight, 3 Glow, 3 Bold, then 3 standard', () {
     final svc = PromotionService.instance;
-    final now = TGClock.now();
-    // Inject promos directly via ensureSeed then replace isn't public — use effective via isPromoted glow + seed.
     svc.ensureSeeded();
-    final products = [for (var i = 1; i <= 20; i++) _p('p${i.toString().padLeft(3, '0')}')];
+    final products = [for (var i = 1; i <= 24; i++) _p('p${i.toString().padLeft(3, '0')}')];
     final slots = PromotionEngine.composeHomeFeatured(
       candidates: products,
       idOf: (p) => p.id,
       promoOf: (p) => svc.effectiveListingPromo(p) ?? svc.activeFor(kind: PromotionTargetKind.listing, targetRef: p.id),
       sessionSeed: 42,
     );
-    expect(slots.length, lessThanOrEqualTo(svc.config.homeFeaturedMax));
-    expect(slots.every((s) => s.promotion?.tier != PromotionTier.bold), isTrue);
-    expect(slots.every((s) => s.promotion != null), isTrue);
-
-    final viaCompose = PromotionEngine.compose(
-      surface: PromotionSurface.home,
-      candidates: products,
-      idOf: (p) => p.id,
-      promoOf: (p) => svc.effectiveListingPromo(p) ?? svc.activeFor(kind: PromotionTargetKind.listing, targetRef: p.id),
-      sessionSeed: 42,
-    );
-    expect(viaCompose.every((s) => s.promotion?.tier != PromotionTier.bold), isTrue);
+    expect(slots.length, lessThanOrEqualTo(PromotionEngine.homeStripPerGroup * 4));
+    final tiers = [for (final s in slots) s.promotion?.tier];
+    expect(tiers.where((t) => t == PromotionTier.spotlight).length, lessThanOrEqualTo(3));
+    expect(tiers.where((t) => t == PromotionTier.glow).length, lessThanOrEqualTo(3));
+    expect(tiers.where((t) => t == PromotionTier.bold).length, lessThanOrEqualTo(3));
+    expect(tiers.where((t) => t == null).length, lessThanOrEqualTo(3));
+    final firstNull = tiers.indexOf(null);
+    final lastPaid = tiers.lastIndexWhere((t) => t != null);
+    if (firstNull >= 0 && lastPaid >= 0) expect(lastPaid, lessThan(firstNull));
   });
 
   test('legacy isPromoted maps to glow', () {

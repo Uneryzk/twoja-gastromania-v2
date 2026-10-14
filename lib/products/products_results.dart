@@ -478,7 +478,9 @@ class TGResultsBody extends StatelessWidget {
             _Pagination(current: page, total: totalPages, onPage: (p) => onChanged(query.copyWith(page: p))),
         ],
         const SizedBox(height: 32),
-        const TGSpecialOrderBand(),
+        TGSpecialOrderBand(
+          kind: query.listingType == TGListingType.rent ? TGNeedMoreBandKind.rent : TGNeedMoreBandKind.sale,
+        ),
       ],
     );
   }
