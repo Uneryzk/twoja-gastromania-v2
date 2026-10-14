@@ -46,7 +46,7 @@ void main() {
     const ids = ['p020', 'p021', 'p022', 'p023', 'p024'];
     final pack = [for (final id in ids) all.singleWhere((p) => p.id == id)];
     expect(pack, hasLength(5));
-    expect(all, hasLength(23));
+    expect(all, hasLength(53));
 
     expect(pack[0].seller.type, TGSellerType.private);
     expect(pack[0].seller.id, 'seller_font_piotr');

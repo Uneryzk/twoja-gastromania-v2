@@ -7,21 +7,23 @@ import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
+import 'package:twoja_gastromania/tg_services/standard_member_seeds.dart';
 
 class TGProductService {
   TGProductService._();
   static final TGProductService instance = TGProductService._();
 
   /// Bumped when seed image strategy changes (remote Unsplash → local assets).
-  static const _storageKey = '__tg_products_v13__';
+  static const _storageKey = '__tg_products_v14__';
 
   List<TGProduct>? _cache;
 
   /// Sync snapshot when catalogue already loaded (homepage / promo seed).
-  static const _kSeedProductIds = {
+  static final _kSeedProductIds = {
     'p001', 'p002', 'p003', 'p004', 'p005', 'p006', 'p007', 'p008', 'p009',
     'p010', 'p011', 'p012', 'p013', 'p014', 'p015', 'p016', 'p017', 'p018',
     'p020', 'p021', 'p022', 'p023', 'p024',
+    for (final s in kStandardMemberSeeds) s.id,
   };
 
   List<TGProduct> _visible(List<TGProduct> all) {
@@ -741,6 +743,7 @@ class TGProductService {
         createdAt: now.subtract(const Duration(hours: 2)),
         description: 'Sklep Pro. Szafa przelotowa do linii wydawczej, montaż na miejscu.',
       ),
+      ...buildStandardMemberListings(now),
     ];
     final numbered = [
       for (final p in seeded)
@@ -805,7 +808,7 @@ String _seedListingNo(String id) => switch (id) {
       'p022' => '30492837',
       'p023' => '31503948',
       'p024' => '32614059',
-      _ => TGListingNo.allocate(),
+      _ => kStandardMemberSeeds.where((s) => s.id == id).firstOrNull?.listingNo ?? TGListingNo.allocate(),
     };
 
 extension<T> on Iterable<T> {

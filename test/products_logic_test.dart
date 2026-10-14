@@ -316,7 +316,7 @@ void main() {
 
     test('most seeded listings offer in-person pickup', () async {
       final all = await TGProductService.instance.getAll();
-      expect(all, hasLength(23));
+      expect(all, hasLength(53));
       expect(all.where((p) => p.pickup).length, greaterThanOrEqualTo(16));
       expect(all.any((p) => p.delivery && !p.pickup), isTrue);
       expect(all.any((p) => p.pickup && !p.delivery), isTrue);

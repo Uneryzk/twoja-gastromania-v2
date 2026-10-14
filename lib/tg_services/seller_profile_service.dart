@@ -6,6 +6,7 @@ import 'package:twoja_gastromania/tg_models/tg_special_order.dart';
 import 'package:twoja_gastromania/tg_models/tg_store_profile.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
+import 'package:twoja_gastromania/tg_services/standard_member_seeds.dart';
 
 class TGSellerProfileService extends ChangeNotifier {
   TGSellerProfileService._();
@@ -28,7 +29,11 @@ class TGSellerProfileService extends ChangeNotifier {
   /// Demo / investor presentation cards (Technica, Gastrosilesia, …).
   static const Set<String> demoBestSellerPublicIds = {'2931', '1847', '4102', '5518', '1048'};
 
-  static const Set<int> seedPublicIds = {2931, 1847, 4102, 5518, 6120, 6121, 6122, 6123, 1048, 6620, 6621, 7703, 8804, 9901, 8810, 8811, 8812, 8813, 8814};
+  static const Set<int> seedPublicIds = {
+    2931, 1847, 4102, 5518, 6120, 6121, 6122, 6123, 1048, 6620, 6621, 7703, 8804, 9901, 8810, 8811, 8812, 8813, 8814,
+    8901, 8902, 8903, 8904, 8905, 8906, 8907, 8908, 8909, 8910, 8911, 8912, 8913, 8914, 8915,
+    8916, 8917, 8918, 8919, 8920, 8921, 8922, 8923, 8924, 8925, 8926, 8927, 8928, 8929, 8930,
+  };
 
   static const int minBestSellers = 3;
 
@@ -628,6 +633,7 @@ List<TGStoreProfile> _seedProfiles() {
       rating: 4.9,
       reviewsCount: 42,
     ),
+    ...buildStandardMemberProfiles(),
   ];
 }
 

@@ -77,7 +77,7 @@ void main() {
       final app = await pumpTgApp(tester, location: '/');
       await _tapText(tester, 'For sale');
       expect(app.location, '/products?type=buy');
-      expect(find.text('17 results'), findsOneWidget);
+      expect(find.text('47 results'), findsOneWidget);
       expect(_cards(tester).every((c) => c.product.listingType == TGListingType.buy), isTrue);
       _expectNoErrors(app);
     });
