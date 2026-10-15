@@ -3,15 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:twoja_gastromania/features/home/presentation/widgets/categories_grid_widget.dart';
+import 'package:twoja_gastromania/features/home/presentation/widgets/home_banner_slider.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
+import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/products/products_results.dart' show kTGGridGutter;
 import 'package:twoja_gastromania/tg_components/tg_hover_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_rating_stars.dart';
 import 'package:twoja_gastromania/tg_components/tg_smart_image.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
-import 'package:twoja_gastromania/tg_core/tg_plural.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/restaurants/restaurant_l10n.dart';
@@ -19,7 +22,10 @@ import 'package:twoja_gastromania/tg_models/tg_ad_slot.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
 import 'package:twoja_gastromania/tg_models/tg_promotion.dart';
 import 'package:twoja_gastromania/tg_core/tg_verified_seller.dart';
+import 'package:twoja_gastromania/tg_models/tg_home_banner.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
+import 'package:twoja_gastromania/tg_services/home_banner_service.dart';
+import 'package:twoja_gastromania/tg_services/home_category_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/promotion_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
@@ -77,17 +83,25 @@ class HomeSectionTitle extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _HeroSlide {
-  const _HeroSlide.organic({required this.image, required this.titleKey, required this.subtitleKey, required this.routeName})
-      : sponsored = false,
+  const _HeroSlide.organic({
+    required this.image,
+    required this.titleKey,
+    required this.subtitleKey,
+    required this.routeName,
+    this.cms,
+    this.buttonText,
+    this.targetUrl,
+  })  : sponsored = false,
         ad = null,
-        title = null,
-        targetUrl = null;
+        title = null;
 
   const _HeroSlide.sponsored({required this.ad, required this.image, required this.title, required this.targetUrl})
       : sponsored = true,
         titleKey = null,
         subtitleKey = null,
-        routeName = null;
+        routeName = null,
+        cms = null,
+        buttonText = null;
 
   final bool sponsored;
   final TGAdSlot? ad;
@@ -97,6 +111,8 @@ class _HeroSlide {
   final String? routeName;
   final String? title;
   final String? targetUrl;
+  final String? buttonText;
+  final TGHomeBanner? cms;
 }
 
 /// Auto-playing carousel; organic slides open ad pages; sponsored open targetUrl.
@@ -118,14 +134,36 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
   int _index = 0;
   bool _paused = false;
   bool _focusPaused = false;
+  bool _editing = false;
   final Set<String> _impressed = {};
 
-  List<_HeroSlide> _organic() => [
-        _HeroSlide.organic(image: TGListingImages.heroSlide(0), titleKey: 'i8m5wr2h', subtitleKey: '7d6qkq0f', routeName: widget.slideRouteNames[0]),
-        _HeroSlide.organic(image: TGListingImages.heroSlide(1), titleKey: '0y0mdwe3', subtitleKey: 'gn0cgz8h', routeName: widget.slideRouteNames[1]),
-        _HeroSlide.organic(image: TGListingImages.heroSlide(2), titleKey: 'z2t2enej', subtitleKey: 'yhrj1i0w', routeName: widget.slideRouteNames[2]),
-        _HeroSlide.organic(image: TGListingImages.heroSlide(3), titleKey: 'fd2vmdbm', subtitleKey: 'ghe86x4x', routeName: widget.slideRouteNames[3]),
+  List<_HeroSlide> _organic() {
+    final names = widget.slideRouteNames;
+    final banners = HomeBannerService.instance.active;
+    if (banners.isEmpty) {
+      return [
+        for (var i = 0; i < names.length; i++)
+          _HeroSlide.organic(
+            image: TGListingImages.heroSlide(i),
+            titleKey: const ['i8m5wr2h', '0y0mdwe3', 'z2t2enej', 'fd2vmdbm'][i],
+            subtitleKey: const ['7d6qkq0f', 'gn0cgz8h', 'yhrj1i0w', 'ghe86x4x'][i],
+            routeName: names[i],
+          ),
       ];
+    }
+    return [
+      for (var i = 0; i < banners.length; i++)
+        _HeroSlide.organic(
+          image: banners[i].imageUrl,
+          titleKey: banners[i].titleKey,
+          subtitleKey: banners[i].subtitleKey,
+          routeName: banners[i].routeName.isNotEmpty ? banners[i].routeName : (i < names.length ? names[i] : banners[i].id),
+          buttonText: banners[i].hasButtonOverride ? banners[i].buttonText : null,
+          targetUrl: banners[i].targetUrl,
+          cms: banners[i],
+        ),
+    ];
+  }
 
   /// Organic slides unchanged; sponsored interleaved between them (max 3).
   List<_HeroSlide> _compose() {
@@ -161,6 +199,8 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
     super.initState();
     AdSlotService.instance.ensureSeeded();
     AdSlotService.instance.addListener(_onAds);
+    HomeBannerService.instance.ensureSeeded();
+    HomeBannerService.instance.addListener(_onAds);
   }
 
   void _onAds() {
@@ -177,7 +217,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
   }
 
   void _advance() {
-    if (_paused || _focusPaused || !mounted || !_controller.hasClients) return;
+    if (_paused || _focusPaused || _editing || !mounted || !_controller.hasClients) return;
     final n = _compose().length;
     if (n == 0) return;
     _goTo((_index + 1) % n);
@@ -196,6 +236,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
   @override
   void dispose() {
     AdSlotService.instance.removeListener(_onAds);
+    HomeBannerService.instance.removeListener(_onAds);
     _timer?.cancel();
     _controller.dispose();
     super.dispose();
@@ -209,13 +250,25 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
       if (url != null && url.isNotEmpty) context.go(url);
       return;
     }
+    final url = s.targetUrl;
+    if (url != null && url.startsWith('/')) {
+      context.go(url);
+      return;
+    }
     context.goNamed(s.routeName!);
+  }
+
+  Future<void> _editBanner(TGHomeBanner banner) async {
+    _editing = true;
+    await showHomeBannerEditDialog(context, banner: banner);
+    if (mounted) setState(() => _editing = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     final l10n = FFLocalizations.of(context);
+    final canEdit = context.watch<FakeAuthState>().canModerate;
     final slides = _compose();
     if (_index >= slides.length) _index = 0;
     if (slides.isNotEmpty) _recordImpression(slides[_index]);
@@ -255,7 +308,8 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                   ? context.t('ad_title_${s.ad?.id ?? ''}')
                                   : (s.title ?? ''));
                         } else {
-                          title = l10n.getText(s.titleKey!);
+                          final cms = s.cms;
+                          title = (cms != null && cms.hasTitleOverride) ? cms.title : l10n.getText(s.titleKey!);
                         }
                         final label = s.sponsored ? '${context.t('badge.sponsored')}. $title' : title;
                         return Focus(
@@ -279,7 +333,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                       child: Stack(
                                         fit: StackFit.expand,
                                         children: [
-                                          if (s.sponsored)
+                                          if (s.sponsored || !s.image.startsWith('assets/'))
                                             TGSmartImage(url: s.image, fit: BoxFit.cover, cacheWidth: 1400)
                                           else
                                             Image.asset(
@@ -343,7 +397,9 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                                   if (!s.sponsored) ...[
                                                     const SizedBox(height: 8),
                                                     Text(
-                                                      l10n.getText(s.subtitleKey!),
+                                                      (s.cms != null && s.cms!.hasSubtitleOverride)
+                                                          ? s.cms!.subtitle
+                                                          : l10n.getText(s.subtitleKey!),
                                                       maxLines: phone ? 2 : 3,
                                                       overflow: TextOverflow.ellipsis,
                                                       style: theme.bodyLarge.override(
@@ -364,7 +420,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                                       mainAxisSize: MainAxisSize.min,
                                                       children: [
                                                         Text(
-                                                          s.sponsored ? context.t('ui_view') : context.t('ui_read_more'),
+                                                          s.sponsored ? context.t('ui_view') : (s.buttonText ?? context.t('ui_read_more')),
                                                           style: theme.bodySmall.override(color: TGColors.onCta, fontWeight: FontWeight.w900),
                                                         ),
                                                         const SizedBox(width: 6),
@@ -391,6 +447,15 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                       Positioned(left: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_left_rounded, label: context.t('ui_hero_prev_sem'), onTap: () => _goTo((_index - 1 + slides.length) % slides.length)))),
                       Positioned(right: 12, top: 0, bottom: 0, child: Center(child: _ArrowButton(icon: Icons.chevron_right_rounded, label: context.t('ui_hero_next_sem'), onTap: () => _goTo((_index + 1) % slides.length)))),
                     ],
+                    if (canEdit && slides.isNotEmpty && !slides[_index].sponsored && slides[_index].cms != null)
+                      Positioned(
+                        top: phone ? 12 : 16,
+                        right: phone ? 12 : 56,
+                        child: HomeBannerEditButton(
+                          banner: slides[_index].cms!,
+                          onPressed: () => _editBanner(slides[_index].cms!),
+                        ),
+                      ),
                     Positioned(
                       left: 0,
                       right: 0,
@@ -464,33 +529,6 @@ class _ArrowButton extends StatelessWidget {
 // Category cards -> /products?cat=...
 // ---------------------------------------------------------------------------
 
-class _CategoryData {
-  const _CategoryData(this.category, this.titleKey, this.image);
-
-  final TGCategory category;
-  final String titleKey;
-
-  /// Local `assets/images/…` path (FlutterFlow originals).
-  final String image;
-}
-
-/// Featured category tiles — local assets from [TGListingImages.categoryCoverUrls] only.
-final List<_CategoryData> _categories = [
-  for (final e in TGListingImages.categoryCoverUrls.entries)
-    _CategoryData(
-      e.key,
-      switch (e.key) {
-        TGCategory.cookingEquipment => 'ji98dehm',
-        TGCategory.refrigerationEquipment => 'swrjjpbp',
-        TGCategory.warewashing => 'lcx4dovc',
-        TGCategory.foodPreparation => '71nup2wm',
-        TGCategory.stainlessSteelFurniture => '56pbhr1s',
-        TGCategory.barAndBeverageEquipment => 'viy2skiv',
-      },
-      e.value,
-    ),
-];
-
 /// "Featured Offers": one card per category. Tapping a card opens `/products`
 /// filtered to that category.
 class HomeCategorySection extends StatelessWidget {
@@ -502,127 +540,19 @@ class HomeCategorySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = FFLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        HomeSectionTitle(title: context.t('ui_gastronomy_categories'), subtitle: l10n.getText('3u75e0ef')),
-        const SizedBox(height: 22),
-        LayoutBuilder(
-          builder: (context, c) {
-            final cols = c.maxWidth >= 900 ? 3 : 2;
-            final phone = c.maxWidth < 480;
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              clipBehavior: Clip.none, // hover glow paints outside the grid
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                crossAxisSpacing: phone ? 12 : 20,
-                mainAxisSpacing: phone ? 12 : 20,
-                childAspectRatio: cols == 3 ? 1.35 : (phone ? 0.95 : 1.3),
-              ),
-              itemCount: _categories.length,
-              itemBuilder: (context, i) {
-                final d = _categories[i];
-                return _CategoryCard(
-                  data: d,
-                  title: l10n.getText(d.titleKey),
-                  count: listingCounts[d.category],
-                  compact: phone,
-                );
-              },
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.data, required this.title, required this.count, required this.compact});
-
-  final _CategoryData data;
-  final String title;
-  final int? count;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-    return TGHoverCard(
-      semanticLabel: context.t('ui_browse_category', {'title': title}),
-      onTap: () => TGNav.category(context, data.category),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            data.image,
-            fit: BoxFit.cover,
-            cacheWidth: 800,
-            errorBuilder: (_, __, ___) => ColoredBox(color: theme.alternate),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.center,
-                colors: [Colors.black.withValues(alpha: 0.78), Colors.transparent],
-              ),
-            ),
-          ),
-          Positioned(
-            left: compact ? 10 : 14,
-            right: compact ? 10 : 14,
-            bottom: compact ? 10 : 14,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Pink accent badge (design token: accent).
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 14, vertical: compact ? 6 : 8),
-                        decoration: BoxDecoration(color: theme.secondary, borderRadius: BorderRadius.circular(TGRadius.pill)),
-                        child: Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.titleSmall.override(
-                            color: Colors.white,
-                            fontSize: compact ? 13 : 16,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.40,
-                            lineHeight: 1.2,
-                          ),
-                        ),
-                      ),
-                      if (count != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          TGPlural.listingsOf(context, count!),
-                          style: theme.bodySmall.override(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w700),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: compact ? 32 : 38,
-                  height: compact ? 32 : 38,
-                  decoration: BoxDecoration(color: theme.primary, shape: BoxShape.circle),
-                  child: Icon(Icons.arrow_forward_rounded, size: compact ? 18 : 20, color: TGColors.onCta),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    HomeCategoryService.instance.ensureSeeded();
+    return ListenableBuilder(
+      listenable: HomeCategoryService.instance,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            HomeSectionTitle(title: context.t('ui_gastronomy_categories'), subtitle: l10n.getText('3u75e0ef')),
+            const SizedBox(height: 22),
+            HomeCategoriesGrid(listingCounts: listingCounts),
+          ],
+        );
+      },
     );
   }
 }
