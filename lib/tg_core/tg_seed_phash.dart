@@ -38,7 +38,7 @@ const Map<String, String> kSeedOriginalPhash = {
   'assets/images/food-hall-booth.jpg': 'bdaf06d033af6818',
   'assets/images/production-kitchen.jpg': 'f4eed60bc1341ae4',
   'assets/images/restaurant-kitchen.jpg': 'aa94c5bb5a27992c',
-  'assets/images/devren-terasli-restoran.png': 'c1bd72394bda5852',
+  'assets/images/devren-terasli-restoran.jpg': 'c1bd72394bda5852',
   'assets/images/banner-mutfak-ekipmanlari.jpg': 'efb29425a56dc252',
   'assets/images/bain-marie.png': '90c976bb90e9b41b',
   'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg': 'b0c6e00f65b4cbd5',

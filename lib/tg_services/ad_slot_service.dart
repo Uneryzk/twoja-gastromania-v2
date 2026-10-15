@@ -74,7 +74,7 @@ class AdSlotService extends ChangeNotifier {
         kind: TGAdSlotKind.restaurantListing,
         targetUrl: '/restaurants/51010001-restaurant-with-terrace-mariacka-katowice',
         title: 'Restaurant with terrace – Katowice',
-        imageUrl: TGListingImages.heroSlide(0),
+        imageUrl: TGListingImages.terraceResto,
         startsAt: DurationService.addDays(today, -2),
         endsAt: DurationService.addDays(today, 12),
         status: TGAdSlotStatus.live,

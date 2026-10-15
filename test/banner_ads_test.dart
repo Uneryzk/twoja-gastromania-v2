@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_models/tg_ad_slot.dart';
 import 'package:twoja_gastromania/tg_models/tg_pricing_config.dart';
 import 'package:twoja_gastromania/tg_services/ad_slot_service.dart';
@@ -31,6 +32,13 @@ void main() {
     ads.reset();
     ads.ensureSeeded();
     today = AdSlotService.dayOf(TGClock.now());
+  });
+
+  test('live Katowice terrace banner uses the terrace restaurant photo', () {
+    final live = ads.slots.firstWhere((s) => s.id == 'ad_live_1');
+    expect(live.imageUrl, TGListingImages.terraceResto);
+    expect(live.imageUrl, 'assets/images/devren-terasli-restoran.jpg');
+    expect(live.imageUrl, isNot(TGListingImages.bannerKitchen));
   });
 
   test('banner prices come from PricingConfig.banner (1w/2w/1m)', () {

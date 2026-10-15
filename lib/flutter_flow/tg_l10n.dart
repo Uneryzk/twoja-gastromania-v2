@@ -1406,7 +1406,7 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'ui_open_in_maps': _l(en: 'Open in Maps', pl: 'Otwórz w mapach', tr: 'Haritalarda aç', de: 'In Karten öffnen', cs: 'Otevřít v mapách', sk: 'Otvoriť v mapách', uk: 'Відкрити в картах', be: 'Адкрыць у картах', lt: 'Atidaryti žemėlapyje', ru: 'Открыть в картах'),
 
   // ----- Home (existing FlutterFlow keys) -----
-  'i8m5wr2h': _l(en: 'Industrial Kitchen Costs and Profitability', pl: 'Koszty kuchni gastronomicznej i rentowność', tr: 'Endüstriyel Mutfak Maliyetleri ve Kârlılık', de: 'Kosten und Rentabilität der Großküche', cs: 'Náklady a ziskovost komerční kuchyně', sk: 'Náklady a ziskovosť komerčnej kuchyne', uk: 'Витрати та прибутковість комерційної кухні', be: 'Выдаткі і прыбытковасць камерцыйнай кухні', lt: 'Komercinės virtuvės sąnaudos ir pelningumas', ru: 'Расходы и прибыльность коммерческой кухни'),
+  'i8m5wr2h': _l(en: 'The kitchen of the future: the EuroGastro 2027 opening', pl: 'Kuchnia przyszłości: wejście z EuroGastro 2027', tr: 'Geleceğin mutfağı: EuroGastro 2027 ile büyük giriş', de: 'Die Küche der Zukunft: Start mit EuroGastro 2027', cs: 'Kuchyně budoucnosti: vstup s EuroGastro 2027', sk: 'Kuchyňa budúcnosti: vstup s EuroGastro 2027', uk: 'Кухня майбутнього: старт з EuroGastro 2027', be: 'Кухня будучыні: старт з EuroGastro 2027', lt: 'Ateities virtuvė: startas su EuroGastro 2027', ru: 'Кухня будущего: старт с EuroGastro 2027'),
   '7d6qkq0f': _l(
     en: 'What factors contribute to the profitability of a food and beverage business?',
     pl: 'Jakie czynniki wpływają na rentowność lokalu gastronomicznego?',
@@ -1451,9 +1451,9 @@ final Map<String, Map<String, String>> kUiTranslations = {
   // ----- B2B journal (home banner → /birinciReklamSayfasi) -----
   'journal_kicker': _d('B2B journal', pl: 'Magazyn B2B', tr: 'B2B dergi'),
   'journal_title': _d(
-    'Industrial Kitchen Costs and Profitability',
-    pl: 'Koszty kuchni gastronomicznej i rentowność',
-    tr: 'Endüstriyel Mutfak Maliyetleri ve Kârlılık',
+    'The kitchen of the future: the EuroGastro 2027 opening',
+    pl: 'Kuchnia przyszłości: wejście z EuroGastro 2027',
+    tr: 'Geleceğin mutfağı: EuroGastro 2027 ile büyük giriş',
   ),
   'journal_dek': _d(
     'A working kitchen splits between one-time fit-out and the energy plus service bill that follows every service day.',
@@ -1482,9 +1482,9 @@ final Map<String, Map<String, String>> kUiTranslations = {
     tr: 'Tek faturaya değil karışıma bakın. Kurulum, kilovat ve geri dönüş süresi, açılış haftasından sonra hattın marj tutup tutmadığını belirler.',
   ),
   'journal_source': _d(
-    'Figures: typical 80–150 cover kitchen, mixed gas/electric line, Central Europe 2024–2026 desk sample. Directional, not a quote.',
-    pl: 'Liczby: typowa kuchnia 80–150 miejsc, linia gaz/prąd, próba redakcyjna Europa Środkowa 2024–2026. Kierunkowe, nie oferta.',
-    tr: 'Rakamlar: tipik 80–150 kişilik mutfak, gaz/elektrik karışık hat, Orta Avrupa 2024–2026 masa örneği. Yön gösterir, teklif değildir.',
+    'Figures: typical 80–150 cover kitchen, mixed gas/electric line, Central Europe desk sample toward EuroGastro 2027. Directional, not a quote.',
+    pl: 'Liczby: typowa kuchnia 80–150 miejsc, linia gaz/prąd, próba redakcyjna Europa Środkowa w stronę EuroGastro 2027. Kierunkowe, nie oferta.',
+    tr: 'Rakamlar: tipik 80–150 kişilik mutfak, gaz/elektrik karışık hat, EuroGastro 2027 yönünde Orta Avrupa masa örneği. Yön gösterir, teklif değildir.',
   ),
   'journal_chart1_title': _d('CapEx vs OpEx mix', pl: 'Struktura nakładów i kosztów bieżących', tr: 'Kurulum ve işletme gideri karışımı'),
   'journal_chart1_caption': _d(
@@ -1544,18 +1544,18 @@ final Map<String, Map<String, String>> kUiTranslations = {
   ),
   'mag_brand': _d('Twoja Gastromania Magazine', pl: 'Twoja Gastromania Magazyn', tr: 'Twoja Gastromania Dergi'),
   'mag_badge': _d(
-    'BROG B2B | Foodservice market 2026',
-    pl: 'BROG B2B | Rynek gastronomiczny 2026',
-    tr: 'BROG B2B | Gastronomi pazarı 2026',
+    'EuroGastro 2027 · 30th edition · 9–11 March',
+    pl: 'EuroGastro 2027 · 30. edycja · 9–11 marca',
+    tr: 'EuroGastro 2027 · 30. edisyon · 9–11 Mart',
   ),
   'mag_icon_energy': _d('{pct}% energy', pl: '{pct}% energii', tr: '%{pct} enerji'),
   'mag_icon_capex': _d('CapEx −{pct}%', pl: 'Nakład −{pct}%', tr: 'CapEx −%{pct}'),
   'mag_icon_roi': _d('{n} mo. ROI', pl: 'ROI {n} mies.', tr: '{n} ay ROI'),
   'mag_icon_aclass': _d('A-class', pl: 'Klasa A', tr: 'A sınıfı'),
   'mag_lead': _d(
-    'According to Q3 2026 data in Poland, energy and maintenance account for 38% of operating expenses (OpEx). The right equipment park cuts that bill.',
-    pl: 'Według danych za III kwartał 2026 r. na rynku polskim energia i konserwacja sprzętu stanowią 38% kosztów operacyjnych (OpEx). Odpowiednia flota urządzeń znacząco obniża te wydatki.',
-    tr: 'Polonya pazarında 2026 3. çeyrek verilerine göre işletme giderlerinin (OpEx) %38\'ini enerji ve ekipman bakımı oluşturmaktadır. Akıllı cihaz parkuruyla bu giderler düşürülebilir.',
+    'EuroGastro 2027 (30th edition, 9–11 March, Ptak Warsaw Expo) is the HoReCa floor where operators reset CapEx and energy OpEx for the next season.',
+    pl: 'EuroGastro 2027 (30. edycja, 9–11 marca, Ptak Warsaw Expo) to parkiet HoReCa, na którym operatorzy przestawiają nakład i bieżące koszty energii na nowy sezon.',
+    tr: 'EuroGastro 2027 (30. edisyon, 9–11 Mart, Ptak Warsaw Expo), işletmecinin bir sonraki sezon için CapEx ve enerji OpEx’ini yeniden kurduğu HoReCa zeminidir.',
   ),
   'mag_chart1_title': _d(
     '1. Investment balance (CapEx vs OpEx)',
@@ -1575,9 +1575,9 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'mag_eq_wash': _d('Warewashing lines', pl: 'Zmywarki', tr: 'Bulaşık hatları'),
   'mag_pln_month': _d('{n} PLN / mo', pl: '{n} PLN / mies.', tr: '{n} PLN / ay'),
   'mag_roi_title': _d(
-    'Live ROI and payback calculator',
-    pl: 'Kalkulator ROI i amortyzacji',
-    tr: 'Canlı ROI ve amortisman hesaplayıcı',
+    'Live fair ROI and payback calculator',
+    pl: 'Kalkulator ROI i amortyzacji z targów',
+    tr: 'Canlı fuar ROI ve amortisman hesaplayıcı',
   ),
   'mag_roi_bill': _d(
     'Current monthly energy bill: {n} PLN',
@@ -1588,9 +1588,9 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'mag_roi_period': _d('Payback', pl: 'Okres zwrotu', tr: 'Amortisman süresi'),
   'mag_months': _d('{n} mo.', pl: '{n} mies.', tr: '{n} ay'),
   'mag_source': _d(
-    'Source: Compiled from the BROG B2B Rynek Gastronomiczny w Polsce 2026 report.',
-    pl: 'Źródło: Opracowano na podstawie raportu BROG B2B Rynek Gastronomiczny w Polsce 2026.',
-    tr: 'Kaynak: BROG B2B Rynek Gastronomiczny w Polsce 2026 raporundan derlenmiştir.',
+    'Source: Ptak Warsaw Expo / EuroGastro 2027 (30th edition, 9–11 March 2027). Sector shares are show-floor mix, directional.',
+    pl: 'Źródło: Ptak Warsaw Expo / EuroGastro 2027 (30. edycja, 9–11 marca 2027). Udziały: struktura stoisk, kierunkowe.',
+    tr: 'Kaynak: Ptak Warsaw Expo / EuroGastro 2027 (30. edisyon, 9–11 Mart 2027). Dilimler fuar stand karışımıdır, yön gösterir.',
   ),
   'mag_chart1_a11y': _d(
     'CapEx comparison. Traditional setup {a} percent, smart setup {b} percent.',
@@ -1611,6 +1611,38 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'mag_photo_intro_a11y': _d('Combi steamer in a working kitchen', pl: 'Piec konwekcyjno-parowy w kuchni', tr: 'Çalışan mutfakta kombi fırın'),
   'mag_photo_gallery_a_a11y': _d('Production kitchen line', pl: 'Linia kuchni produkcyjnej', tr: 'Üretim mutfağı hattı'),
   'mag_photo_gallery_b_a11y': _d('Refrigeration cabinets', pl: 'Szafy chłodnicze', tr: 'Soğutma dolapları'),
+  'mag_page_line': _d(
+    'Twoja Gastromania · EuroGastro 2027 special',
+    pl: 'Twoja Gastromania · wydanie specjalne EuroGastro 2027',
+    tr: 'Twoja Gastromania · EuroGastro 2027 özel sayısı',
+  ),
+  'mag_editorial_p1': _d(
+    'Central and Eastern Europe’s largest HoReCa meeting, EuroGastro 2027 (30th edition), opens 9–11 March 2027 at Ptak Warsaw Expo. With more than 550 exhibitors and thousands of trade visitors, Twoja Gastromania uses the floor for a clean market entry.',
+    pl: 'Największe spotkanie HoReCa w Europie Środkowo-Wschodniej, EuroGastro 2027 (30. edycja), otwiera się 9–11 marca 2027 w Ptak Warsaw Expo. Ponad 550 wystawców i tysiące gości branżowych — Twoja Gastromania wchodzi na parkiet czystym startem.',
+    tr: 'Orta ve Doğu Avrupa’nın en büyük HoReCa buluşması EuroGastro 2027 (30. edisyon), 9–11 Mart 2027 tarihlerinde Ptak Warsaw Expo ev sahipliğinde açılıyor. 550’den fazla katılımcı ve binlerce mesleki ziyaretçiyle Twoja Gastromania sektöre bu zeminde giriş yapıyor.',
+  ),
+  'mag_editorial_p2': _d(
+    'Show-floor mix puts catering equipment at 32.3%, food and beverage at 20.2%, and systems and technology at 11.3%. Operators come to cut OpEx with A-class kit and circular stock — that is the 2027 agenda.',
+    pl: 'Struktura stoisk: sprzęt cateringowy 32,3%, żywność i napoje 20,2%, systemy i technologia 11,3%. Operatorzy tną koszty bieżące klasą A i stockiem cyrkularnym — to agenda 2027.',
+    tr: 'Sektör verilerine göre catering ekipmanları pazarın %32.3’lük dilimini, gıda ve içecek %20.2’sini, sistem ve teknoloji %11.3’ünü oluşturuyor. İşletmeler OpEx baskısını A sınıfı hat ve döngüsel stokla kesmek için geliyor — 2027’nin gündemi bu.',
+  ),
+  'mag_balance_title': _d(
+    'EuroGastro 2027 sector mix and CapEx balance',
+    pl: 'EuroGastro 2027: struktura branży i bilans nakładów',
+    tr: 'EuroGastro 2027 sektör dağılımı ve CapEx dengesi',
+  ),
+  'mag_stat_traditional': _d('Traditional CapEx', pl: 'Tradycyjny nakład', tr: 'Geleneksel CapEx'),
+  'mag_stat_circular': _d('Circular CapEx', pl: 'Nakład cyrkularny', tr: 'Döngüsel CapEx'),
+  'mag_stat_saving': _d('Net saving', pl: 'Netto oszczędność', tr: 'Net tasarruf'),
+  'mag_stat_catering': _d('Catering equipment', pl: 'Sprzęt cateringowy', tr: 'Catering ekipmanları'),
+  'mag_stat_food': _d('Food and beverage', pl: 'Żywność i napoje', tr: 'Gıda ve içecek'),
+  'mag_stat_tech': _d('Systems and technology', pl: 'Systemy i technologia', tr: 'Sistem ve teknoloji'),
+  'mag_pct': _d('{pct}%', pl: '{pct}%', tr: '%{pct}'),
+  'mag_balance_a11y': _d(
+    'EuroGastro 2027 mix. Catering {a} percent, food and beverage {b} percent, systems {c} percent.',
+    pl: 'EuroGastro 2027. Catering {a} procent, żywność i napoje {b} procent, systemy {c} procent.',
+    tr: 'EuroGastro 2027 karışımı. Catering %{a}, gıda ve içecek %{b}, sistem %{c}.',
+  ),
   '5w70mdov': _l(en: 'Featured Offers', pl: 'Wyróżnione oferty', tr: 'Öne Çıkan Teklifler', de: 'Empfohlene Angebote', cs: 'Vybrané nabídky', sk: 'Odporúčané ponuky', uk: 'Рекомендовані пропозиції', be: 'Рэкамендаваныя прапановы', lt: 'Išskirtiniai pasiūlymai', ru: 'Избранные предложения'),
   'ui_gastronomy_categories': _l(en: 'Gastronomy categories', pl: 'Kategorie gastronomiczne', tr: 'Gastromoni Kategorileri', de: 'Gastronomie-Kategorien', cs: 'Gastronomické kategorie', sk: 'Gastronomické kategórie', uk: 'Гастрономічні категорії', be: 'Гастранамічныя катэгорыі', lt: 'Gastronomijos kategorijos', ru: 'Гастрономические категории'),
   '3u75e0ef': _l(en: 'The best deals on new and used food service equipment.', pl: 'Najlepsze oferty na nowy i używany sprzęt gastronomiczny.', tr: 'Yeni ve 2. el gastronomi ekipmanlarında en iyi fırsatlar.', de: 'Die besten Angebote für neue und gebrauchte Gastronomiegeräte.', cs: 'Nejlepší nabídky nového i použitého gastro vybavení.', sk: 'Najlepšie ponuky nového aj použitého gastro vybavenia.', uk: 'Найкращі пропозиції нового та вживаного гастрономічного обладнання.', be: 'Найлепшыя прапановы новага і ўжыванага гастраабсталявання.', lt: 'Geriausi naujos ir naudotos maitinimo įrangos pasiūlymai.', ru: 'Лучшие предложения нового и б/у оборудования для общепита.'),

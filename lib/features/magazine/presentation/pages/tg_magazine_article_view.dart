@@ -10,14 +10,14 @@ import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 
-/// Editorial constants for the B2B kitchen-cost magazine article.
+/// Editorial constants for the EuroGastro 2027 B2B magazine article.
 abstract final class TGMagazineMetrics {
   static const double savingsRate = 0.28;
-  static const double equipmentCostPln = 22000;
-  static const double defaultBillPln = 4500;
+  static const double equipmentCostPln = 24000;
+  static const double defaultBillPln = 5000;
   static const double billMin = 1000;
-  static const double billMax = 15000;
-  static const int billDivisions = 28;
+  static const double billMax = 20000;
+  static const int billDivisions = 38;
   static const double traditionalCapex = 0.65;
   static const double smartCapex = 0.35;
   static const int energySavePct = 28;
@@ -29,6 +29,11 @@ abstract final class TGMagazineMetrics {
   static const double combiShare = 0.80;
   static const double coldShare = 0.65;
   static const double washShare = 0.35;
+  static const double cateringSharePct = 32.3;
+  static const double foodSharePct = 20.2;
+  static const double techSharePct = 11.3;
+  static const int edition = 30;
+  static const int year = 2027;
 }
 
 /// Twoja Gastromania B2B magazine article: costs, charts, live ROI.

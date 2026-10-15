@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:twoja_gastromania/features/magazine/presentation/pages/tg_magazine_article_view.dart';
+import 'package:twoja_gastromania/features/magazine/presentation/pages/tg_editorial_magazine_view.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_util.dart';
 import 'birinci_reklam_sayfasi_model.dart';
 export 'birinci_reklam_sayfasi_model.dart';
@@ -31,5 +31,5 @@ class _BirinciReklamSayfasiWidgetState extends State<BirinciReklamSayfasiWidget>
   }
 
   @override
-  Widget build(BuildContext context) => const TgMagazineArticleView();
+  Widget build(BuildContext context) => const TgEditorialMagazineView();
 }

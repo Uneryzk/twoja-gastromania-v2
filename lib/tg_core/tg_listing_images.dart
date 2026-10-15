@@ -56,7 +56,7 @@ class TGListingImages {
   static const String productionKitchen = 'assets/images/production-kitchen.jpg';
   static const String restoKitchen = 'assets/images/restaurant-kitchen.jpg';
   static const String mutfakEquip = 'assets/images/mutfak-ekipmanlari.jpg';
-  static const String terraceResto = 'assets/images/devren-terasli-restoran.png';
+  static const String terraceResto = 'assets/images/devren-terasli-restoran.jpg';
   static const String bannerKitchen = 'assets/images/banner-mutfak-ekipmanlari.jpg';
   static const String bainMarie = 'assets/images/bain-marie.png';
   static const String blog26 = 'assets/images/banner-mutfak-ekipmanlari.jpg';
@@ -114,7 +114,7 @@ class TGListingImages {
     'assets/images/food-hall-booth.jpg',
     'assets/images/production-kitchen.jpg',
     'assets/images/restaurant-kitchen.jpg',
-    'assets/images/devren-terasli-restoran.png',
+    'assets/images/devren-terasli-restoran.jpg',
     'assets/images/banner-mutfak-ekipmanlari.jpg',
     'assets/images/bain-marie.png',
     'assets/images/1525682723endustriyel-mutfak-ekupmanlar.jpg',
