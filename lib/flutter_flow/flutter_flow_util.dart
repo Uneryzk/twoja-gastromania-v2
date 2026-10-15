@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 
 import 'lat_lng.dart';
@@ -275,8 +276,10 @@ extension IterableExt<T> on Iterable<T> {
       .toList();
 }
 
-void setAppLanguage(BuildContext context, String language) =>
-    MyApp.of(context).setLocale(language);
+void setAppLanguage(BuildContext context, String language) {
+  FFLocalizations.storeLocale(language);
+  MyApp.trySetLocale(context, language);
+}
 
 void setDarkModeSetting(BuildContext context, ThemeMode themeMode) {
   FlutterFlowTheme.saveThemeMode(themeMode);

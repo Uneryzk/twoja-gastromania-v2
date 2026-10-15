@@ -49,15 +49,15 @@ class TGPalette {
     info: Color(0xFFFFFFFF),
   );
 
-  /// Light companion: page #F8F9FA, cards #FFFFFF, copy #101828.
+  /// Light companion: kırık beyaz page/cards, copy #101828. Not pure white.
   static const light = TGPalette(
-    background: Color(0xFFF8F9FA),
-    surface: Color(0xFFFFFFFF),
-    surfaceHover: Color(0xFFEEF0F3),
-    border: Color(0xFFE4E7EC),
+    background: Color(0xFFEFEBE4),
+    surface: Color(0xFFF4F1EB),
+    surfaceHover: Color(0xFFE6E1D8),
+    border: Color(0xFFD9D3C8),
     textPrimary: Color(0xFF101828),
-    textSecondary: Color(0xFF475467),
-    adminBar: Color(0xFFEAECF0),
+    textSecondary: Color(0xFF5C564C),
+    adminBar: Color(0xFFE6E1D8),
     info: Color(0xFF101828),
   );
 }
@@ -68,18 +68,26 @@ class TGThemeController extends ChangeNotifier {
   TGThemeController._();
   static final TGThemeController instance = TGThemeController._();
 
-  ThemeMode _mode = ThemeMode.dark;
+  ThemeMode _mode = ThemeMode.light;
   Brightness _platform = Brightness.dark;
+  Brightness? _syncedFromTheme;
 
   ThemeMode get mode => _mode;
   Brightness get platformBrightness => _platform;
-  Brightness get brightness => switch (_mode) {
+  Brightness get brightness =>
+      _syncedFromTheme ??
+      switch (_mode) {
         ThemeMode.light => Brightness.light,
         ThemeMode.dark => Brightness.dark,
         ThemeMode.system => _platform,
       };
   bool get isDark => brightness == Brightness.dark;
   TGPalette get palette => isDark ? TGPalette.dark : TGPalette.light;
+
+  /// Keep [TGColors] in lockstep with [ThemeData.brightness] (same frame, no notify).
+  void syncFromTheme(Brightness value) {
+    _syncedFromTheme = value;
+  }
 
   void bindPlatformBrightness(Brightness value) {
     if (_platform == value) return;
@@ -91,11 +99,18 @@ class TGThemeController extends ChangeNotifier {
   void reset({ThemeMode mode = ThemeMode.dark, Brightness platform = Brightness.dark}) {
     _mode = mode;
     _platform = platform;
+    _syncedFromTheme = null;
   }
 
   void setMode(ThemeMode mode) {
-    if (_mode == mode) return;
+    final resolved = switch (mode) {
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.system => _platform,
+    };
+    if (_mode == mode && _syncedFromTheme == resolved) return;
     _mode = mode;
+    if (mode != ThemeMode.system) _syncedFromTheme = resolved;
     notifyListeners();
   }
 }

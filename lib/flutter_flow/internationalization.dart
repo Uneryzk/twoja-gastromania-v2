@@ -24,13 +24,53 @@ const kSupportedLocales = <Locale>[
   Locale('ru'), // Russian
 ];
 
+/// Country / region → shipped language. Chrome and Google-account locales
+/// often carry the region even when the UI language is unsupported.
+const kRegionLanguage = <String, String>{
+  'PL': 'pl',
+  'TR': 'tr',
+  'DE': 'de',
+  'AT': 'de',
+  'CZ': 'cs',
+  'SK': 'sk',
+  'UA': 'uk',
+  'BY': 'be',
+  'LT': 'lt',
+  'RU': 'ru',
+  'GB': 'en',
+  'US': 'en',
+  'AU': 'en',
+  'NZ': 'en',
+  'IE': 'en',
+};
+
 /// Picks a supported language from the device locale, otherwise English.
-Locale resolveAppLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) {
-  if (deviceLocale != null) {
+Locale resolveAppLocale(Locale? deviceLocale, Iterable<Locale> supportedLocales) =>
+    detectAppLocale(
+      preferred: [if (deviceLocale != null) deviceLocale],
+      supported: supportedLocales,
+    );
+
+/// Language match first, then region (Google / browser location), then English.
+Locale detectAppLocale({
+  List<Locale> preferred = const [],
+  Iterable<Locale>? supported,
+}) {
+  final supportedLocales = supported ?? kSupportedLocales;
+  for (final deviceLocale in preferred) {
     for (final supportedLocale in supportedLocales) {
       if (supportedLocale.languageCode == deviceLocale.languageCode) {
         return supportedLocale;
       }
+    }
+  }
+  for (final deviceLocale in preferred) {
+    final region = deviceLocale.countryCode?.toUpperCase();
+    if (region == null || region.isEmpty) continue;
+    final code = kRegionLanguage[region];
+    if (code == null) continue;
+    for (final supportedLocale in supportedLocales) {
+      if (supportedLocale.languageCode == code) return supportedLocale;
     }
   }
   return const Locale('en');
@@ -47,13 +87,21 @@ class FFLocalizations {
   static List<String> languages() =>
       kSupportedLocales.map((l) => l.languageCode).toList(growable: false);
 
-  static late SharedPreferences _prefs;
-  static Future initialize() async =>
-      _prefs = await SharedPreferences.getInstance();
-  static Future storeLocale(String locale) =>
-      _prefs.setString(_kLocaleStorageKey, locale);
+  static SharedPreferences? _prefs;
+  static Future initialize() async {
+    try {
+      _prefs = await SharedPreferences.getInstance().timeout(const Duration(seconds: 3));
+    } catch (_) {
+      _prefs = null;
+    }
+  }
+
+  static Future<void> storeLocale(String locale) async {
+    await _prefs?.setString(_kLocaleStorageKey, locale);
+  }
+
   static Locale? getStoredLocale() {
-    final locale = _prefs.getString(_kLocaleStorageKey);
+    final locale = _prefs?.getString(_kLocaleStorageKey);
     return locale != null && locale.isNotEmpty ? createLocale(locale) : null;
   }
 

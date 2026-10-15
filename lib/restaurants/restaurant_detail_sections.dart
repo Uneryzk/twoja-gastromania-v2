@@ -356,7 +356,7 @@ class _InventoryMiniCard extends StatelessWidget {
     final photos = TGListingImages.photosForInventory(nameKey: item.name, photos: item.photos);
     final cover = photos.first;
     return Material(
-      color: const Color(0xFF1F1F1F),
+      color: TGColors.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

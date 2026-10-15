@@ -243,7 +243,7 @@ class _MobileLogo extends StatelessWidget {
       decoration: BoxDecoration(
         color: FlutterFlowTheme.of(context).alternate,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF252525), width: 3),
+        border: Border.all(color: TGColors.background, width: 3),
       ),
       clipBehavior: Clip.antiAlias,
       child: url != null
@@ -271,11 +271,11 @@ class StoreMobileContactBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.paddingOf(context).bottom;
     return Material(
-      color: const Color(0xFF1F1F1F),
+      color: TGColors.surface,
       child: Container(
         key: const Key('store-mobile-contact'),
         padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottom),
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFF3A3A3A)))),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
         child: SizedBox(
           height: 48,
           child: Row(

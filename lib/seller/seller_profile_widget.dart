@@ -842,7 +842,7 @@ class _Logo extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.alternate,
         borderRadius: BorderRadius.circular(16),
-        border: ring ? Border.all(color: const Color(0xFF252525), width: 4) : null,
+        border: ring ? Border.all(color: TGColors.background, width: 4) : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: child,
@@ -873,7 +873,7 @@ class _ContactCard extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(16), border: Border.all(color: theme.tertiary)),
+      decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: theme.tertiary)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1104,9 +1104,9 @@ class _TabsDelegate extends SliverPersistentHeaderDelegate {
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     final theme = FlutterFlowTheme.of(context);
     return Material(
-      color: const Color(0xFF252525),
+      color: TGColors.background,
       child: Container(
-        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFF3A3A3A)))),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: TGColors.border))),
         padding: EdgeInsets.symmetric(horizontal: mobile ? 16 : 24),
         child: Center(
           child: ConstrainedBox(

@@ -252,7 +252,7 @@ class _SummaryCard extends StatelessWidget {
     final maxBar = dist.values.fold<int>(0, (a, b) => a > b ? a : b).clamp(1, 999);
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -216,6 +216,7 @@ Future<TGApp> pumpTgApp(
   TGI18nAudit.instance.reset();
   TGThemeController.instance.reset(mode: themeMode);
   await FlutterFlowTheme.initialize();
+  await FFLocalizations.initialize();
   TGThemeController.instance
     ..bindPlatformBrightness(tester.view.platformDispatcher.platformBrightness)
     ..setMode(themeMode);
@@ -278,22 +279,26 @@ Future<TGApp> pumpTgApp(
           theme: buildTGLightTheme(),
           darkTheme: buildTGDarkTheme(),
           themeMode: TGThemeController.instance.mode,
+          themeAnimationDuration: Duration.zero,
           routerConfig: router,
-          builder: (context, child) => ListenableBuilder(
-            listenable: TGI18nAudit.instance,
-            builder: (context, _) => TGI18nAuditOverlay(
-              child: MediaQuery(
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(textScale),
-                  accessibleNavigation: false,
-                ),
-                child: Scaffold(
-                  backgroundColor: TGColors.background,
-                  body: child ?? const SizedBox.shrink(),
+          builder: (context, child) {
+            TGThemeController.instance.syncFromTheme(Theme.of(context).brightness);
+            return ListenableBuilder(
+              listenable: TGI18nAudit.instance,
+              builder: (context, _) => TGI18nAuditOverlay(
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: TextScaler.linear(textScale),
+                    accessibleNavigation: false,
+                  ),
+                  child: Scaffold(
+                    backgroundColor: TGColors.background,
+                    body: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     ),

@@ -36,7 +36,7 @@ class RestaurantFiltersPanel extends StatelessWidget {
     if (loading) {
       return Container(
         height: 480,
-        decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(16)),
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
@@ -45,9 +45,9 @@ class RestaurantFiltersPanel extends StatelessWidget {
       label: context.t('ui_filters'),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1F1F1F),
+          color: TGColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF2F2F2F)),
+          border: Border.all(color: TGColors.border),
         ),
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
         child: Material(

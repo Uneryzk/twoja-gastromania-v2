@@ -912,7 +912,7 @@ class _RestoBodyState extends State<_RestoBody> {
     final fee = r.transferFee;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1180,7 +1180,7 @@ class _ContactPanel extends StatelessWidget {
     final lease = r.leaseEndsAt == null ? null : DateFormat('d MMM yyyy').format(r.leaseEndsAt!);
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1F1F1F),
+        color: TGColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: r.isPromoted
             ? null

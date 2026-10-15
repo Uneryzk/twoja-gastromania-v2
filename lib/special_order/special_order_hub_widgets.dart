@@ -507,7 +507,7 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
           transform: Matrix4.translationValues(0, _hover && !tgReduceMotion(context) ? -3 : 0, 0),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: const Color(0xFF1F1F1F),
+            color: TGColors.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               width: neon ? 2 : 1,
@@ -629,7 +629,7 @@ class _SoManufacturerCardState extends State<SoManufacturerCard> {
         transform: Matrix4.translationValues(0, _hover ? -4 : 0, 0),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFF1F1F1F),
+          color: TGColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             width: neon ? 2 : 1,
@@ -1141,12 +1141,12 @@ class SoSelectionBar extends StatelessWidget {
     final phone = MediaQuery.sizeOf(context).width < TGBreakpoints.phone;
     final teamPhone = '+48 (532) 784-074';
     return Material(
-      color: const Color(0xFF1F1F1F),
+      color: TGColors.surface,
       elevation: 12,
       child: Container(
         constraints: BoxConstraints(minHeight: 72 + (phone ? pad : 0)),
         padding: EdgeInsets.fromLTRB(phone ? 16 : 24, 12, phone ? 16 : 24, 12 + (phone ? pad : 0)),
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFF3A3A3A)))),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
         child: phone || alwaysVisible
             ? Row(
                 children: [

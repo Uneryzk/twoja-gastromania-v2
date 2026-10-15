@@ -34,8 +34,8 @@ abstract class FlutterFlowTheme {
     final darkMode = _prefs?.getBool(kThemeModeKey);
     if (darkMode == true) return ThemeMode.dark;
     if (darkMode == false) return ThemeMode.light;
-    // First launch: keep the existing dark marketplace (not OS light).
-    return ThemeMode.dark;
+    // First launch: light (kırık beyaz) for every visitor.
+    return ThemeMode.light;
   }
 
   static void saveThemeMode(ThemeMode mode) {
@@ -180,8 +180,8 @@ class LightModeTheme extends FlutterFlowTheme {
   late Color alternate = TGPalette.light.surfaceHover;
   late Color primaryText = TGPalette.light.textPrimary;
   late Color secondaryText = TGPalette.light.textSecondary;
-  late Color primaryBackground = TGPalette.light.background; // #F8F9FA
-  late Color secondaryBackground = TGPalette.light.surface; // #FFFFFF
+  late Color primaryBackground = TGPalette.light.background; // kırık beyaz
+  late Color secondaryBackground = TGPalette.light.surface;
   late Color accent1 = const Color(0x3326E6B3);
   late Color accent2 = const Color(0x33F73887);
   late Color accent3 = const Color(0x3300E676);

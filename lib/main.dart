@@ -49,6 +49,12 @@ void main() async {
     debugPrint('FlutterFlowTheme.initialize failed or timed out: $e');
   }
 
+  try {
+    await FFLocalizations.initialize().timeout(_kStartupTimeout);
+  } catch (e) {
+    debugPrint('FFLocalizations.initialize failed or timed out: $e');
+  }
+
   runApp(MyApp());
 }
 
@@ -81,7 +87,7 @@ class MyAppScrollBehavior extends MaterialScrollBehavior {
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Locale? _locale;
 
-  ThemeMode _themeMode = ThemeMode.dark;
+  ThemeMode _themeMode = ThemeMode.light;
 
   late AppStateNotifier _appStateNotifier;
   late GoRouter _router;
@@ -107,6 +113,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ..bindPlatformBrightness(WidgetsBinding.instance.platformDispatcher.platformBrightness)
       ..setMode(_themeMode);
 
+    final dispatcher = WidgetsBinding.instance.platformDispatcher;
+    final stored = FFLocalizations.getStoredLocale();
+    if (stored != null) {
+      _locale = stored;
+    } else {
+      _locale = detectAppLocale(preferred: [dispatcher.locale, ...dispatcher.locales]);
+      FFLocalizations.storeLocale(_locale!.languageCode);
+    }
+
     _appStateNotifier = AppStateNotifier.instance;
     _router = createRouter(_appStateNotifier);
   }
@@ -127,6 +142,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void setLocale(String language) {
     safeSetState(() => _locale = createLocale(language));
+    FFLocalizations.storeLocale(language);
   }
 
   void setThemeMode(ThemeMode mode) => safeSetState(() {
@@ -137,6 +153,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final resolved = switch (_themeMode) {
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.system => WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    };
+    TGThemeController.instance.syncFromTheme(resolved);
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => FakeAuthState(isLoggedIn: kMockSignedInByDefault)),
@@ -164,16 +186,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         theme: buildTGLightTheme(),
         darkTheme: buildTGDarkTheme(),
         themeMode: _themeMode,
+        themeAnimationDuration: Duration.zero,
         routerConfig: _router,
-        builder: (context, child) => ListenableBuilder(
-          listenable: Listenable.merge([TGI18nAudit.instance, TGThemeController.instance]),
-          builder: (context, _) => TGI18nAuditOverlay(
-            child: Scaffold(
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              body: child ?? const SizedBox.shrink(),
+        builder: (context, child) {
+          TGThemeController.instance.syncFromTheme(Theme.of(context).brightness);
+          return ListenableBuilder(
+            listenable: Listenable.merge([TGI18nAudit.instance, TGThemeController.instance]),
+            builder: (context, _) => TGI18nAuditOverlay(
+              child: Scaffold(
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                body: child ?? const SizedBox.shrink(),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

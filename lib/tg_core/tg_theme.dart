@@ -5,7 +5,7 @@ import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 /// Material [ThemeData] for the Twoja Gastromania dark identity.
 ThemeData buildTGDarkTheme() => buildTGTheme(TGPalette.dark, Brightness.dark);
 
-/// Light companion: page #F8F9FA, cards #FFFFFF, copy #101828. Brand accents unchanged.
+/// Light companion: kırık beyaz page/cards, copy #101828. Brand accents unchanged.
 ThemeData buildTGLightTheme() => buildTGTheme(TGPalette.light, Brightness.light);
 
 /// Shared Material mapping so stock widgets follow the TG palette.

@@ -310,7 +310,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
         ),
         const SizedBox(height: 8),
         Material(
-          color: const Color(0xFF1F1F1F),
+          color: TGColors.surface,
           borderRadius: BorderRadius.circular(12),
           child: SizedBox(
             height: 56,
@@ -507,9 +507,9 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F1F1F),
+        color: TGColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2F2F2F)),
+        border: Border.all(color: TGColors.border),
       ),
       child: Row(
         children: [
@@ -540,9 +540,9 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F1F1F),
+        color: TGColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2F2F2F)),
+        border: Border.all(color: TGColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -598,7 +598,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
     final cfg = RestaurantConfigService.instance.config;
     return Container(
       padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           Text(context.t('ui_no_listings_match'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
@@ -623,7 +623,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
         (i) => Container(
           height: phone ? 140 : 280,
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(color: const Color(0xFF1F1F1F), borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(color: TGColors.surface, borderRadius: BorderRadius.circular(16)),
           child: const _Shimmer(),
         ),
       ),
@@ -646,7 +646,7 @@ class _RestaurantsPageWidgetState extends State<RestaurantsPageWidget> {
               builder: (context, setSheet) {
                 final n = countRestaurantResults(_all, draft);
                 return Material(
-                  color: const Color(0xFF1F1F1F),
+                  color: TGColors.surface,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                   child: Column(
                     children: [
@@ -743,7 +743,7 @@ class _ShimmerState extends State<_Shimmer> with SingleTickerProviderStateMixin 
           gradient: LinearGradient(
             begin: Alignment(-1 + 2 * _c.value, 0),
             end: Alignment(1 + 2 * _c.value, 0),
-            colors: const [Color(0xFF1F1F1F), Color(0xFF2A2A2A), Color(0xFF1F1F1F)],
+            colors: [TGColors.surface, TGColors.surfaceHover, TGColors.surface],
           ),
         ),
       ),

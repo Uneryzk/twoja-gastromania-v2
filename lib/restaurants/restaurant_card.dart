@@ -149,8 +149,8 @@ class _RestaurantCardState extends State<RestaurantCard> {
     final neon = _neon;
     final strong = _tier == PromotionTier.spotlight;
     final fill = neon
-        ? Color.alphaBlend(const Color(0xFFE91E8C).withValues(alpha: 0.08), const Color(0xFF1F1F1F))
-        : const Color(0xFF1F1F1F);
+        ? Color.alphaBlend(const Color(0xFFE91E8C).withValues(alpha: 0.08), TGColors.surface)
+        : TGColors.surface;
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
@@ -164,7 +164,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             width: neon ? 2 : 1,
-            color: neon ? Colors.transparent : const Color(0xFF2F2F2F),
+            color: neon ? Colors.transparent : TGColors.border,
           ),
           gradient: neon
               ? const LinearGradient(colors: [Color(0xFFE91E8C), Color(0xFF14B8A6)])
@@ -300,7 +300,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
   Widget _list(BuildContext context, bool reduce) {
     final theme = FlutterFlowTheme.of(context);
     return Material(
-      color: const Color(0xFF1F1F1F),
+      color: TGColors.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -308,7 +308,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF2F2F2F)),
+            border: Border.all(color: TGColors.border),
           ),
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -374,7 +374,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
         ? context.t('ui_no_transfer_fee')
         : '${context.t('ui_transfer_fee')} ${NumberFormat.decimalPattern('pl_PL').format(r.transferFee.amountPln ?? 0)}';
     return Material(
-      color: const Color(0xFF1F1F1F),
+      color: TGColors.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -440,7 +440,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                                   context.t('ui_call'),
                                   style: theme.bodySmall.override(
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFFE8E8E8),
+                                    color: theme.secondaryText,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -448,7 +448,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                                   r.phone,
                                   style: theme.bodySmall.override(
                                     fontWeight: FontWeight.w800,
-                                    color: Colors.white,
+                                    color: theme.primaryText,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -635,7 +635,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF2F2F2F)),
+        border: Border.all(color: TGColors.border),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(label, style: theme.bodySmall.override(fontSize: 11, fontWeight: FontWeight.w600)),

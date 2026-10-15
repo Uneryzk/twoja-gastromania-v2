@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 
 import 'helpers/tg_test_app.dart';
@@ -19,6 +20,20 @@ void main() {
     expect(resolveAppLocale(const Locale('fr', 'FR'), kSupportedLocales), const Locale('en'));
     expect(resolveAppLocale(const Locale('ja'), kSupportedLocales), const Locale('en'));
     expect(resolveAppLocale(null, kSupportedLocales), const Locale('en'));
+  });
+
+  test('region / Google location maps onto a shipped language', () {
+    expect(detectAppLocale(preferred: [const Locale('ja', 'PL')]), const Locale('pl'));
+    expect(detectAppLocale(preferred: [const Locale('fr', 'TR')]), const Locale('tr'));
+    expect(detectAppLocale(preferred: [const Locale('ja', 'DE')]), const Locale('de'));
+    expect(detectAppLocale(preferred: [const Locale('en', 'US')]), const Locale('en'));
+    expect(detectAppLocale(preferred: [const Locale('pl', 'PL')]), const Locale('pl'));
+  });
+
+  test('stored locale wins over device region', () async {
+    SharedPreferences.setMockInitialValues({'__locale_key__': 'tr'});
+    await FFLocalizations.initialize();
+    expect(FFLocalizations.getStoredLocale(), const Locale('tr'));
   });
 
   test('chrome strings exist for every supported language', () {

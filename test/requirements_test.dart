@@ -690,15 +690,15 @@ void main() {
       expect(TGColors.rating, const Color(0xFFFFC107));
     });
 
-    test('light palette: page #F8F9FA, cards #FFFFFF, copy #101828', () {
+    test('light palette: kırık beyaz page/cards, copy #101828', () {
       TGThemeController.instance.reset(mode: ThemeMode.light);
-      expect(TGColors.background, const Color(0xFFF8F9FA));
-      expect(TGColors.surface, const Color(0xFFFFFFFF));
+      expect(TGColors.background, const Color(0xFFEFEBE4));
+      expect(TGColors.surface, const Color(0xFFF4F1EB));
       expect(TGColors.textPrimary, const Color(0xFF101828));
       expect(TGColors.cta, const Color(0xFF26E6B3));
       final light = LightModeTheme();
-      expect(light.primaryBackground, const Color(0xFFF8F9FA));
-      expect(light.secondaryBackground, const Color(0xFFFFFFFF));
+      expect(light.primaryBackground, const Color(0xFFEFEBE4));
+      expect(light.secondaryBackground, const Color(0xFFF4F1EB));
       expect(light.primaryText, const Color(0xFF101828));
       expect(light.primary, TGColors.cta);
       TGThemeController.instance.reset();
