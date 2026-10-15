@@ -97,6 +97,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier, {String initialLocation
           builder: (context, params) => BirinciReklamSayfasiWidget(),
         ),
         FFRoute(
+          name: TgMagazineArticleView.routeName,
+          path: TgMagazineArticleView.routePath,
+          builder: (context, params) => const TgMagazineArticleView(),
+        ),
+        FFRoute(
           name: IkinciReklamSayfasiWidget.routeName,
           path: IkinciReklamSayfasiWidget.routePath,
           builder: (context, params) => IkinciReklamSayfasiWidget(),

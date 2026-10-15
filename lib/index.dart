@@ -2,6 +2,8 @@
 export 'package:twoja_gastromania/tm_sayfalar/home_page/home_page_widget.dart' show HomePageWidget;
 export 'package:twoja_gastromania/birinci_reklam_sayfasi/birinci_reklam_sayfasi_widget.dart'
     show BirinciReklamSayfasiWidget;
+export 'package:twoja_gastromania/features/magazine/presentation/pages/tg_magazine_article_view.dart'
+    show TgMagazineArticleView;
 export 'package:twoja_gastromania/ikinci_reklam_sayfasi/ikinci_reklam_sayfasi_widget.dart'
     show IkinciReklamSayfasiWidget;
 export 'package:twoja_gastromania/ucuncu_reklam_sayfasi/ucuncu_reklam_sayfasi_widget.dart'

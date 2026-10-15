@@ -12,8 +12,10 @@ import 'package:twoja_gastromania/tg_core/tg_clock.dart';
 import 'package:twoja_gastromania/tg_models/tg_purchase_review.dart';
 import 'package:twoja_gastromania/tg_services/dashboard_service.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
+import 'package:twoja_gastromania/tg_models/tg_message.dart';
 import 'package:twoja_gastromania/tg_services/messaging_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
+import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_lifecycle_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 import 'package:twoja_gastromania/tg_services/revenue_config_service.dart';
@@ -259,6 +261,60 @@ void main() {
       await tester.pump();
       expect(find.text('Last 90 days'), findsOneWidget);
       expect(_ev('kpi_period_change').single, {'from': 30, 'to': 90});
+      _expectNoErrors(app);
+    });
+
+    testWidgets('phone header: no bell or tick; AD shows combined inbox count', (tester) async {
+      final app = await pumpTgApp(tester, location: '/', size: TGSizes.phone);
+      expect(find.byIcon(Icons.notifications_none), findsNothing);
+      expect(find.byIcon(Icons.task_alt), findsNothing);
+      expect(find.byKey(const Key('header-avatar')), findsOneWidget);
+      expect(find.text('Twoja Gastromania'), findsWidgets);
+
+      final uid = app.auth.userId;
+      NotificationService.instance.add(
+        userId: uid,
+        type: 'new_message',
+        dealId: 'd1',
+        title: 'Hello',
+        body: 'Inbox',
+      );
+      MessagingService.instance.addMockThread(
+        TGChatThread(
+          id: 'header_inbox_t',
+          listingId: 'p1',
+          listingTitle: 'Oven',
+          listingImageUrl: '',
+          listingPath: '/product-detail/p1',
+          buyerId: 'buyer_x',
+          sellerId: uid,
+          buyerName: 'B',
+          sellerName: 'S',
+          updatedAt: DateTime(2026, 10, 1),
+          unreadSeller: 2,
+        ),
+      );
+      await tester.pump();
+      final expected =
+          NotificationService.instance.unreadCount(uid) + MessagingService.instance.unreadTotal(uid);
+      expect(expected, greaterThan(0));
+      expect(find.byKey(const Key('header-inbox-count')), findsOneWidget);
+      expect(
+        find.descendant(of: find.byKey(const Key('header-inbox-count')), matching: find.text('$expected')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('header-avatar')));
+      await pumpFor(tester, const Duration(milliseconds: 600));
+      expect(find.byKey(const Key('account-open-dashboard')), findsOneWidget);
+      _expectNoErrors(app);
+    });
+
+    testWidgets('320px header does not overflow', (tester) async {
+      final app = await pumpTgApp(tester, location: '/', size: TGSizes.smallPhone);
+      expect(find.byIcon(Icons.notifications_none), findsNothing);
+      expect(find.byIcon(Icons.task_alt), findsNothing);
+      expect(find.byKey(const Key('header-avatar')), findsOneWidget);
       _expectNoErrors(app);
     });
 

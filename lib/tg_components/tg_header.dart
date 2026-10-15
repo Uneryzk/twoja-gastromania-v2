@@ -18,6 +18,9 @@ import 'package:twoja_gastromania/tg_core/duration_formatter.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/pricing_config_service.dart';
 import 'package:twoja_gastromania/tg_models/tg_product.dart';
+import 'package:twoja_gastromania/tg_services/deal_service.dart';
+import 'package:twoja_gastromania/tg_services/messaging_service.dart';
+import 'package:twoja_gastromania/tg_services/notification_service.dart';
 import 'package:twoja_gastromania/tg_services/product_service.dart';
 import 'package:twoja_gastromania/tg_services/restaurant_service.dart';
 
@@ -100,16 +103,19 @@ class TGHeader extends StatelessWidget implements PreferredSizeWidget {
     // The right-hand cluster is made of fixed-size children (they can never be
     // squeezed by Flex); exactly one slot (brand on phones, search on desktop)
     // is `Expanded`, so nothing is starved and nothing overflows.
+    final controlH = isPhone ? 36.0 : 40.0;
     final right = <Widget>[
-      const TGNotificationBell(),
-      const SizedBox(width: 4),
-      _LanguageMenu(compact: compactRight),
-      const SizedBox(width: 8),
+      if (!isPhone) ...[
+        const TGNotificationBell(),
+        const SizedBox(width: 4),
+      ],
+      _LanguageMenu(compact: compactRight || isPhone, height: controlH, phone: isPhone),
+      SizedBox(width: isPhone ? 6 : 8),
       if (!auth.isLoggedIn)
         GestureDetector(
           onLongPress: tgDevSwitchEnabled ? () => showTGDevSwitch(context, auth) : null,
           child: isPhone
-              ? TGIconButton(icon: Icons.person, tooltip: context.t('ui_login'), onPressed: () => TGNav.login(context))
+              ? TGIconButton(icon: Icons.person, tooltip: context.t('ui_login'), onPressed: () => TGNav.login(context), size: controlH)
               : TGButton(
                   onPressed: () => TGNav.login(context),
                   label: context.t('ui_login'),
@@ -120,9 +126,11 @@ class TGHeader extends StatelessWidget implements PreferredSizeWidget {
                 ),
         )
       else ...[
-        _AccountPill(auth: auth, compact: compactRight, phone: isPhone),
-        SizedBox(width: isPhone ? 4 : 6),
-        _AvatarButton(auth: auth, size: w < 360 ? 28 : (isPhone ? 32 : 36)),
+        _AccountPill(auth: auth, compact: compactRight, phone: isPhone, height: controlH),
+        if (!isPhone) ...[
+          const SizedBox(width: 6),
+          _AvatarButton(auth: auth, size: 36),
+        ],
       ],
     ];
 
@@ -138,7 +146,7 @@ class TGHeader extends StatelessWidget implements PreferredSizeWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1440),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 12 : 24),
+                  padding: EdgeInsets.symmetric(horizontal: isPhone ? 10 : (isCompact ? 12 : 24)),
                   child: Row(
                     children: [
                       if (showSearch) ...[
@@ -158,7 +166,7 @@ class TGHeader extends StatelessWidget implements PreferredSizeWidget {
                         ),
                         const SizedBox(width: 16),
                       ] else
-                        Expanded(
+                        const Expanded(
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: _BrandMark(compact: true, hideText: false, expandTitle: true),
@@ -189,7 +197,7 @@ class _BrandMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
-    final logoSize = compact ? 36.0 : 42.0;
+    final logoSize = expandTitle ? 36.0 : (compact ? 36.0 : 40.0);
     final logo = ClipOval(
       child: Image.asset(
         'assets/images/Hand_Shake_LOGO.png',
@@ -203,9 +211,9 @@ class _BrandMark extends StatelessWidget {
       'Twoja Gastromania',
       maxLines: 1,
       softWrap: false,
-      overflow: TextOverflow.visible,
+      overflow: TextOverflow.ellipsis,
       style: theme.titleLarge.override(
-        fontSize: compact ? 16 : 19,
+        fontSize: expandTitle ? 15 : (compact ? 16 : 18),
         fontWeight: FontWeight.w800,
         letterSpacing: -0.2,
       ),
@@ -224,17 +232,8 @@ class _BrandMark extends StatelessWidget {
             children: [
               logo,
               if (!hideText) ...[
-                const SizedBox(width: 10),
-                if (expandTitle)
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: title,
-                    ),
-                  )
-                else
-                  title,
+                SizedBox(width: expandTitle ? 8 : 10),
+                if (expandTitle) Flexible(child: title) else title,
               ],
             ],
           ),
@@ -247,9 +246,11 @@ class _BrandMark extends StatelessWidget {
 /// Compact language switcher (flag + code), replacing the generated dropdown
 /// that overflowed in narrow headers.
 class _LanguageMenu extends StatelessWidget {
-  const _LanguageMenu({required this.compact});
+  const _LanguageMenu({required this.compact, this.height = 40, this.phone = false});
 
   final bool compact;
+  final double height;
+  final bool phone;
 
   static const _flags = {
     'pl': 'PL',
@@ -308,8 +309,8 @@ class _LanguageMenu extends StatelessWidget {
           ),
       ],
       child: Container(
-        height: 40,
-        padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
+        height: height,
+        padding: EdgeInsets.symmetric(horizontal: phone ? 8 : (compact ? 8 : 12)),
         decoration: BoxDecoration(
           color: theme.alternate,
           borderRadius: BorderRadius.circular(TGRadius.input),
@@ -318,12 +319,12 @@ class _LanguageMenu extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(flag(current), style: const TextStyle(fontSize: 18)),
+            Text(flag(current), style: TextStyle(fontSize: phone ? 16 : 18, height: 1)),
             if (!compact) ...[
               const SizedBox(width: 8),
               Text(kLangCodeLabel[current] ?? current, style: theme.bodySmall.override(fontWeight: FontWeight.w800)),
             ],
-            Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: theme.secondaryText),
+            if (!phone) Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: theme.secondaryText),
           ],
         ),
       ),
@@ -376,11 +377,12 @@ class _AvatarButton extends StatelessWidget {
 /// Logged-in account pill. Priority: expired listings > expiring ≤5d > other states.
 /// Long-press in debug builds opens the 7-scenario developer switch.
 class _AccountPill extends StatelessWidget {
-  const _AccountPill({required this.auth, required this.compact, required this.phone});
+  const _AccountPill({required this.auth, required this.compact, required this.phone, this.height = 40});
 
   final FakeAuthState auth;
   final bool compact;
   final bool phone;
+  final double height;
 
   String _label(BuildContext context) {
     final kind = auth.pillKind;
@@ -472,6 +474,56 @@ class _AccountPill extends StatelessWidget {
     final borderColor = warn ? TGColors.rating : (store ? theme.success : theme.primary);
     final label = _label(context);
 
+    final quotaTap = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _onTap(context),
+      onLongPress: tgDevSwitchEnabled ? () => showTGDevSwitch(context, auth) : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+              style: theme.bodySmall.override(fontWeight: FontWeight.w700, fontSize: phone ? 12 : (compact ? 12 : 13)),
+            ),
+          ),
+          const SizedBox(width: 2),
+          Icon(Icons.keyboard_arrow_down, size: phone ? 16 : 18, color: theme.secondaryText),
+        ],
+      ),
+    );
+
+    final shell = ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: phone ? 156 : compact ? 240 : 300),
+      child: Container(
+        height: height,
+        padding: EdgeInsets.only(left: phone ? 4 : 6, right: compact || phone ? 6 : 10),
+        decoration: BoxDecoration(
+          color: theme.alternate,
+          borderRadius: BorderRadius.circular(TGRadius.pill),
+          border: Border.all(color: borderColor, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (phone)
+              _HeaderMemberMark(auth: auth, size: 28)
+            else
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _onTap(context),
+                child: _leading(theme, store: store, warn: warn),
+              ),
+            SizedBox(width: phone ? 6 : 8),
+            Flexible(child: quotaTap),
+          ],
+        ),
+      ),
+    );
+
     return Tooltip(
       message: _tooltip(context),
       child: Semantics(
@@ -479,42 +531,7 @@ class _AccountPill extends StatelessWidget {
         label: label,
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _onTap(context),
-            onLongPress: tgDevSwitchEnabled ? () => showTGDevSwitch(context, auth) : null,
-            child: Container(
-              height: 40,
-              constraints: BoxConstraints(maxWidth: phone ? 148 : compact ? 240 : 300),
-              padding: EdgeInsets.only(left: 6, right: compact ? 8 : 10),
-              decoration: BoxDecoration(
-                color: theme.alternate,
-                borderRadius: BorderRadius.circular(TGRadius.pill),
-                border: Border.all(color: borderColor, width: 1.6),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _leading(theme, store: store, warn: warn),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        softWrap: false,
-                        style: theme.bodySmall.override(fontWeight: FontWeight.w700, fontSize: compact ? 12 : 13),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  Icon(Icons.keyboard_arrow_down, size: 18, color: theme.secondaryText),
-                ],
-              ),
-            ),
-          ),
+          child: shell,
         ),
       ),
     );
@@ -524,55 +541,106 @@ class _AccountPill extends StatelessWidget {
     if (store) {
       return Padding(padding: const EdgeInsets.only(left: 6), child: Icon(Icons.shield_outlined, size: 18, color: theme.success));
     }
-    if (warn && !phone) {
+    if (warn) {
       final icon = auth.pillKind == TGHeaderPillKind.needsAttention ? Icons.gpp_maybe_outlined : Icons.schedule_rounded;
       return Padding(padding: const EdgeInsets.only(left: 6), child: Icon(icon, size: 18, color: TGColors.rating));
     }
     return SizedBox(
       width: 28,
       height: 28,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(color: theme.primary.withValues(alpha: 0.22), shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Icon(Icons.task_alt, size: 16, color: theme.primaryText),
-          ),
-          if (phone && auth.mobileBadgeCount > 0)
-            Positioned(
-              right: -3,
-              top: -3,
-              child: Container(
-                constraints: const BoxConstraints(minWidth: 14),
-                height: 14,
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: BoxDecoration(
-                  color: auth.pillIsProblem ? TGColors.rating : theme.primary,
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: theme.secondaryBackground, width: 1),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '${auth.mobileBadgeCount}',
-                  style: theme.labelSmall.override(fontSize: 8, fontWeight: FontWeight.w900, color: TGColors.onCta),
-                ),
-              ),
-            ),
-          if (phone && auth.pillIsProblem)
-            Positioned(
-              right: -1,
-              top: -1,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(color: TGColors.rating, shape: BoxShape.circle, border: Border.all(color: theme.secondaryBackground, width: 1)),
-              ),
-            ),
-        ],
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(color: theme.primary.withValues(alpha: 0.22), shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: Icon(Icons.task_alt, size: 16, color: theme.primaryText),
       ),
+    );
+  }
+}
+
+/// Phone header identity: member initials replace the quota tick, with a combined
+/// unread notifications + messages badge (the desktop bell is hidden on phones).
+class _HeaderMemberMark extends StatefulWidget {
+  const _HeaderMemberMark({required this.auth, required this.size});
+
+  final FakeAuthState auth;
+  final double size;
+
+  @override
+  State<_HeaderMemberMark> createState() => _HeaderMemberMarkState();
+}
+
+class _HeaderMemberMarkState extends State<_HeaderMemberMark> {
+  @override
+  void initState() {
+    super.initState();
+    DealService.instance.ensureSeeded();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FlutterFlowTheme.of(context);
+    final auth = widget.auth;
+    final size = widget.size;
+    return ListenableBuilder(
+      listenable: Listenable.merge([NotificationService.instance, MessagingService.instance]),
+      builder: (context, _) {
+        final inbox = NotificationService.instance.unreadCount(auth.userId) + MessagingService.instance.unreadTotal(auth.userId);
+        final badge = inbox > 99 ? '99+' : '$inbox';
+        return Semantics(
+          button: true,
+          label: inbox > 0 ? '${auth.userInitials}, $inbox' : context.t('dash_avatar_menu'),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const Key('header-avatar'),
+              customBorder: const CircleBorder(),
+              onTap: () => showTGAccountSheet(context),
+              onLongPress: tgDevSwitchEnabled ? () => showTGDevSwitch(context, auth) : null,
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: size,
+                      height: size,
+                      decoration: BoxDecoration(color: theme.primary.withValues(alpha: 0.22), shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: Text(
+                        auth.userInitials,
+                        style: theme.labelSmall.override(color: theme.primaryText, fontWeight: FontWeight.w800, fontSize: 11),
+                      ),
+                    ),
+                    if (inbox > 0)
+                      Positioned(
+                        right: -3,
+                        top: -3,
+                        child: Container(
+                          key: const Key('header-inbox-count'),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: TGColors.accent,
+                            borderRadius: BorderRadius.circular(99),
+                            border: Border.all(color: theme.secondaryBackground, width: 1),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            badge,
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800, height: 1),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
