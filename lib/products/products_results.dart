@@ -412,8 +412,8 @@ class _AppliedChip extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 /// Everything under the toolbar: sticky promoted block, all listings (grid or
-/// list with a 220 ms transition), pagination / "show more", the Special Order
-/// band.
+/// list with a 220 ms transition), then the Special Order band. Cards continue
+/// down the page — no pager.
 class TGResultsBody extends StatelessWidget {
   const TGResultsBody({
     super.key,
@@ -432,14 +432,12 @@ class TGResultsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final perPage = isPhone ? 12 : 24;
     final organic = results.organic;
-    final totalPages = pageCount(organic.length, perPage);
-    final page = query.page.clamp(1, totalPages);
-
-    // Phones accumulate ("Show more"); larger screens show one page at a time.
-    // Spotlight repeats are injected into the page slice and do not affect pageCount.
-    final visibleSlots = results.visibleOrganicSlots(page: page, perPage: perPage, accumulate: isPhone);
+    final visibleSlots = results.visibleOrganicSlots(
+      page: 1,
+      perPage: math.max(organic.length, 1),
+      accumulate: false,
+    );
 
     Widget content;
     if (loading) {
@@ -466,17 +464,6 @@ class TGResultsBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         content,
-        if (!loading && organic.isNotEmpty) ...[
-          const SizedBox(height: 28),
-          if (isPhone)
-            _ShowMore(
-              shown: math.min(page * perPage, organic.length),
-              total: organic.length,
-              onMore: () => onChanged(query.copyWith(page: page + 1)),
-            )
-          else
-            _Pagination(current: page, total: totalPages, onPage: (p) => onChanged(query.copyWith(page: p))),
-        ],
         const SizedBox(height: 32),
         const TGSpecialOrderBand(),
       ],
@@ -776,113 +763,6 @@ class _SkeletonCards extends StatelessWidget {
           itemBuilder: (_, __) => const TGProductCardSkeleton(),
         );
       },
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Pagination
-// ---------------------------------------------------------------------------
-
-class _ShowMore extends StatelessWidget {
-  const _ShowMore({required this.shown, required this.total, required this.onMore});
-
-  final int shown;
-  final int total;
-  final VoidCallback onMore;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-    return Column(
-      children: [
-        if (shown < total)
-          TGButton(
-            onPressed: onMore,
-            label: context.t('ui_show_more'),
-            icon: Icons.expand_more,
-            height: 46,
-            variant: TGButtonVariant.outline,
-            borderRadius: BorderRadius.circular(TGRadius.pill),
-          ),
-        const SizedBox(height: 10),
-        Text('$shown / $total', style: theme.bodySmall.override(color: theme.secondaryText, fontWeight: FontWeight.w800)),
-      ],
-    );
-  }
-}
-
-class _Pagination extends StatelessWidget {
-  const _Pagination({required this.current, required this.total, required this.onPage});
-
-  final int current;
-  final int total;
-  final ValueChanged<int> onPage;
-
-  static List<int?> window(int current, int total) {
-    if (total <= 7) return [for (var i = 1; i <= total; i++) i];
-    final pages = <int?>[1];
-    if (current > 3) pages.add(null);
-    final start = math.max(2, current - 1);
-    final end = math.min(total - 1, current + 1);
-    for (var i = start; i <= end; i++) {
-      pages.add(i);
-    }
-    if (current < total - 2) pages.add(null);
-    pages.add(total);
-    return pages;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (total <= 1) return const SizedBox.shrink();
-    final theme = FlutterFlowTheme.of(context);
-
-    Widget btn(String label, {required bool active, required VoidCallback? onTap, String? semantics}) {
-      return Semantics(
-        button: true,
-        selected: active,
-        enabled: onTap != null,
-        label: semantics ?? context.t('ui_page_n', {'n': label}),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(TGRadius.input),
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: TGMotion.quick,
-            constraints: const BoxConstraints(minWidth: 42),
-            height: 42,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: active ? theme.primary : theme.secondaryBackground,
-              borderRadius: BorderRadius.circular(TGRadius.input),
-              border: Border.all(color: active ? theme.primary : theme.tertiary),
-            ),
-            child: Text(
-              label,
-              style: theme.bodySmall.override(
-                color: active ? theme.primaryBtnText : (onTap == null ? theme.secondaryText.withValues(alpha: 0.5) : theme.primaryText),
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        btn('«', active: false, semantics: context.t('ui_prev_page'), onTap: current > 1 ? () => onPage(current - 1) : null),
-        for (final p in window(current, total))
-          if (p == null)
-            SizedBox(width: 24, height: 42, child: Center(child: Text('…', style: theme.bodySmall.override(color: theme.secondaryText))))
-          else
-            btn('$p', active: p == current, onTap: () => onPage(p)),
-        btn('»', active: false, semantics: context.t('ui_next_page'), onTap: current < total ? () => onPage(current + 1) : null),
-      ],
     );
   }
 }

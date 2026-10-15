@@ -267,6 +267,8 @@ void main() {
       expect(find.byTooltip('Grid view'), findsOneWidget);
       expect(find.byTooltip('List view'), findsOneWidget);
       expect(find.byType(DropdownButton<TGProductsSort>), findsOneWidget);
+      expect(find.text('«'), findsNothing);
+      expect(find.text('»'), findsNothing);
       _expectNoErrors(app);
     });
 

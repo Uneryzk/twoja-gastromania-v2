@@ -174,8 +174,12 @@ void main() {
       final product = tester.widget<TGProductCard>(card).product;
       final title = tester.widget<Text>(_within(card, find.text(product.title)).first);
       expect(title.style?.fontWeight, weight);
-      expect(title.style?.letterSpacing, greaterThanOrEqualTo(0.2));
-      expect(title.style?.letterSpacing, lessThanOrEqualTo(0.4));
+      expect(title.style?.fontSize, 16);
+      expect(title.style?.letterSpacing, 0.25);
+      expect(title.style?.fontFamily?.toLowerCase().replaceAll(' ', ''), contains('intertight'));
+      if (weight == FontWeight.w300) {
+        expect(title.style?.fontFamily, isNot(contains('700')));
+      }
     }
 
     expectTitle('p020', FontWeight.w300);

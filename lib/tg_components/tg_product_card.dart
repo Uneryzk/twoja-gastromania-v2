@@ -14,6 +14,7 @@ import 'package:twoja_gastromania/tg_components/tg_hover_card.dart';
 import 'package:twoja_gastromania/tg_components/tg_user_text.dart';
 import 'package:twoja_gastromania/tg_components/tg_listing_no_line.dart';
 import 'package:twoja_gastromania/tg_core/tg_contact.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_card_title.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_no.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_promo_visibility.dart';
@@ -339,12 +340,7 @@ class _GridBody extends StatelessWidget {
                   product.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.titleMedium.override(
-                    fontSize: 16,
-                    fontWeight: titleBold ? FontWeight.w700 : FontWeight.w300,
-                    letterSpacing: 0.25,
-                    lineHeight: 1.3,
-                  ),
+                  style: TGListingCardTitle.style(color: theme.primaryText, paid: titleBold),
                 ),
                 const SizedBox(height: 8),
                 _PriceRow(product: product),
@@ -426,11 +422,7 @@ class _WideListBody extends StatelessWidget {
                     product.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.titleLarge.override(
-                      fontWeight: titleBold ? FontWeight.w700 : FontWeight.w300,
-                      letterSpacing: 0.3,
-                      lineHeight: 1.2,
-                    ),
+                    style: TGListingCardTitle.style(color: theme.primaryText, paid: titleBold),
                   ),
                   const SizedBox(height: 4),
                   TGListingNoPlain(product: product),
@@ -532,11 +524,7 @@ class _CompactListBody extends StatelessWidget {
                           product.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.titleSmall.override(
-                            fontWeight: titleBold ? FontWeight.w700 : FontWeight.w300,
-                            letterSpacing: 0.2,
-                            lineHeight: 1.2,
-                          ),
+                          style: TGListingCardTitle.style(color: theme.primaryText, paid: titleBold),
                         ),
                       ),
                       const SizedBox(height: 2),

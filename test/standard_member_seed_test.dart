@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_card_title.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_theme.dart';
@@ -56,7 +57,9 @@ void main() {
 
   testWidgets('new standard member cards use Inter Tight Light w300 titles', (tester) async {
     final all = await TGProductService.instance.getAll();
-    final first = all.singleWhere((p) => p.id == 'pstd01');
+    final first = all.singleWhere((p) => p.id == 'pstd18');
+    expect(first.seller.name, 'Bartek Z.');
+    expect(first.isPromoted, isFalse);
 
     await tester.runAsync(loadRealisticFonts);
     tester.view.physicalSize = const Size(400, 900);
@@ -84,6 +87,9 @@ void main() {
 
     final title = tester.widget<Text>(find.text(first.title).first);
     expect(title.style?.fontWeight, FontWeight.w300);
-    expect(title.style?.fontSize, 16);
+    expect(title.style?.fontSize, TGListingCardTitle.fontSize);
+    expect(title.style?.letterSpacing, TGListingCardTitle.letterSpacing);
+    expect(title.style?.fontFamily, isNot(contains('700')));
+    expect(title.style?.fontFamily?.toLowerCase().replaceAll(' ', ''), contains('intertight'));
   });
 }
