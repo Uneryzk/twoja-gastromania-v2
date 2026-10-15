@@ -30,6 +30,14 @@ void main() {
     expect(TGMagazineMetrics.cateringSharePct, 32.3);
     expect(TGMagazineMetrics.foodSharePct, 20.2);
     expect(TGMagazineMetrics.techSharePct, 11.3);
+    expect(TGMagazineMetrics.exhibitors, 550);
+    expect(TGMagazineMetrics.visitors, 26000);
+    expect(TGMagazineMetrics.areaM2, 50000);
+    expect(TGMagazineMetrics.halls, 6);
+    expect(TGMagazineMetrics.mixKitFlex, 32);
+    expect(TGMagazineMetrics.mixFoodFlex, 20);
+    expect(TGMagazineMetrics.mixTechFlex, 11);
+    expect(TGMagazineMetrics.mixOtherFlex, 37);
   });
 
   test('ROI contrast inverts with brightness', () {
@@ -64,6 +72,9 @@ void main() {
       'mag_stat_catering',
       'mag_stat_food',
       'mag_stat_tech',
+      'mag_fair_p1',
+      'mag_fair_p2',
+      'mag_fair_headline',
     ]) {
       final row = kUiTranslations[key]!;
       expect(row['en'], isNotEmpty, reason: key);
@@ -91,7 +102,12 @@ void main() {
     expect(find.byKey(const Key('journal-article')), findsOneWidget);
     expect(find.byType(TgEditorialMagazineView), findsOneWidget);
     expect(find.text('The kitchen of the future: the EuroGastro 2027 opening'), findsWidgets);
+    expect(find.byKey(const Key('magazine-fair-banner')), findsOneWidget);
     expect(find.byKey(const Key('magazine-photo-cover')), findsOneWidget);
+    expect(find.byKey(const Key('magazine-fair-mix')), findsOneWidget);
+    expect(find.text('550+'), findsOneWidget);
+    expect(find.text('26,000+'), findsOneWidget);
+    expect(find.text('50,000 m²'), findsOneWidget);
     expect(find.byKey(const Key('journal-chart-capex')), findsOneWidget);
     expect(find.byKey(const Key('magazine-stat-catering')), findsOneWidget);
     expect(find.byKey(const Key('magazine-stat-food')), findsOneWidget);

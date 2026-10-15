@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:twoja_gastromania/features/magazine/presentation/pages/euro_gastro_2027_banner.dart';
 import 'package:twoja_gastromania/features/magazine/presentation/pages/tg_magazine_article_view.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_util.dart';
@@ -7,7 +8,6 @@ import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
 import 'package:twoja_gastromania/tg_components/tg_top_nav.dart';
-import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_nav.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 
@@ -123,48 +123,8 @@ class _TgEditorialMagazineViewState extends State<TgEditorialMagazineView> {
                     ),
                     const SizedBox(height: 18),
                     Text(context.t('mag_page_line'), style: kicker()),
-                    const SizedBox(height: 18),
-                    Semantics(
-                      image: true,
-                      label: context.t('mag_cover_a11y'),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(TGRadius.card),
-                        child: Stack(
-                          children: [
-                            AspectRatio(
-                              aspectRatio: phone ? 16 / 11 : 16 / 7.5,
-                              child: Image.asset(
-                                TGListingImages.restoKitchen,
-                                key: const Key('magazine-photo-cover'),
-                                fit: BoxFit.cover,
-                                gaplessPlayback: true,
-                                errorBuilder: (_, __, ___) => ColoredBox(color: TGColors.surfaceHover),
-                              ),
-                            ),
-                            Positioned(
-                              top: phone ? 12 : 16,
-                              left: phone ? 12 : 16,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF059669),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  context.t('mag_badge'),
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.40,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 12),
+                    const EuroGastro2027BannerWidget(),
                     const SizedBox(height: 22),
                     Semantics(
                       header: true,

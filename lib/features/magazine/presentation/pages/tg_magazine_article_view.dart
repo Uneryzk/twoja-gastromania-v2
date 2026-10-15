@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/flutter_flow_util.dart';
+import 'package:twoja_gastromania/features/magazine/presentation/pages/euro_gastro_2027_banner.dart';
 import 'package:twoja_gastromania/tg_components/tg_breadcrumb.dart';
 import 'package:twoja_gastromania/tg_components/tg_footer.dart';
 import 'package:twoja_gastromania/tg_components/tg_header.dart';
@@ -32,6 +33,14 @@ abstract final class TGMagazineMetrics {
   static const double cateringSharePct = 32.3;
   static const double foodSharePct = 20.2;
   static const double techSharePct = 11.3;
+  static const int mixKitFlex = 32;
+  static const int mixFoodFlex = 20;
+  static const int mixTechFlex = 11;
+  static const int mixOtherFlex = 37;
+  static const int exhibitors = 550;
+  static const int visitors = 26000;
+  static const int areaM2 = 50000;
+  static const int halls = 6;
   static const int edition = 30;
   static const int year = 2027;
 }
@@ -56,24 +65,9 @@ class _TgMagazineArticleViewState extends State<TgMagazineArticleView> {
     final w = MediaQuery.sizeOf(context).width;
     final phone = w < TGBreakpoints.phone;
     final pad = phone ? 16.0 : 28.0;
-    final titleSize = phone ? 24.0 : 32.0;
     final monthlySavings = _monthlyBillPln * TGMagazineMetrics.savingsRate;
     final roiMonths = TGMagazineMetrics.equipmentCostPln / (monthlySavings == 0 ? 1 : monthlySavings);
 
-    TextStyle kicker() => GoogleFonts.inter(
-          color: TGColors.cta,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.40,
-          height: 1.3,
-        );
-    TextStyle heading(double size) => GoogleFonts.interTight(
-          color: theme.primaryText,
-          fontSize: size,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.40,
-          height: 1.2,
-        );
     TextStyle body() => GoogleFonts.inter(
           color: theme.primaryText.withValues(alpha: 0.88),
           fontSize: phone ? 14 : 16,
@@ -109,11 +103,14 @@ class _TgMagazineArticleViewState extends State<TgMagazineArticleView> {
         key: const Key('journal-article'),
         children: [
           const TGTopNav(),
-          _HeroCover(
-            phone: phone,
-            titleSize: titleSize,
-            heading: heading,
-            kicker: kicker(),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 920),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(pad, 12, pad, 0),
+                child: const EuroGastro2027BannerWidget(),
+              ),
+            ),
           ),
           Center(
             child: ConstrainedBox(
@@ -156,100 +153,6 @@ class _TgMagazineArticleViewState extends State<TgMagazineArticleView> {
             ),
           ),
           const TGFooter(),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroCover extends StatelessWidget {
-  const _HeroCover({
-    required this.phone,
-    required this.titleSize,
-    required this.heading,
-    required this.kicker,
-  });
-
-  final bool phone;
-  final double titleSize;
-  final TextStyle Function(double size) heading;
-  final TextStyle kicker;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-    final height = phone ? 240.0 : 320.0;
-    return SizedBox(
-      height: height,
-      width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            TGListingImages.heroSlide(0),
-            key: const Key('magazine-photo-cover'),
-            fit: BoxFit.cover,
-            gaplessPlayback: true,
-            errorBuilder: (_, __, ___) => ColoredBox(color: TGColors.surfaceHover),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  TGColors.background.withValues(alpha: 0.92),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 820),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(phone ? 16 : 28, 0, phone ? 16 : 28, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Semantics(
-                        image: true,
-                        label: context.t('mag_cover_a11y'),
-                        child: const SizedBox.shrink(),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: TGColors.cta,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          context.t('mag_badge'),
-                          style: GoogleFonts.inter(
-                            color: TGColors.onCta,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.40,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(context.t('journal_kicker'), style: kicker),
-                      const SizedBox(height: 8),
-                      Semantics(
-                        header: true,
-                        child: Text(context.t('journal_title'), style: heading(titleSize).copyWith(color: theme.primaryText)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
