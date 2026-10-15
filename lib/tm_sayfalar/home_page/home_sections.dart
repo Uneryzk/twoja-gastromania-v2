@@ -209,7 +209,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
       if (url != null && url.isNotEmpty) context.go(url);
       return;
     }
-    context.pushNamed(s.routeName!);
+    context.goNamed(s.routeName!);
   }
 
   @override
@@ -269,6 +269,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel> {
                                 child: MouseRegion(
                                   cursor: SystemMouseCursors.click,
                                   child: GestureDetector(
+                                    key: s.sponsored ? null : Key('hero-slide-${s.routeName}'),
                                     behavior: HitTestBehavior.opaque,
                                     onTap: () => _openSlide(s),
                                     child: DecoratedBox(

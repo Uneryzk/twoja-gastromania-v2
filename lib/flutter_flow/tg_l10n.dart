@@ -1401,7 +1401,7 @@ final Map<String, Map<String, String>> kUiTranslations = {
   'ui_open_in_maps': _l(en: 'Open in Maps', pl: 'Otwórz w mapach', tr: 'Haritalarda aç', de: 'In Karten öffnen', cs: 'Otevřít v mapách', sk: 'Otvoriť v mapách', uk: 'Відкрити в картах', be: 'Адкрыць у картах', lt: 'Atidaryti žemėlapyje', ru: 'Открыть в картах'),
 
   // ----- Home (existing FlutterFlow keys) -----
-  'i8m5wr2h': _l(en: 'Commercial Kitchen Costs', pl: 'Koszty kuchni gastronomicznej', tr: 'Endüstriyel Mutfak Maliyetleri', de: 'Kosten der Großküche', cs: 'Náklady komerční kuchyně', sk: 'Náklady komerčnej kuchyne', uk: 'Витрати комерційної кухні', be: 'Выдаткі камерцыйнай кухні', lt: 'Komercinės virtuvės sąnaudos', ru: 'Расходы коммерческой кухни'),
+  'i8m5wr2h': _l(en: 'Industrial Kitchen Costs and Profitability', pl: 'Koszty kuchni gastronomicznej i rentowność', tr: 'Endüstriyel Mutfak Maliyetleri ve Kârlılık', de: 'Kosten und Rentabilität der Großküche', cs: 'Náklady a ziskovost komerční kuchyně', sk: 'Náklady a ziskovosť komerčnej kuchyne', uk: 'Витрати та прибутковість комерційної кухні', be: 'Выдаткі і прыбытковасць камерцыйнай кухні', lt: 'Komercinės virtuvės sąnaudos ir pelningumas', ru: 'Расходы и прибыльность коммерческой кухни'),
   '7d6qkq0f': _l(
     en: 'What factors contribute to the profitability of a food and beverage business?',
     pl: 'Jakie czynniki wpływają na rentowność lokalu gastronomicznego?',
@@ -1441,6 +1441,101 @@ final Map<String, Map<String, String>> kUiTranslations = {
     be: 'Якія фактары ўплываюць на прыбытковасць установы харчавання?',
     lt: 'Kokios aplinkybės lemia maitinimo verslo pelningumą?',
     ru: 'Какие факторы влияют на прибыльность заведения общепита?',
+  ),
+
+  // ----- B2B journal (home banner → /birinciReklamSayfasi) -----
+  'journal_kicker': _d('B2B journal', pl: 'Magazyn B2B', tr: 'B2B dergi'),
+  'journal_title': _d(
+    'Industrial Kitchen Costs and Profitability',
+    pl: 'Koszty kuchni gastronomicznej i rentowność',
+    tr: 'Endüstriyel Mutfak Maliyetleri ve Kârlılık',
+  ),
+  'journal_dek': _d(
+    'A working kitchen splits between one-time fit-out and the energy plus service bill that follows every service day.',
+    pl: 'Wynik lokalu dzieli się na jednorazowe uruchomienie oraz rachunek za energię i serwis, który wraca każdego dnia pracy.',
+    tr: 'Çalışan mutfak, tek seferlik kurulum ile her servis gününü izleyen enerji ve bakım faturası arasında bölünür.',
+  ),
+  'journal_read_time': _d('8 min read · marketplace desk', pl: '8 min lektury · redakcja rynku', tr: '8 dk okuma · pazar masası'),
+  'journal_p1': _d(
+    'CapEx is the visible line: equipment, install, commissioning. OpEx is the quiet remainder — electricity, gas, chemicals, technician visits. Operators who watch only the purchase invoice miss that OpEx overtakes CapEx inside two seasons.',
+    pl: 'Nakłady początkowe to widoczna pozycja: sprzęt, montaż, rozruch. Koszty bieżące to cicha reszta: prąd, gaz, chemia, wizyty serwisu. Kto patrzy tylko na fakturę zakupu, nie widzi, że bieżące koszty wyprzedzają nakład w dwóch sezonach.',
+    tr: 'Kurulum kalemi görünür satırdır: ekipman, montaj, devreye alma. İşletme gideri sessiz paydır: elektrik, gaz, kimyasal, teknisyen ziyaretleri. Yalnızca alış faturasını izleyen işletmeci, iki sezon içinde işletme giderinin kurulumu geçtiğini kaçırır.',
+  ),
+  'journal_p2': _d(
+    'A-class appliances cut the energy slice by about 32% versus a mixed park of the same capacity. The gap shows up on the monthly utility statement, not on the delivery note.',
+    pl: 'Urządzenia klasy A tną wycinek energii o około 32% wobec mieszanego parku o tej samej mocy. Różnica wraca na comiesięcznym rachunku mediów, nie na dokumencie dostawy.',
+    tr: 'A sınıfı cihazlar, aynı kapasiteli karışık parka göre enerji dilimini yaklaşık %32 keser. Fark teslim belgesinde değil, aylık fatura satırında görünür.',
+  ),
+  'journal_p3': _d(
+    'The secondary and going-concern market compresses payback. A serviced used line typically returns capital in 14 months; a like-for-like new pack sits nearer 36. That gap is why operators shop used and transfer stock here.',
+    pl: 'Rynek wtórny i lokale w toku skracają zwrot. Serwisowana linia używana oddaje kapitał zwykle w 14 miesiącach; nowy zestaw podobnej mocy bliżej 36. Ta szczelina tłumaczy, czemu operatorzy szukają tu sprzętu używanego i z przejęcia.',
+    tr: 'İkinci el ve devir pazarı geri dönüşü sıkıştırır. Servisli kullanılan hat sermayeyi genelde 14 ayda döndürür; denk yeni paket 36 aya yaklaşır. Bu aralık, işletmecinin burada kullanılan ve devir stok aramasının nedenidir.',
+  ),
+  'journal_close': _d(
+    'Watch the mix, not a single invoice. Fit-out, kilowatts, and time-to-payback decide whether a pass holds margin after opening week.',
+    pl: 'Patrz na strukturę, nie na jedną fakturę. Uruchomienie, kilowaty i czas zwrotu decydują, czy passa utrzyma marżę po tygodniu otwarcia.',
+    tr: 'Tek faturaya değil karışıma bakın. Kurulum, kilovat ve geri dönüş süresi, açılış haftasından sonra hattın marj tutup tutmadığını belirler.',
+  ),
+  'journal_source': _d(
+    'Figures: typical 80–150 cover kitchen, mixed gas/electric line, Central Europe 2024–2026 desk sample. Directional, not a quote.',
+    pl: 'Liczby: typowa kuchnia 80–150 miejsc, linia gaz/prąd, próba redakcyjna Europa Środkowa 2024–2026. Kierunkowe, nie oferta.',
+    tr: 'Rakamlar: tipik 80–150 kişilik mutfak, gaz/elektrik karışık hat, Orta Avrupa 2024–2026 masa örneği. Yön gösterir, teklif değildir.',
+  ),
+  'journal_chart1_title': _d('CapEx vs OpEx mix', pl: 'Struktura nakładów i kosztów bieżących', tr: 'Kurulum ve işletme gideri karışımı'),
+  'journal_chart1_caption': _d(
+    'Share of lifetime kitchen cost. Tap a segment.',
+    pl: 'Udział w koszcie cyklu kuchni. Wybierz odcinek.',
+    tr: 'Mutfak ömür maliyetindeki pay. Dilime dokunun.',
+  ),
+  'journal_seg_capex': _d('CapEx · setup', pl: 'Nakład · uruchomienie', tr: 'Kurulum · montaj'),
+  'journal_seg_energy': _d('OpEx · energy', pl: 'Bieżące · energia', tr: 'İşletme · enerji'),
+  'journal_seg_service': _d('OpEx · service', pl: 'Bieżące · serwis', tr: 'İşletme · bakım'),
+  'journal_chart1_focus': _d(
+    '{name} is {pct}% of the cost stack.',
+    pl: '{name} to {pct}% stosu kosztów.',
+    tr: '{name} maliyet yığınının %{pct} payı.',
+  ),
+  'journal_chart1_a11y': _d(
+    'Horizontal cost bar: setup, energy, service.',
+    pl: 'Poziomy pasek kosztów: uruchomienie, energia, serwis.',
+    tr: 'Yatay maliyet çubuğu: kurulum, enerji, bakım.',
+  ),
+  'journal_chart2_title': _d('A-class energy draw', pl: 'Pobór energii klasy A', tr: 'A sınıfı enerji çekişi'),
+  'journal_chart2_caption': _d(
+    'Same capacity, twelve-month utility index.',
+    pl: 'Ta sama moc, indeks mediów za dwanaście miesięcy.',
+    tr: 'Aynı kapasite, on iki aylık fatura endeksi.',
+  ),
+  'journal_energy_standard': _d('Mixed park', pl: 'Park mieszany', tr: 'Karışık park'),
+  'journal_energy_aclass': _d('A-class line', pl: 'Linia klasy A', tr: 'A sınıfı hat'),
+  'journal_energy_save_note': _d(
+    'A-class kit uses 32% less energy at equal output.',
+    pl: 'Linia klasy A zużywa 32% mniej energii przy tej samej wydajności.',
+    tr: 'A sınıfı hat, eşit çıkışta %32 daha az enerji çeker.',
+  ),
+  'journal_chart2_a11y': _d(
+    'Comparison bars. A-class saves {pct} percent energy.',
+    pl: 'Słupki porównawcze. Klasa A oszczędza {pct} procent energii.',
+    tr: 'Karşılaştırma çubukları. A sınıfı enerjide %{pct} tasarruf.',
+  ),
+  'journal_chart3_title': _d('Used & transfer payback', pl: 'Zwrot używanego i z przejęcia', tr: 'İkinci el ve devir geri dönüşü'),
+  'journal_chart3_caption': _d(
+    'Months to recover capital on a like-for-like pass.',
+    pl: 'Miesiące do odzyskania kapitału na porównywalnej linii.',
+    tr: 'Denk hatta sermayenin döndüğü ay sayısı.',
+  ),
+  'journal_roi_used': _d('Used / transfer', pl: 'Używane / przejęcie', tr: 'İkinci el / devir'),
+  'journal_roi_new': _d('New pack', pl: 'Nowy zestaw', tr: 'Yeni paket'),
+  'journal_roi_months': _d('{n} months', pl: '{n} mies.', tr: '{n} ay'),
+  'journal_roi_trend': _d(
+    'Payback shorter by {n} months on serviced used stock.',
+    pl: 'Zwrot krótszy o {n} mies. na serwisowanym stocku używanym.',
+    tr: 'Servisli kullanılan stokta geri dönüş {n} ay daha kısa.',
+  ),
+  'journal_chart3_a11y': _d(
+    'Payback {used} months used versus {fresh} months new.',
+    pl: 'Zwrot {used} mies. używane wobec {fresh} mies. nowe.',
+    tr: 'Geri dönüş kullanılan {used} ay, yeni {fresh} ay.',
   ),
   '5w70mdov': _l(en: 'Featured Offers', pl: 'Wyróżnione oferty', tr: 'Öne Çıkan Teklifler', de: 'Empfohlene Angebote', cs: 'Vybrané nabídky', sk: 'Odporúčané ponuky', uk: 'Рекомендовані пропозиції', be: 'Рэкамендаваныя прапановы', lt: 'Išskirtiniai pasiūlymai', ru: 'Избранные предложения'),
   'ui_gastronomy_categories': _l(en: 'Gastronomy categories', pl: 'Kategorie gastronomiczne', tr: 'Gastromoni Kategorileri', de: 'Gastronomie-Kategorien', cs: 'Gastronomické kategorie', sk: 'Gastronomické kategórie', uk: 'Гастрономічні категорії', be: 'Гастранамічныя катэгорыі', lt: 'Gastronomijos kategorijos', ru: 'Гастрономические категории'),
