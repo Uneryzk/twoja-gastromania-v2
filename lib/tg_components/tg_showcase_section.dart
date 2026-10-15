@@ -100,7 +100,7 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
       children: [
         Semantics(
           header: true,
-          child: Text(context.t('ui_showcase_title'), style: theme.titleLarge.override(fontWeight: FontWeight.w700, letterSpacing: 0.25)),
+          child: Text(context.t('ui_showcase_title'), style: theme.titleLarge.override(fontWeight: FontWeight.w700, letterSpacing: 0.40)),
         ),
         const SizedBox(height: 4),
         Text(context.t('ui_showcase_sub'), style: theme.bodySmall.override(color: theme.secondaryText, lineHeight: 1.35)),
@@ -284,7 +284,7 @@ class _TGShowcaseSectionState extends State<TGShowcaseSection> {
             children: [
               Row(
                 children: [
-                  Expanded(child: Text(name, style: theme.titleSmall.override(fontWeight: FontWeight.w700, letterSpacing: 0.2))),
+                  Expanded(child: Text(name, style: theme.titleSmall.override(fontWeight: FontWeight.w700, letterSpacing: 0.40))),
                   if (selected) Icon(Icons.check_circle, color: theme.primary, size: 18),
                 ],
               ),

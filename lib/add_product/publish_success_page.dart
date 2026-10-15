@@ -107,7 +107,7 @@ class _PublishSuccessPageState extends State<PublishSuccessPage> with TickerProv
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(context.t('ui_listing_live'), style: theme.titleLarge.override(fontWeight: FontWeight.w700, letterSpacing: 0.25)),
+                      Text(context.t('ui_listing_live'), style: theme.titleLarge.override(fontWeight: FontWeight.w700, letterSpacing: 0.40)),
                       if (product != null) TGListingNoLine(product: product),
                       Text(context.t('ui_live_until', {'date': untilLabel}), style: theme.bodySmall.override(color: theme.secondaryText)),
                     ],

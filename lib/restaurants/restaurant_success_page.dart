@@ -72,7 +72,7 @@ class _RestaurantSuccessPageState extends State<RestaurantSuccessPage> with Sing
                     children: [
                       Text(
                         widget.pending ? 'Submitted for authorization' : 'Your listing is live',
-                        style: theme.titleLarge.override(fontWeight: FontWeight.w700, letterSpacing: 0.25),
+                        style: theme.titleLarge.override(fontWeight: FontWeight.w700, letterSpacing: 0.40),
                       ),
                       if (r != null) Text('Listing No. ${r.listingNo}', style: theme.bodySmall.override(fontWeight: FontWeight.w600)),
                       if (until != null && !widget.pending)

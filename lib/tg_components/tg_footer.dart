@@ -152,7 +152,7 @@ class _Heading extends StatelessWidget {
     final theme = FlutterFlowTheme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(text, style: theme.titleSmall.override(fontSize: 14, letterSpacing: 0.2)),
+      child: Text(text, style: theme.titleSmall.override(fontSize: 14, letterSpacing: 0.40)),
     );
   }
 }

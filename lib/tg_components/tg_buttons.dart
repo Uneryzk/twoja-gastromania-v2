@@ -105,14 +105,14 @@ class _TGButtonState extends State<TGButton> {
                               widget.label,
                               maxLines: 1,
                               softWrap: false,
-                              style: theme.titleSmall.override(color: effectiveFg, fontSize: 12, letterSpacing: 0.1),
+                              style: theme.titleSmall.override(color: effectiveFg, fontSize: 12, letterSpacing: 0.40),
                             )
                           : Flexible(
                               child: Text(
                                 widget.label,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: theme.titleSmall.override(color: effectiveFg, fontSize: 14, letterSpacing: 0.1),
+                                style: theme.titleSmall.override(color: effectiveFg, fontSize: 14, letterSpacing: 0.40),
                               ),
                             ),
                     ],

@@ -7,6 +7,7 @@ import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_product_card.dart';
 import 'package:twoja_gastromania/tg_core/tg_clock.dart';
+import 'package:twoja_gastromania/tg_core/tg_listing_card_title.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_images.dart';
 import 'package:twoja_gastromania/tg_core/tg_listing_price.dart';
 import 'package:twoja_gastromania/tg_core/tg_theme.dart';
@@ -175,7 +176,10 @@ void main() {
       final title = tester.widget<Text>(_within(card, find.text(product.title)).first);
       expect(title.style?.fontWeight, weight);
       expect(title.style?.fontSize, 16);
-      expect(title.style?.letterSpacing, 0.25);
+      expect(
+        title.style?.letterSpacing,
+        weight == FontWeight.w700 ? TGListingCardTitle.boldLetterSpacing : TGListingCardTitle.letterSpacing,
+      );
       expect(title.style?.fontFamily?.toLowerCase().replaceAll(' ', ''), contains('intertight'));
       if (weight == FontWeight.w300) {
         expect(title.style?.fontFamily, isNot(contains('700')));

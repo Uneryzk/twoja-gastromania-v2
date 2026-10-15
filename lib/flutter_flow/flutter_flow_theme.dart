@@ -233,7 +233,7 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w700,
         fontSize: 64.0,
-        letterSpacing: 0.45,
+        letterSpacing: 0.40,
       );
   String get displayMediumFamily => 'Inter Tight';
   bool get displayMediumIsCustom => false;
@@ -241,7 +241,7 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w700,
         fontSize: 44.0,
-        letterSpacing: 0.4,
+        letterSpacing: 0.40,
       );
   String get displaySmallFamily => 'Inter Tight';
   bool get displaySmallIsCustom => false;
@@ -249,7 +249,7 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w700,
         fontSize: 36.0,
-        letterSpacing: 0.35,
+        letterSpacing: 0.40,
       );
   String get headlineLargeFamily => 'Inter Tight';
   bool get headlineLargeIsCustom => false;
@@ -257,7 +257,7 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w700,
         fontSize: 32.0,
-        letterSpacing: 0.35,
+        letterSpacing: 0.40,
       );
   String get headlineMediumFamily => 'Inter Tight';
   bool get headlineMediumIsCustom => false;
@@ -265,7 +265,7 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w700,
         fontSize: 28.0,
-        letterSpacing: 0.3,
+        letterSpacing: 0.40,
       );
   String get headlineSmallFamily => 'Inter Tight';
   bool get headlineSmallIsCustom => false;
@@ -273,7 +273,7 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w700,
         fontSize: 24.0,
-        letterSpacing: 0.3,
+        letterSpacing: 0.40,
       );
   String get titleLargeFamily => 'Inter Tight';
   bool get titleLargeIsCustom => false;
@@ -281,7 +281,7 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w700,
         fontSize: 20.0,
-        letterSpacing: 0.25,
+        letterSpacing: 0.40,
       );
   String get titleMediumFamily => 'Inter Tight';
   bool get titleMediumIsCustom => false;
@@ -289,7 +289,7 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w700,
         fontSize: 18.0,
-        letterSpacing: 0.22,
+        letterSpacing: 0.40,
       );
   String get titleSmallFamily => 'Inter Tight';
   bool get titleSmallIsCustom => false;
@@ -297,7 +297,7 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w700,
         fontSize: 16.0,
-        letterSpacing: 0.2,
+        letterSpacing: 0.40,
       );
   String get labelLargeFamily => 'Inter';
   bool get labelLargeIsCustom => false;

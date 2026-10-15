@@ -234,7 +234,7 @@ class _ProductsPageWidgetState extends State<ProductsPageWidget> {
 
   Widget _title(FlutterFlowTheme theme, {required double size}) => Text(
         context.t('ui_products'),
-        style: theme.displaySmall.override(fontSize: size, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        style: theme.displaySmall.override(fontSize: size, fontWeight: FontWeight.w900, letterSpacing: 0.40),
       );
 
   Widget _contained({required Widget child, double padding = 24}) => Center(
