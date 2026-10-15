@@ -193,7 +193,7 @@ class _LeftColumn extends StatelessWidget {
                             padding: const EdgeInsets.only(right: 8),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.asset(img, width: 200, height: 160, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 200, height: 160, child: ColoredBox(color: TGColors.surfaceHover))),
+                              child: Image.asset(img, width: 200, height: 160, fit: BoxFit.cover, errorBuilder: (_, __, ___) => SizedBox(width: 200, height: 160, child: ColoredBox(color: TGColors.surfaceHover))),
                             ),
                           ),
                       ],
@@ -201,14 +201,14 @@ class _LeftColumn extends StatelessWidget {
                   ),
                 const SizedBox(height: 10),
                 Text(r.title, style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
-                Text('No. ${r.listingNo} · ${r.status.name}', style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+                Text('No. ${r.listingNo} · ${r.status.name}', style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
                 const SizedBox(height: 6),
                 Text(r.fullAddress, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                 Text(
                   context.t('ui_admin_unit_label', {
                     'u': r.unitNo?.isNotEmpty == true ? r.unitNo! : context.t('ui_admin_no_unit'),
                   }),
-                  style: const TextStyle(fontSize: 12, color: TGColors.textSecondary),
+                  style: TextStyle(fontSize: 12, color: TGColors.textSecondary),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -234,7 +234,7 @@ class _LeftColumn extends StatelessWidget {
                           padding: const EdgeInsets.only(right: 8),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(img, width: 200, height: 160, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 200, height: 160, child: ColoredBox(color: TGColors.surfaceHover))),
+                            child: Image.asset(img, width: 200, height: 160, fit: BoxFit.cover, errorBuilder: (_, __, ___) => SizedBox(width: 200, height: 160, child: ColoredBox(color: TGColors.surfaceHover))),
                           ),
                         ),
                     ],
@@ -248,7 +248,7 @@ class _LeftColumn extends StatelessWidget {
                 ],
                 if (TGListingPrice.isValid(product!.price))
                   Text('${product!.price} PLN', style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w800)),
-                Text('${product!.condition.name} · ${product!.city} · ${product!.powerType.name}', style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+                Text('${product!.condition.name} · ${product!.city} · ${product!.powerType.name}', style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
               ] else
                 Text(context.t('ui_listing_no', {'n': listingNo}), style: theme.titleMedium.override(fontWeight: FontWeight.w900)),
               const SizedBox(height: 10),
@@ -309,7 +309,7 @@ class _LeftColumn extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(r.reportNo, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
                       const Spacer(),
-                      Text(fmt.format(r.createdAt), style: const TextStyle(fontSize: 11, color: TGColors.textSecondary)),
+                      Text(fmt.format(r.createdAt), style: TextStyle(fontSize: 11, color: TGColors.textSecondary)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -320,7 +320,7 @@ class _LeftColumn extends StatelessWidget {
                     enKey: Key('admin-report-translate-en-${r.reportNo}'),
                   ),
                   const SizedBox(height: 6),
-                  Text(r.reporterEmail, style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+                  Text(r.reporterEmail, style: TextStyle(fontSize: 12, color: TGColors.textSecondary)),
                   if (r.evidenceUrls.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     SizedBox(
@@ -333,7 +333,7 @@ class _LeftColumn extends StatelessWidget {
                               padding: const EdgeInsets.only(right: 6),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(6),
-                                child: Image.asset(e, width: 56, height: 56, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 56, height: 56, child: ColoredBox(color: TGColors.surfaceHover))),
+                                child: Image.asset(e, width: 56, height: 56, fit: BoxFit.cover, errorBuilder: (_, __, ___) => SizedBox(width: 56, height: 56, child: ColoredBox(color: TGColors.surfaceHover))),
                               ),
                             ),
                         ],
@@ -350,7 +350,7 @@ class _LeftColumn extends StatelessWidget {
         AdminCard(
           child: Column(
             children: [
-              if (events.isEmpty) Text(context.t('ui_no_events'), style: const TextStyle(color: TGColors.textSecondary)),
+              if (events.isEmpty) Text(context.t('ui_no_events'), style: TextStyle(color: TGColors.textSecondary)),
               for (final e in events.take(20))
                 ListTile(
                   dense: true,
@@ -404,7 +404,7 @@ class _RightColumn extends StatelessWidget {
               const SizedBox(height: 4),
               Text(seller == null ? '' : adminSellerKindL10n(context, seller.type, verified: seller != null && tgShowsVerifiedSellerBadge(seller)), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
-              Text(context.t('ui_account_age', {'n': '$age'}), style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+              Text(context.t('ui_account_age', {'n': '$age'}), style: TextStyle(fontSize: 12, color: TGColors.textSecondary)),
               Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
                 Text('${context.t('ui_phone')} · ', style: const TextStyle(fontSize: 12)),
                 AdminMaskedValue(userId: seller?.id ?? '', field: TGPiiField.phone, value: profile?.phone ?? product?.phone ?? ''),

@@ -14,6 +14,7 @@ import 'package:twoja_gastromania/state/fake_auth_state.dart';
 import 'package:twoja_gastromania/tg_components/tg_i18n_audit_overlay.dart';
 import 'package:twoja_gastromania/tg_core/tg_i18n_audit.dart';
 import 'package:twoja_gastromania/tg_core/tg_theme.dart';
+import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 import 'package:twoja_gastromania/tg_services/deal_moderation_service.dart';
 import 'package:twoja_gastromania/tg_services/deal_service.dart';
 import 'package:twoja_gastromania/tg_services/moderation_service.dart';
@@ -62,6 +63,10 @@ class MyApp extends StatefulWidget {
   /// Like [setAppLanguage] but a no-op outside [MyApp] (e.g. widget tests).
   static void trySetLocale(BuildContext context, String language) =>
       context.findAncestorStateOfType<_MyAppState>()?.setLocale(language);
+
+  /// Like [setThemeMode] but a no-op outside [MyApp] (e.g. widget tests).
+  static void trySetThemeMode(BuildContext context, ThemeMode mode) =>
+      context.findAncestorStateOfType<_MyAppState>()?.setThemeMode(mode);
 }
 
 class MyAppScrollBehavior extends MaterialScrollBehavior {
@@ -73,10 +78,9 @@ class MyAppScrollBehavior extends MaterialScrollBehavior {
       };
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Locale? _locale;
 
-  // Global dark theme per brand spec.
   ThemeMode _themeMode = ThemeMode.dark;
 
   late AppStateNotifier _appStateNotifier;
@@ -97,9 +101,28 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _themeMode = FlutterFlowTheme.themeMode;
+    TGThemeController.instance
+      ..bindPlatformBrightness(WidgetsBinding.instance.platformDispatcher.platformBrightness)
+      ..setMode(_themeMode);
 
     _appStateNotifier = AppStateNotifier.instance;
     _router = createRouter(_appStateNotifier);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    TGThemeController.instance.bindPlatformBrightness(
+      WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    );
+    if (_themeMode == ThemeMode.system) safeSetState(() {});
   }
 
   void setLocale(String language) {
@@ -108,6 +131,7 @@ class _MyAppState extends State<MyApp> {
 
   void setThemeMode(ThemeMode mode) => safeSetState(() {
         _themeMode = mode;
+        TGThemeController.instance.setMode(mode);
         FlutterFlowTheme.saveThemeMode(mode);
       });
 
@@ -137,16 +161,15 @@ class _MyAppState extends State<MyApp> {
         locale: _locale,
         supportedLocales: kSupportedLocales,
         localeResolutionCallback: resolveAppLocale,
-        theme: ThemeData(brightness: Brightness.light, useMaterial3: false),
-        // Brand-styled Material widgets (inputs, sheets, snackbars, ...).
+        theme: buildTGLightTheme(),
         darkTheme: buildTGDarkTheme(),
         themeMode: _themeMode,
         routerConfig: _router,
         builder: (context, child) => ListenableBuilder(
-          listenable: TGI18nAudit.instance,
+          listenable: Listenable.merge([TGI18nAudit.instance, TGThemeController.instance]),
           builder: (context, _) => TGI18nAuditOverlay(
             child: Scaffold(
-              backgroundColor: DarkModeTheme().primaryBackground,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               body: child ?? const SizedBox.shrink(),
             ),
           ),

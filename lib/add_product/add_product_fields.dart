@@ -144,7 +144,7 @@ class WizardField extends StatelessWidget {
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(TGRadius.input),
-                borderSide: const BorderSide(color: TGColors.border),
+                borderSide: BorderSide(color: TGColors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(TGRadius.input),
@@ -319,7 +319,7 @@ class WizardDropdown extends StatelessWidget {
           fillColor: TGColors.surfaceHover,
           isDense: true,
           contentPadding: EdgeInsets.symmetric(horizontal: dense ? 8 : 12, vertical: 0),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(TGRadius.input), borderSide: const BorderSide(color: TGColors.border)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(TGRadius.input), borderSide: BorderSide(color: TGColors.border)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(TGRadius.input), borderSide: BorderSide(color: theme.primary, width: 2)),
         ),
       ),

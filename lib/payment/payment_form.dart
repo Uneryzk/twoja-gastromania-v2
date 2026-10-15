@@ -658,7 +658,7 @@ class PaymentFormState extends State<PaymentForm> with SingleTickerProviderState
                   filled: true,
                   fillColor: TGColors.surfaceHover,
                   contentPadding: EdgeInsets.zero,
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(TGRadius.input), borderSide: const BorderSide(color: TGColors.border)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(TGRadius.input), borderSide: BorderSide(color: TGColors.border)),
                   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(TGRadius.input), borderSide: const BorderSide(color: TGColors.cta, width: 2)),
                 ),
               ),

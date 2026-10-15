@@ -18,6 +18,7 @@ import 'package:twoja_gastromania/tg_services/listing_image_service.dart';
 import 'package:twoja_gastromania/tg_services/listing_stats_service.dart';
 import 'package:twoja_gastromania/tg_services/watermark_service.dart';
 import 'package:twoja_gastromania/tg_services/review_verified_service.dart';
+import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
 import 'package:twoja_gastromania/flutter_flow/internationalization.dart';
 import 'package:twoja_gastromania/flutter_flow/nav/nav.dart';
 import 'package:twoja_gastromania/state/admin_locale_state.dart';
@@ -190,6 +191,7 @@ Future<TGApp> pumpTgApp(
   Duration settle = const Duration(milliseconds: 900),
   Locale locale = const Locale('en'),
   bool ignoreOverflow = false,
+  ThemeMode themeMode = ThemeMode.dark,
 }) async {
   // Engine font loading completes outside of fake-async time.
   await tester.runAsync(loadRealisticFonts);
@@ -212,6 +214,11 @@ Future<TGApp> pumpTgApp(
   final errors = ErrorCollector()..start(ignoreOverflow: ignoreOverflow);
   addTearDown(errors.stop);
   TGI18nAudit.instance.reset();
+  TGThemeController.instance.reset(mode: themeMode);
+  await FlutterFlowTheme.initialize();
+  TGThemeController.instance
+    ..bindPlatformBrightness(tester.view.platformDispatcher.platformBrightness)
+    ..setMode(themeMode);
   TGUserLocales.reset();
   MessagingService.instance.reset();
   InvoicingService.instance.reset();
@@ -253,34 +260,37 @@ Future<TGApp> pumpTgApp(
         ChangeNotifierProvider<DealService>.value(value: DealService.instance),
         ChangeNotifierProvider<DealModerationService>.value(value: DealModerationService.instance),
       ],
-      child: MaterialApp.router(
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: const [
-          FFLocalizationsDelegate(),
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-          FallbackMaterialLocalizationDelegate(),
-          FallbackCupertinoLocalizationDelegate(),
-        ],
-        locale: locale,
-        supportedLocales: kSupportedLocales,
-        localeResolutionCallback: resolveAppLocale,
-        theme: buildTGDarkTheme(),
-        darkTheme: buildTGDarkTheme(),
-        themeMode: ThemeMode.dark,
-        routerConfig: router,
-        builder: (context, child) => ListenableBuilder(
-          listenable: TGI18nAudit.instance,
-          builder: (context, _) => TGI18nAuditOverlay(
-            child: MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                textScaler: TextScaler.linear(textScale),
-                accessibleNavigation: false,
-              ),
-              child: Scaffold(
-                backgroundColor: TGColors.background,
-                body: child ?? const SizedBox.shrink(),
+      child: ListenableBuilder(
+        listenable: TGThemeController.instance,
+        builder: (context, _) => MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          localizationsDelegates: const [
+            FFLocalizationsDelegate(),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            FallbackMaterialLocalizationDelegate(),
+            FallbackCupertinoLocalizationDelegate(),
+          ],
+          locale: locale,
+          supportedLocales: kSupportedLocales,
+          localeResolutionCallback: resolveAppLocale,
+          theme: buildTGLightTheme(),
+          darkTheme: buildTGDarkTheme(),
+          themeMode: TGThemeController.instance.mode,
+          routerConfig: router,
+          builder: (context, child) => ListenableBuilder(
+            listenable: TGI18nAudit.instance,
+            builder: (context, _) => TGI18nAuditOverlay(
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(textScale),
+                  accessibleNavigation: false,
+                ),
+                child: Scaffold(
+                  backgroundColor: TGColors.background,
+                  body: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),

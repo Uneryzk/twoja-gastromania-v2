@@ -171,10 +171,10 @@ class _ConfirmDealSheetState extends State<ConfirmDealSheet> with SingleTickerPr
                                     width: 56,
                                     height: 56,
                                     child: deal.listingSnapshot.imageUrl.isEmpty
-                                        ? const ColoredBox(color: TGColors.border)
+                                        ? ColoredBox(color: TGColors.border)
                                         : TGSmartImage(
                                             url: deal.listingSnapshot.imageUrl,
-                                            fallback: (_) => const ColoredBox(color: TGColors.border),
+                                            fallback: (_) => ColoredBox(color: TGColors.border),
                                           ),
                                   ),
                                 ),

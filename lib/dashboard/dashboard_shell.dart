@@ -389,7 +389,7 @@ class _BottomNav extends StatelessWidget {
       key: const Key('dash-bottom-nav'),
       color: TGColors.surface,
       child: DecoratedBox(
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
         child: Padding(
           padding: EdgeInsets.only(bottom: bottomInset),
           child: SizedBox(

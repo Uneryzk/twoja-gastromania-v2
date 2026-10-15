@@ -449,7 +449,7 @@ class _DistBar extends StatelessWidget {
                       builder: (context, c) {
                         return Stack(
                           children: [
-                            const ColoredBox(color: TGColors.border, child: SizedBox.expand()),
+                            ColoredBox(color: TGColors.border, child: SizedBox.expand()),
                             AnimatedContainer(
                               duration: tgAnim(context, const Duration(milliseconds: 400)),
                               curve: Curves.easeOutCubic,
@@ -823,7 +823,7 @@ class _AboutLine extends StatelessWidget {
       builder: (context, snap) {
         final active = snap.data ?? false;
         if (!active) {
-          return Text(label, style: const TextStyle(fontSize: 12, color: TGColors.textSecondary, fontWeight: FontWeight.w700));
+          return Text(label, style: TextStyle(fontSize: 12, color: TGColors.textSecondary, fontWeight: FontWeight.w700));
         }
         return InkWell(
           onTap: () => _openListing(context, review.listingNo),

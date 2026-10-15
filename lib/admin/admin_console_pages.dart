@@ -551,7 +551,7 @@ class AdminUser360Page extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(TGRadius.card), border: Border.all(color: TGColors.border)),
               child: Row(children: [
-                const Icon(Icons.no_accounts_outlined, size: 18, color: TGColors.textSecondary),
+                Icon(Icons.no_accounts_outlined, size: 18, color: TGColors.textSecondary),
                 const SizedBox(width: 8),
                 Expanded(child: Text(context.t('adm_no_impersonation'), style: theme.bodySmall)),
               ]),
@@ -667,7 +667,7 @@ class AdminPaymentsPage extends StatelessWidget {
                       ]),
                       Text('${r.userId} · ${r.paymentId} · ${_fmt(r.requestedAt)}', style: const TextStyle(fontSize: 12)),
                       Text(r.reason, style: const TextStyle(fontSize: 13)),
-                      if (r.decisionNote != null) Text('→ ${r.decisionNote}', style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+                      if (r.decisionNote != null) Text('→ ${r.decisionNote}', style: TextStyle(fontSize: 12, color: TGColors.textSecondary)),
                       if (r.status == TGRefundStatus.pending) ...[
                         const SizedBox(height: 6),
                         Wrap(spacing: 8, children: [
@@ -1055,7 +1055,7 @@ class AdminGoLivePage extends StatelessWidget {
                           mark(c.ok, c.blocking),
                           const SizedBox(width: 8),
                           Expanded(child: Text(context.t(c.labelKey), style: const TextStyle(fontSize: 13))),
-                          if (!c.blocking) Text(context.t('adm_golive_advisory'), style: const TextStyle(fontSize: 11, color: TGColors.textSecondary)),
+                          if (!c.blocking) Text(context.t('adm_golive_advisory'), style: TextStyle(fontSize: 11, color: TGColors.textSecondary)),
                         ]),
                       ),
                     ),

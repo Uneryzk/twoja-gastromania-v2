@@ -1689,7 +1689,7 @@ class _CategoryMenu extends StatelessWidget {
       child: Column(
         children: [
           for (var i = 0; i < items.length; i++) ...[
-            if (i > 0) const Divider(height: 1, color: TGColors.border),
+            if (i > 0) Divider(height: 1, color: TGColors.border),
             items[i],
           ],
         ],
@@ -1875,7 +1875,7 @@ class _PhotoThumb extends StatelessWidget {
                 ),
               )
             else
-              Image.asset(photo.assetPath, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.border)),
+              Image.asset(photo.assetPath, fit: BoxFit.cover, errorBuilder: (_, __, ___) => ColoredBox(color: TGColors.border)),
             if (cover)
               Positioned(top: 6, left: 6, child: _MiniPill(text: context.t('ui_cover'), pink: true)),
             if (photo.error == null)

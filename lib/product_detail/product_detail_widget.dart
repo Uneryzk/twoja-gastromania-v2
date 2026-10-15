@@ -1526,7 +1526,7 @@ class _StickyCallBar extends StatelessWidget {
     return Material(
       color: TGColors.surface,
       child: Container(
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: TGColors.border, width: 1))),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: TGColors.border, width: 1))),
         padding: EdgeInsets.fromLTRB(12, 10, 12, 10 + safe),
         child: SizedBox(
           height: 52,

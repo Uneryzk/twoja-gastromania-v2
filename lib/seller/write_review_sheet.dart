@@ -124,7 +124,7 @@ class _LoginGate extends StatelessWidget {
             const SizedBox(height: 12),
             Text(context.t('ui_login_required'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
             const SizedBox(height: 8),
-            Text(context.t('ui_login_to_review'), textAlign: TextAlign.center, style: const TextStyle(color: TGColors.textSecondary)),
+            Text(context.t('ui_login_to_review'), textAlign: TextAlign.center, style: TextStyle(color: TGColors.textSecondary)),
             const SizedBox(height: 16),
             TGButton(
               key: const Key('review-login'),
@@ -201,7 +201,7 @@ class _ReviewReplyFlowState extends State<ReviewReplyFlow> {
                       ),
                     )
                   else ...[
-                    Text(widget.review.authorName, style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+                    Text(widget.review.authorName, style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
                     const SizedBox(height: 8),
                     Expanded(
                       child: TextField(

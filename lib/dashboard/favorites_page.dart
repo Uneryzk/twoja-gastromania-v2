@@ -149,7 +149,7 @@ class _FavCard extends StatelessWidget {
     final change = TGPriceHistoryService.instance.latestSince(fav.listingId, fav.savedAt);
     final card = Material(
       color: TGColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TGRadius.card), side: const BorderSide(color: TGColors.border)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TGRadius.card), side: BorderSide(color: TGColors.border)),
       child: InkWell(
         key: Key('fav-card-${fav.listingId}'),
         borderRadius: BorderRadius.circular(TGRadius.card),
@@ -167,8 +167,8 @@ class _FavCard extends StatelessWidget {
                     width: 72,
                     height: 56,
                     child: fav.imageUrl.isEmpty
-                        ? const ColoredBox(color: TGColors.border)
-                        : WatermarkedImage(url: fav.imageUrl, surface: TGImageSurface.favorites, fallback: (_) => const ColoredBox(color: TGColors.border)),
+                        ? ColoredBox(color: TGColors.border)
+                        : WatermarkedImage(url: fav.imageUrl, surface: TGImageSurface.favorites, fallback: (_) => ColoredBox(color: TGColors.border)),
                   ),
                 ),
               ),

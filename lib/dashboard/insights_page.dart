@@ -263,7 +263,7 @@ class _InsightsTable extends StatelessWidget {
               final enough = stats.hasEnoughData(l.key, days: days, liveSince: l.liveSince);
               return TableRow(
                 key: ValueKey('insights-row-${l.id}'),
-                decoration: const BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
+                decoration: BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -321,7 +321,7 @@ class _PhoneRow extends StatelessWidget {
       child: TGFocusRing(
         child: Material(
           color: TGColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TGRadius.card), side: const BorderSide(color: TGColors.border)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TGRadius.card), side: BorderSide(color: TGColors.border)),
           child: InkWell(
             key: Key('insights-open-${listing.id}'),
             borderRadius: BorderRadius.circular(TGRadius.card),

@@ -84,7 +84,7 @@ Future<void> showDealDecide(BuildContext context, TGAdminDealCase c, {TGObjectio
                     children: [
                       Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                       const SizedBox(height: 6),
-                      Text(ctx.t('ui_what_happens'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: TGColors.textSecondary)),
+                      Text(ctx.t('ui_what_happens'), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: TGColors.textSecondary)),
                       for (final r in rows) Padding(padding: const EdgeInsets.only(top: 2), child: Text('· $r', style: const TextStyle(fontSize: 12, height: 1.35))),
                       if (extra != null) extra,
                     ],

@@ -606,7 +606,7 @@ class _CompareDialogState extends State<_CompareDialog> {
     );
   }
 
-  Widget _img(String src) => Image.asset(src, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.surfaceHover));
+  Widget _img(String src) => Image.asset(src, fit: BoxFit.cover, errorBuilder: (_, __, ___) => ColoredBox(color: TGColors.surfaceHover));
 }
 
 /// pHash match computed on the ORIGINALS (staff only), never on watermarked variants.

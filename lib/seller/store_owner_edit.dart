@@ -196,7 +196,7 @@ class _StoreCompletenessCardState extends State<StoreCompletenessCard> {
           for (final tip in tips)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: Text('· $tip', style: const TextStyle(color: TGColors.textSecondary, fontSize: 13)),
+              child: Text('· $tip', style: TextStyle(color: TGColors.textSecondary, fontSize: 13)),
             ),
         ],
       ),
@@ -410,7 +410,7 @@ class _MobileSectionList extends StatelessWidget {
             ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.lock_outline, color: TGColors.textSecondary),
+            leading: Icon(Icons.lock_outline, color: TGColors.textSecondary),
             title: Text(context.t('ui_legal_locked'), style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text('${live.legalName ?? '—'} · NIP ${live.nip ?? '—'}'),
           ),
@@ -641,7 +641,7 @@ class _SectionEditorState extends State<_SectionEditor> {
       case TGStoreEditSection.projects:
         return ListView(
           children: [
-            Text(context.t('ui_projects_limit'), style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+            Text(context.t('ui_projects_limit'), style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
             const SizedBox(height: 8),
             for (var i = 0; i < _draft.projects.length; i++)
               ListTile(
@@ -706,7 +706,7 @@ class _SectionEditorState extends State<_SectionEditor> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(hint, style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+        Text(hint, style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,

@@ -14,20 +14,108 @@ const LinearGradient tgBannerScrim = LinearGradient(
   stops: [0, 0.45, 0.85],
 );
 
+/// Surfaces and copy colours for one brightness. Brand accents stay on [TGColors].
+@immutable
+class TGPalette {
+  const TGPalette({
+    required this.background,
+    required this.surface,
+    required this.surfaceHover,
+    required this.border,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.adminBar,
+    required this.info,
+  });
+
+  final Color background;
+  final Color surface;
+  final Color surfaceHover;
+  final Color border;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color adminBar;
+  final Color info;
+
+  /// Existing Twoja Gastromania dark identity — do not restyle.
+  static const dark = TGPalette(
+    background: Color(0xFF252525),
+    surface: Color(0xFF1F1F1F),
+    surfaceHover: Color(0xFF2A2A2A),
+    border: Color(0xFF3A3A3A),
+    textPrimary: Color(0xFFF5F5F5),
+    textSecondary: Color(0xFFB8BEC2),
+    adminBar: Color(0xFF181818),
+    info: Color(0xFFFFFFFF),
+  );
+
+  /// Light companion: page #F8F9FA, cards #FFFFFF, copy #101828.
+  static const light = TGPalette(
+    background: Color(0xFFF8F9FA),
+    surface: Color(0xFFFFFFFF),
+    surfaceHover: Color(0xFFEEF0F3),
+    border: Color(0xFFE4E7EC),
+    textPrimary: Color(0xFF101828),
+    textSecondary: Color(0xFF475467),
+    adminBar: Color(0xFFEAECF0),
+    info: Color(0xFF101828),
+  );
+}
+
+/// In-memory theme preference. Persisted via [FlutterFlowTheme.saveThemeMode]
+/// / SharedPreferences; [reset] keeps widget tests on the dark palette.
+class TGThemeController extends ChangeNotifier {
+  TGThemeController._();
+  static final TGThemeController instance = TGThemeController._();
+
+  ThemeMode _mode = ThemeMode.dark;
+  Brightness _platform = Brightness.dark;
+
+  ThemeMode get mode => _mode;
+  Brightness get platformBrightness => _platform;
+  Brightness get brightness => switch (_mode) {
+        ThemeMode.light => Brightness.light,
+        ThemeMode.dark => Brightness.dark,
+        ThemeMode.system => _platform,
+      };
+  bool get isDark => brightness == Brightness.dark;
+  TGPalette get palette => isDark ? TGPalette.dark : TGPalette.light;
+
+  void bindPlatformBrightness(Brightness value) {
+    if (_platform == value) return;
+    _platform = value;
+    if (_mode == ThemeMode.system) notifyListeners();
+  }
+
+  /// Tests and [pumpTgApp] call this so leftover light mode cannot leak.
+  void reset({ThemeMode mode = ThemeMode.dark, Brightness platform = Brightness.dark}) {
+    _mode = mode;
+    _platform = platform;
+  }
+
+  void setMode(ThemeMode mode) {
+    if (_mode == mode) return;
+    _mode = mode;
+    notifyListeners();
+  }
+}
+
 abstract final class TGColors {
+  static TGPalette get _p => TGThemeController.instance.palette;
+
   /// Primary page background.
-  static const Color background = Color(0xFF252525);
+  static Color get background => _p.background;
 
   /// Card / sheet / footer surface.
-  static const Color surface = Color(0xFF1F1F1F);
+  static Color get surface => _p.surface;
 
   /// Hover state and input fill.
-  static const Color surfaceHover = Color(0xFF2A2A2A);
+  static Color get surfaceHover => _p.surfaceHover;
 
   /// Hairline borders and dividers.
-  static const Color border = Color(0xFF3A3A3A);
+  static Color get border => _p.border;
 
-  /// Primary call-to-action (turquoise).
+  /// Primary call-to-action (turquoise). Same in light and dark.
   static const Color cta = Color(0xFF26E6B3);
 
   /// Text/icon colour that sits on top of [cta].
@@ -42,12 +130,12 @@ abstract final class TGColors {
   /// Rating stars.
   static const Color rating = Color(0xFFFFC107);
 
-  static const Color textPrimary = Color(0xFFF5F5F5);
-  static const Color textSecondary = Color(0xFFB8BEC2);
+  static Color get textPrimary => _p.textPrimary;
+  static Color get textSecondary => _p.textSecondary;
   static const Color error = Color(0xFFFF5252);
 
   /// Internal moderation chrome.
-  static const Color adminBar = Color(0xFF181818);
+  static Color get adminBar => _p.adminBar;
   static const Color slaAmber = Color(0xFFFFB300);
 }
 

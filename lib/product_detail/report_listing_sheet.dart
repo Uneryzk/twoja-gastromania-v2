@@ -657,7 +657,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
           ] else
             Text(context.t('ui_email_verified'), style: const TextStyle(color: TGColors.cta, fontWeight: FontWeight.w700)),
         ] else
-          Text(context.t('ui_well_email', {'email': _email.text}), style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+          Text(context.t('ui_well_email', {'email': _email.text}), style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
         CheckboxListTile(
           key: const Key('report-confirm'),
           value: _confirm,
@@ -665,7 +665,7 @@ class _ReportListingFlowState extends State<ReportListingFlow> {
           contentPadding: EdgeInsets.zero,
           title: Text(context.t('ui_report_confirm')),
         ),
-        Text(context.t('ui_seller_wont_see'), style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+        Text(context.t('ui_seller_wont_see'), style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
       ],
     );
   }
@@ -691,7 +691,7 @@ class _TargetSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                Text('No. ${r.listingNo}', style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+                Text('No. ${r.listingNo}', style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
               ],
             ),
           ),
@@ -708,10 +708,10 @@ class _TargetSummary extends StatelessWidget {
               width: 56,
               height: 42,
               child: product.imageUrl.isEmpty
-                  ? const ColoredBox(color: TGColors.border)
+                  ? ColoredBox(color: TGColors.border)
                   : TGSmartImage(
                       url: product.imageUrl,
-                      fallback: (_) => const ColoredBox(color: TGColors.border),
+                      fallback: (_) => ColoredBox(color: TGColors.border),
                     ),
             ),
           ),
@@ -743,7 +743,7 @@ class _TargetSummary extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(subject.request!.requestNo, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-          Text(subject.request!.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+          Text(subject.request!.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
         ],
       );
     }
@@ -753,7 +753,7 @@ class _TargetSummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(review.authorName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-        Text(review.text, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+        Text(review.text, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
       ],
     );
   }
@@ -820,7 +820,7 @@ class _StepReasons extends StatelessWidget {
                               ),
                               Text(
                                 context.t('ui_rr_${reason.name}_hint'),
-                                style: const TextStyle(color: TGColors.textSecondary, fontSize: 12),
+                                style: TextStyle(color: TGColors.textSecondary, fontSize: 12),
                               ),
                             ],
                           ),
@@ -876,7 +876,7 @@ class _Success extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(context.t('ui_report_email_followup'), textAlign: TextAlign.center, style: const TextStyle(color: TGColors.textSecondary)),
+          Text(context.t('ui_report_email_followup'), textAlign: TextAlign.center, style: TextStyle(color: TGColors.textSecondary)),
         ],
       ),
     );

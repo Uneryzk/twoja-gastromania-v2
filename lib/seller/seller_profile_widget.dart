@@ -1254,7 +1254,7 @@ class _AdminBar extends StatelessWidget {
           key: const Key('seller-admin-bar'),
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: TGColors.border))),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: TGColors.border))),
           child: Row(
             children: [
               Expanded(

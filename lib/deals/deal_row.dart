@@ -85,10 +85,10 @@ class DealRow extends StatelessWidget {
         width: phone ? double.infinity : 72,
         height: phone ? 120 : 56,
         child: deal.listingSnapshot.imageUrl.isEmpty
-            ? const ColoredBox(color: TGColors.border)
+            ? ColoredBox(color: TGColors.border)
             : TGSmartImage(
                 url: deal.listingSnapshot.imageUrl,
-                fallback: (_) => const ColoredBox(color: TGColors.border),
+                fallback: (_) => ColoredBox(color: TGColors.border),
               ),
       ),
     );

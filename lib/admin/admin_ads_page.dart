@@ -315,7 +315,7 @@ class _SeatGrid extends StatelessWidget {
         };
     return Material(
       color: TGColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: TGColors.border)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: TGColors.border)),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -328,7 +328,7 @@ class _SeatGrid extends StatelessWidget {
               }),
               excludeSemantics: true,
               child: Container(
-                decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: TGColors.border, width: 0.5))),
+                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: TGColors.border, width: 0.5))),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Row(
                   children: [

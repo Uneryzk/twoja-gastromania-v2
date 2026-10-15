@@ -3,41 +3,55 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 
 /// Material [ThemeData] for the Twoja Gastromania dark identity.
-///
-/// `FlutterFlowTheme` already drives our custom widgets; this makes the stock
-/// Material widgets (text fields, snackbars, sheets, dialogs, switches, ...)
-/// follow the same design system without per-widget overrides.
-ThemeData buildTGDarkTheme() {
-  const scheme = ColorScheme.dark(
-    primary: TGColors.cta,
-    onPrimary: TGColors.onCta,
-    secondary: TGColors.accent,
-    onSecondary: Colors.white,
-    surface: TGColors.surface,
-    onSurface: TGColors.textPrimary,
-    error: TGColors.error,
-    onError: Colors.white,
-    outline: TGColors.border,
-  );
+ThemeData buildTGDarkTheme() => buildTGTheme(TGPalette.dark, Brightness.dark);
+
+/// Light companion: page #F8F9FA, cards #FFFFFF, copy #101828. Brand accents unchanged.
+ThemeData buildTGLightTheme() => buildTGTheme(TGPalette.light, Brightness.light);
+
+/// Shared Material mapping so stock widgets follow the TG palette.
+ThemeData buildTGTheme(TGPalette p, Brightness brightness) {
+  final scheme = brightness == Brightness.dark
+      ? ColorScheme.dark(
+          primary: TGColors.cta,
+          onPrimary: TGColors.onCta,
+          secondary: TGColors.accent,
+          onSecondary: Colors.white,
+          surface: p.surface,
+          onSurface: p.textPrimary,
+          error: TGColors.error,
+          onError: Colors.white,
+          outline: p.border,
+        )
+      : ColorScheme.light(
+          primary: TGColors.cta,
+          onPrimary: TGColors.onCta,
+          secondary: TGColors.accent,
+          onSecondary: Colors.white,
+          surface: p.surface,
+          onSurface: p.textPrimary,
+          error: TGColors.error,
+          onError: Colors.white,
+          outline: p.border,
+        );
 
   final base = ThemeData(
-    brightness: Brightness.dark,
+    brightness: brightness,
     useMaterial3: false,
     colorScheme: scheme,
     primaryColor: TGColors.cta,
-    scaffoldBackgroundColor: TGColors.background,
-    canvasColor: TGColors.surface,
-    cardColor: TGColors.surface,
-    dividerColor: TGColors.border,
-    hoverColor: TGColors.surfaceHover,
+    scaffoldBackgroundColor: p.background,
+    canvasColor: p.surface,
+    cardColor: p.surface,
+    dividerColor: p.border,
+    hoverColor: p.surfaceHover,
     focusColor: TGColors.cta.withValues(alpha: 0.18),
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,
   );
 
   final rawTextTheme = GoogleFonts.interTextTheme(base.textTheme).apply(
-    bodyColor: TGColors.textPrimary,
-    displayColor: TGColors.textPrimary,
+    bodyColor: p.textPrimary,
+    displayColor: p.textPrimary,
   );
   TextStyle heading(TextStyle? style, double letterSpacing) =>
       (style ?? const TextStyle()).copyWith(
@@ -67,11 +81,11 @@ ThemeData buildTGDarkTheme() {
     primaryTextTheme: textTheme,
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: TGColors.surfaceHover,
+      fillColor: p.surfaceHover,
       isDense: true,
-      hintStyle: const TextStyle(color: TGColors.textSecondary),
-      border: inputBorder(TGColors.border),
-      enabledBorder: inputBorder(TGColors.border),
+      hintStyle: TextStyle(color: p.textSecondary),
+      border: inputBorder(p.border),
+      enabledBorder: inputBorder(p.border),
       focusedBorder: inputBorder(TGColors.cta, 2),
       errorBorder: inputBorder(TGColors.error),
       focusedErrorBorder: inputBorder(TGColors.error, 1.6),
@@ -83,58 +97,58 @@ ThemeData buildTGDarkTheme() {
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: TGColors.surfaceHover,
+      backgroundColor: p.surfaceHover,
       contentTextStyle: textTheme.bodyMedium?.copyWith(
-        color: TGColors.textPrimary,
+        color: p.textPrimary,
         fontWeight: FontWeight.w600,
       ),
       actionTextColor: TGColors.cta,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(TGRadius.input),
-        side: const BorderSide(color: TGColors.border),
+        side: BorderSide(color: p.border),
       ),
     ),
-    bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: TGColors.surface,
-      modalBackgroundColor: TGColors.surface,
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: p.surface,
+      modalBackgroundColor: p.surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(TGRadius.modal)),
       ),
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: TGColors.surface,
+      backgroundColor: p.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(TGRadius.modal),
-        side: const BorderSide(color: TGColors.border),
+        side: BorderSide(color: p.border),
       ),
     ),
     popupMenuTheme: PopupMenuThemeData(
-      color: TGColors.surface,
+      color: p.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(TGRadius.input),
-        side: const BorderSide(color: TGColors.border),
+        side: BorderSide(color: p.border),
       ),
     ),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
-        color: TGColors.surfaceHover,
+        color: p.surfaceHover,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: TGColors.border),
+        border: Border.all(color: p.border),
       ),
-      textStyle: textTheme.bodySmall?.copyWith(color: TGColors.textPrimary),
+      textStyle: textTheme.bodySmall?.copyWith(color: p.textPrimary),
       waitDuration: const Duration(milliseconds: 350),
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.selected) ? TGColors.verified : TGColors.textSecondary,
+        (s) => s.contains(WidgetState.selected) ? TGColors.verified : p.textSecondary,
       ),
       trackColor: WidgetStateProperty.resolveWith(
         (s) => s.contains(WidgetState.selected)
             ? TGColors.verified.withValues(alpha: 0.38)
-            : TGColors.border,
+            : p.border,
       ),
     ),
     checkboxTheme: CheckboxThemeData(
@@ -142,26 +156,26 @@ ThemeData buildTGDarkTheme() {
         (s) => s.contains(WidgetState.selected) ? TGColors.cta : Colors.transparent,
       ),
       checkColor: const WidgetStatePropertyAll(TGColors.onCta),
-      side: const BorderSide(color: TGColors.textSecondary, width: 1.5),
+      side: BorderSide(color: p.textSecondary, width: 1.5),
     ),
     radioTheme: RadioThemeData(
       fillColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.selected) ? TGColors.cta : TGColors.textSecondary,
+        (s) => s.contains(WidgetState.selected) ? TGColors.cta : p.textSecondary,
       ),
     ),
     sliderTheme: SliderThemeData(
       activeTrackColor: TGColors.cta,
-      inactiveTrackColor: TGColors.border,
+      inactiveTrackColor: p.border,
       thumbColor: TGColors.cta,
       overlayColor: TGColors.cta.withValues(alpha: 0.16),
       rangeThumbShape: const RoundRangeSliderThumbShape(enabledThumbRadius: 9),
     ),
     scrollbarTheme: ScrollbarThemeData(
-      thumbColor: WidgetStatePropertyAll(TGColors.border.withValues(alpha: 0.9)),
+      thumbColor: WidgetStatePropertyAll(p.border.withValues(alpha: 0.9)),
       radius: const Radius.circular(8),
       thickness: const WidgetStatePropertyAll(6),
     ),
-    dividerTheme: const DividerThemeData(color: TGColors.border, thickness: 1, space: 1),
+    dividerTheme: DividerThemeData(color: p.border, thickness: 1, space: 1),
     progressIndicatorTheme: const ProgressIndicatorThemeData(color: TGColors.cta),
   );
 }

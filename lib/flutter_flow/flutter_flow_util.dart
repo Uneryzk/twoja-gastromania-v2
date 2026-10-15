@@ -12,6 +12,8 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
+import 'package:twoja_gastromania/flutter_flow/flutter_flow_theme.dart';
+import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 
 import 'lat_lng.dart';
 
@@ -276,8 +278,11 @@ extension IterableExt<T> on Iterable<T> {
 void setAppLanguage(BuildContext context, String language) =>
     MyApp.of(context).setLocale(language);
 
-void setDarkModeSetting(BuildContext context, ThemeMode themeMode) =>
-    MyApp.of(context).setThemeMode(themeMode);
+void setDarkModeSetting(BuildContext context, ThemeMode themeMode) {
+  FlutterFlowTheme.saveThemeMode(themeMode);
+  TGThemeController.instance.setMode(themeMode);
+  MyApp.trySetThemeMode(context, themeMode);
+}
 
 void showSnackbar(
   BuildContext context,

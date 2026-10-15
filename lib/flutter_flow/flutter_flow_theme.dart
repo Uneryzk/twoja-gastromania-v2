@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:twoja_gastromania/tg_core/tg_tokens.dart';
 
 const kThemeModeKey = '__theme_mode__';
+/// String preference: `light` | `dark` | `system`. Takes precedence over [kThemeModeKey].
+const kThemePreferenceKey = '__tg_theme_preference__';
 
 SharedPreferences? _prefs;
 
@@ -21,17 +23,34 @@ abstract class FlutterFlowTheme {
   }
 
   static ThemeMode get themeMode {
+    switch (_prefs?.getString(kThemePreferenceKey)) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+        return ThemeMode.system;
+    }
     final darkMode = _prefs?.getBool(kThemeModeKey);
-    return darkMode == null
-        ? ThemeMode.system
-        : darkMode
-            ? ThemeMode.dark
-            : ThemeMode.light;
+    if (darkMode == true) return ThemeMode.dark;
+    if (darkMode == false) return ThemeMode.light;
+    // First launch: keep the existing dark marketplace (not OS light).
+    return ThemeMode.dark;
   }
 
-  static void saveThemeMode(ThemeMode mode) => mode == ThemeMode.system
-      ? _prefs?.remove(kThemeModeKey)
-      : _prefs?.setBool(kThemeModeKey, mode == ThemeMode.dark);
+  static void saveThemeMode(ThemeMode mode) {
+    final name = switch (mode) {
+      ThemeMode.light => 'light',
+      ThemeMode.dark => 'dark',
+      ThemeMode.system => 'system',
+    };
+    _prefs?.setString(kThemePreferenceKey, name);
+    if (mode == ThemeMode.system) {
+      _prefs?.remove(kThemeModeKey);
+    } else {
+      _prefs?.setBool(kThemeModeKey, mode == ThemeMode.dark);
+    }
+  }
 
   static FlutterFlowTheme of(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark
@@ -154,24 +173,25 @@ class LightModeTheme extends FlutterFlowTheme {
   @Deprecated('Use tertiary instead')
   Color get tertiaryColor => tertiary;
 
-  late Color primary = const Color(0xFF4B39EF);
-  late Color secondary = const Color(0xFF39D2C0);
-  late Color tertiary = const Color(0xFFEE8B60);
-  late Color alternate = const Color(0xFFE0E3E7);
-  late Color primaryText = const Color(0xFF14181B);
-  late Color secondaryText = const Color(0xFF57636C);
-  late Color primaryBackground = const Color(0xFFF1F4F8);
-  late Color secondaryBackground = const Color(0xFFFFFFFF);
-  late Color accent1 = const Color(0x4C4B39EF);
-  late Color accent2 = const Color(0x4D39D2C0);
-  late Color accent3 = const Color(0x4DEE8B60);
-  late Color accent4 = const Color(0xCCFFFFFF);
-  late Color success = const Color(0xFF249689);
-  late Color warning = const Color(0xFFF9CF58);
-  late Color error = const Color(0xFFFF5963);
-  late Color info = const Color(0xFFFFFFFF);
+  // Light companion to the TG dark identity. Brand accents stay turquoise / pink.
+  late Color primary = TGColors.cta;
+  late Color secondary = TGColors.accent;
+  late Color tertiary = TGPalette.light.border;
+  late Color alternate = TGPalette.light.surfaceHover;
+  late Color primaryText = TGPalette.light.textPrimary;
+  late Color secondaryText = TGPalette.light.textSecondary;
+  late Color primaryBackground = TGPalette.light.background; // #F8F9FA
+  late Color secondaryBackground = TGPalette.light.surface; // #FFFFFF
+  late Color accent1 = const Color(0x3326E6B3);
+  late Color accent2 = const Color(0x33F73887);
+  late Color accent3 = const Color(0x3300E676);
+  late Color accent4 = const Color(0xB3FFFFFF);
+  late Color success = TGColors.verified;
+  late Color warning = TGColors.rating;
+  late Color error = TGColors.error;
+  late Color info = TGPalette.light.info;
 
-  late Color primaryBtnText = const Color(0xFFFFFFFF);
+  late Color primaryBtnText = TGColors.onCta;
 }
 
 abstract class Typography {
@@ -352,21 +372,17 @@ class DarkModeTheme extends FlutterFlowTheme {
   Color get tertiaryColor => tertiary;
 
   // Twoja Gastromania dark design system.
-  // Values come from [TGColors] so the palette has a single source of truth.
-  // Backgrounds
-  late Color primaryBackground = TGColors.background; // #252525
-  late Color secondaryBackground = TGColors.surface; // #1F1F1F (cards)
-  // Surfaces / inputs / hover
-  late Color alternate = TGColors.surfaceHover; // #2A2A2A
+  // Always the dark snapshot so constructing this class does not follow light mode.
+  late Color primaryBackground = TGPalette.dark.background; // #252525
+  late Color secondaryBackground = TGPalette.dark.surface; // #1F1F1F (cards)
+  late Color alternate = TGPalette.dark.surfaceHover; // #2A2A2A
 
-  // Brand
   late Color primary = TGColors.cta; // #26E6B3 CTA turquoise
   late Color secondary = TGColors.accent; // #F73887 accent / badge pink
-  late Color tertiary = TGColors.border; // #3A3A3A borders
+  late Color tertiary = TGPalette.dark.border; // #3A3A3A borders
 
-  // Text
-  late Color primaryText = TGColors.textPrimary;
-  late Color secondaryText = TGColors.textSecondary;
+  late Color primaryText = TGPalette.dark.textPrimary;
+  late Color secondaryText = TGPalette.dark.textSecondary;
 
   // Accents (with opacity)
   late Color accent1 = const Color(0x3326E6B3);

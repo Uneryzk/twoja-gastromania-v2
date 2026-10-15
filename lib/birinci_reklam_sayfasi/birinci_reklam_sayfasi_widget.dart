@@ -121,7 +121,7 @@ class _BirinciReklamSayfasiWidgetState extends State<BirinciReklamSayfasiWidget>
                           TGListingImages.heroSlide(0),
                           fit: BoxFit.cover,
                           gaplessPlayback: true,
-                          errorBuilder: (_, __, ___) => const ColoredBox(color: TGColors.surfaceHover),
+                          errorBuilder: (_, __, ___) => ColoredBox(color: TGColors.surfaceHover),
                         ),
                       ),
                     ),

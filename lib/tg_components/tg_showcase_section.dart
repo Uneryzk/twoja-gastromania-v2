@@ -363,8 +363,8 @@ class TGShowcaseSinglePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(width: leftW, child: preview),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: VerticalDivider(width: 1, thickness: 1, color: TGColors.border),
             ),
             Expanded(child: paid),

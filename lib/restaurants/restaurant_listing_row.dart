@@ -46,7 +46,7 @@ class RestaurantListingRow extends StatelessWidget {
           color: TGColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(TGRadius.card),
-            side: const BorderSide(color: TGColors.border),
+            side: BorderSide(color: TGColors.border),
           ),
           child: InkWell(
             onTap: () => context.go(r.detailPath),

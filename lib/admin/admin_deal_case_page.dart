@@ -194,7 +194,7 @@ class _TimelineState extends State<_Timeline> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(width: 88, child: Text(fmt.format(events[i].at), style: const TextStyle(fontSize: 11, color: TGColors.textSecondary))),
+                    SizedBox(width: 88, child: Text(fmt.format(events[i].at), style: TextStyle(fontSize: 11, color: TGColors.textSecondary))),
                     Expanded(child: Text(_timelineLine(context, events[i]), style: const TextStyle(fontSize: 12, height: 1.35))),
                   ],
                 ),
@@ -251,7 +251,7 @@ class _EvidenceViewer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (kase.lastViewed != null) Text(kase.lastViewed!, style: const TextStyle(fontSize: 11, color: TGColors.textSecondary)),
+          if (kase.lastViewed != null) Text(kase.lastViewed!, style: TextStyle(fontSize: 11, color: TGColors.textSecondary)),
           if (kase.evidenceDeleteAt != null) Text(context.t('ui_deleted_on', {'d': fmt.format(kase.evidenceDeleteAt!)}), style: const TextStyle(fontSize: 11, color: TGColors.error)),
           if (videos.isNotEmpty) ...[
             Text(context.t('ui_expected_code', {'code': kase.captureCode ?? videos.first.captureCode ?? '4827'}), style: const TextStyle(fontWeight: FontWeight.w900)),
@@ -314,13 +314,13 @@ class _EvidenceViewer extends StatelessWidget {
                   builder: (ctx) => AdminDialogScaffold(
                     title: ctx.t('ui_score_documents'),
                     actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.t('ui_close')))],
-                    child: Image.asset(kase.imageUrl, height: 240, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(height: 240, child: ColoredBox(color: TGColors.surfaceHover))),
+                    child: Image.asset(kase.imageUrl, height: 240, fit: BoxFit.cover, errorBuilder: (_, __, ___) => SizedBox(height: 240, child: ColoredBox(color: TGColors.surfaceHover))),
                   ),
                 );
               },
             ),
           if (photos.isNotEmpty) ...[
-            Text(context.t('ui_supporting_only'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: TGColors.textSecondary)),
+            Text(context.t('ui_supporting_only'), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: TGColors.textSecondary)),
             const SizedBox(height: 6),
             SizedBox(
               height: 88,
@@ -334,7 +334,7 @@ class _EvidenceViewer extends StatelessWidget {
                         onTap: () => svc.logView(kase, actorName: 'Anna M.', kind: 'photo'),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(p.fileUrl, width: 120, height: 88, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 120, height: 88, child: ColoredBox(color: TGColors.surfaceHover))),
+                          child: Image.asset(p.fileUrl, width: 120, height: 88, fit: BoxFit.cover, errorBuilder: (_, __, ___) => SizedBox(width: 120, height: 88, child: ColoredBox(color: TGColors.surfaceHover))),
                         ),
                       ),
                     ),
@@ -342,7 +342,7 @@ class _EvidenceViewer extends StatelessWidget {
               ),
             ),
           ],
-          if (kase.evidence.isEmpty) Text(context.t('ui_no_evidence'), style: const TextStyle(color: TGColors.textSecondary)),
+          if (kase.evidence.isEmpty) Text(context.t('ui_no_evidence'), style: TextStyle(color: TGColors.textSecondary)),
         ],
       ),
     );
@@ -544,7 +544,7 @@ class _ThreadsState extends State<_Threads> {
           ),
           if (_privateOpen) ...[
             const SizedBox(height: 8),
-            Text(context.t('ui_private_readonly'), style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+            Text(context.t('ui_private_readonly'), style: TextStyle(fontSize: 12, color: TGColors.textSecondary)),
           ],
         ],
       ),
@@ -574,11 +574,11 @@ class _RightColumn extends StatelessWidget {
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(kase.imageUrl, height: 120, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(height: 120, child: ColoredBox(color: TGColors.surfaceHover))),
+                child: Image.asset(kase.imageUrl, height: 120, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => SizedBox(height: 120, child: ColoredBox(color: TGColors.surfaceHover))),
               ),
               const SizedBox(height: 8),
               Text(kase.listingTitle, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-              Text('No. ${kase.listingNo}', style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+              Text('No. ${kase.listingNo}', style: TextStyle(fontSize: 12, color: TGColors.textSecondary)),
               if (kase.snapshotStatus != null) Text(kase.snapshotStatus!, style: const TextStyle(fontSize: 12)),
             ],
           ),
@@ -610,7 +610,7 @@ class _RightColumn extends StatelessWidget {
                     ],
                   ),
                 ),
-              if (kase.flags.isEmpty) const Text('—', style: TextStyle(color: TGColors.textSecondary)),
+              if (kase.flags.isEmpty) Text('—', style: TextStyle(color: TGColors.textSecondary)),
             ],
           ),
         ),

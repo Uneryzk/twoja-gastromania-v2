@@ -255,7 +255,7 @@ class NotificationPrefsMatrix extends StatelessWidget {
             ]),
             for (final c in TGNotifCategory.values)
               TableRow(
-                decoration: const BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
+                decoration: BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),

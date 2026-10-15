@@ -453,7 +453,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
         top: false,
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: TGColors.surface,
             border: Border(top: BorderSide(color: TGColors.border)),
           ),
@@ -651,7 +651,7 @@ class _AdvertisingPageState extends State<AdvertisingPage> {
     final fmt = DateFormat('d MMM', locale);
     return Material(
       color: TGColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: TGColors.border)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: TGColors.border)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

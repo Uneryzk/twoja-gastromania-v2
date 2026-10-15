@@ -1028,7 +1028,7 @@ class _AttachmentThumb extends StatelessWidget {
           width: size,
           height: size * 0.75,
           child: bytes == null
-              ? const ColoredBox(color: TGColors.border, child: Icon(Icons.photo_outlined))
+              ? ColoredBox(color: TGColors.border, child: Icon(Icons.photo_outlined))
               : Image.memory(bytes, fit: BoxFit.cover, excludeFromSemantics: true),
         ),
       ),
@@ -1094,8 +1094,8 @@ class _ContextPanel extends StatelessWidget {
             child: AspectRatio(
               aspectRatio: 16 / 10,
               child: thread.listingImageUrl.isEmpty
-                  ? const ColoredBox(color: TGColors.border)
-                  : WatermarkedImage(url: thread.listingImageUrl, surface: TGImageSurface.listingCard, fallback: (_) => const ColoredBox(color: TGColors.border)),
+                  ? ColoredBox(color: TGColors.border)
+                  : WatermarkedImage(url: thread.listingImageUrl, surface: TGImageSurface.listingCard, fallback: (_) => ColoredBox(color: TGColors.border)),
             ),
           ),
           const SizedBox(height: 8),

@@ -678,6 +678,7 @@ void main() {
   // =========================================================================
   group('5. Design system', () {
     test('palette matches the spec', () {
+      TGThemeController.instance.reset();
       expect(TGColors.background, const Color(0xFF252525));
       expect(TGColors.surface, const Color(0xFF1F1F1F));
       expect(TGColors.surfaceHover, const Color(0xFF2A2A2A));
@@ -687,6 +688,20 @@ void main() {
       expect(TGColors.accent, const Color(0xFFF73887));
       expect(TGColors.verified, const Color(0xFF00E676));
       expect(TGColors.rating, const Color(0xFFFFC107));
+    });
+
+    test('light palette: page #F8F9FA, cards #FFFFFF, copy #101828', () {
+      TGThemeController.instance.reset(mode: ThemeMode.light);
+      expect(TGColors.background, const Color(0xFFF8F9FA));
+      expect(TGColors.surface, const Color(0xFFFFFFFF));
+      expect(TGColors.textPrimary, const Color(0xFF101828));
+      expect(TGColors.cta, const Color(0xFF26E6B3));
+      final light = LightModeTheme();
+      expect(light.primaryBackground, const Color(0xFFF8F9FA));
+      expect(light.secondaryBackground, const Color(0xFFFFFFFF));
+      expect(light.primaryText, const Color(0xFF101828));
+      expect(light.primary, TGColors.cta);
+      TGThemeController.instance.reset();
     });
 
     test('radii: inputs 12px, cards/modals 16px', () {
@@ -712,7 +727,8 @@ void main() {
       expect(t.warning, TGColors.rating);
     });
 
-    test('stock Material widgets follow the design system', () {
+    testWidgets('stock Material widgets follow the design system', (tester) async {
+      await tester.runAsync(loadRealisticFonts);
       final theme = buildTGDarkTheme();
       expect(theme.scaffoldBackgroundColor, TGColors.background);
       expect(theme.colorScheme.primary, TGColors.cta);

@@ -80,10 +80,10 @@ class ListingRow extends StatelessWidget {
             width: 96,
             height: 72,
             child: product.imageUrl.isEmpty
-                ? const ColoredBox(color: TGColors.border)
+                ? ColoredBox(color: TGColors.border)
                 : TGSmartImage(
                     url: product.imageUrl,
-                    fallback: (_) => const ColoredBox(color: TGColors.border),
+                    fallback: (_) => ColoredBox(color: TGColors.border),
                   ),
           ),
         ),
@@ -248,7 +248,7 @@ class ListingRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Material(
           color: TGColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TGRadius.card), side: const BorderSide(color: TGColors.border)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(TGRadius.card), side: BorderSide(color: TGColors.border)),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -264,10 +264,10 @@ class ListingRow extends StatelessWidget {
                       child: AspectRatio(
                         aspectRatio: 16 / 10,
                         child: product.imageUrl.isEmpty
-                            ? const ColoredBox(color: TGColors.border)
+                            ? ColoredBox(color: TGColors.border)
                             : TGSmartImage(
                                 url: product.imageUrl,
-                                fallback: (_) => const ColoredBox(color: TGColors.border),
+                                fallback: (_) => ColoredBox(color: TGColors.border),
                               ),
                       ),
                     ),

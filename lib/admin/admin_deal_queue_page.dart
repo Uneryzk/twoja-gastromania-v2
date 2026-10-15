@@ -283,7 +283,7 @@ class _DealQueueCards extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('${row.listingNo} · ${row.seller.name} → ${row.buyer.name}', style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+                  Text('${row.listingNo} · ${row.seller.name} → ${row.buyer.name}', style: TextStyle(fontSize: 12, color: TGColors.textSecondary)),
                   const SizedBox(height: 6),
                   Wrap(spacing: 4, runSpacing: 4, children: [
                     ...dealSlaChips(context, row),

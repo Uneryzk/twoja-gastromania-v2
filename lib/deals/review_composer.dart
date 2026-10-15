@@ -426,10 +426,10 @@ class _Mini extends StatelessWidget {
             width: 56,
             height: 56,
             child: hit.imageUrl.isEmpty
-                ? const ColoredBox(color: TGColors.border)
+                ? ColoredBox(color: TGColors.border)
                 : TGSmartImage(
                     url: hit.imageUrl,
-                    fallback: (_) => const ColoredBox(color: TGColors.border),
+                    fallback: (_) => ColoredBox(color: TGColors.border),
                   ),
           ),
         ),

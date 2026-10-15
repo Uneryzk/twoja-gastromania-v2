@@ -125,6 +125,58 @@ class _Section extends StatelessWidget {
   }
 }
 
+class _ThemePreferenceSection extends StatelessWidget {
+  const _ThemePreferenceSection();
+
+  static const _options = <(ThemeMode, String, String)>[
+    (ThemeMode.light, 'light', 'set_theme_light'),
+    (ThemeMode.dark, 'dark', 'set_theme_dark'),
+    (ThemeMode.system, 'system', 'set_theme_system'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: TGThemeController.instance,
+      builder: (context, _) {
+        final current = TGThemeController.instance.mode;
+        return _Section(
+          key: const Key('set-theme-section'),
+          title: context.t('set_theme_title'),
+          subtitle: context.t('set_theme_sub'),
+          child: Semantics(
+            container: true,
+            label: context.t('set_theme_title'),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final opt in _options)
+                  Semantics(
+                    button: true,
+                    selected: current == opt.$1,
+                    label: context.t(opt.$3),
+                    child: ChoiceChip(
+                      key: Key('set-theme-${opt.$2}'),
+                      label: Text(context.t(opt.$3)),
+                      selected: current == opt.$1,
+                      onSelected: (_) {
+                        FlutterFlowTheme.saveThemeMode(opt.$1);
+                        TGThemeController.instance.setMode(opt.$1);
+                        MyApp.trySetThemeMode(context, opt.$1);
+                        showTGToast(context, context.t('set_saved'));
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _Err extends StatelessWidget {
   const _Err(this.keyName);
   final String keyName;
@@ -177,6 +229,7 @@ class _ProfileTabState extends State<_ProfileTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const _ThemePreferenceSection(),
         _Section(
           title: context.t('set_profile_title'),
           subtitle: context.t('set_profile_sub'),

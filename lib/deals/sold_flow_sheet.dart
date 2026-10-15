@@ -380,10 +380,10 @@ class _ListingMini extends StatelessWidget {
             width: 56,
             height: 56,
             child: listing.imageUrl.isEmpty
-                ? const ColoredBox(color: TGColors.border)
+                ? ColoredBox(color: TGColors.border)
                 : TGSmartImage(
                     url: listing.imageUrl,
-                    fallback: (_) => const ColoredBox(color: TGColors.border),
+                    fallback: (_) => ColoredBox(color: TGColors.border),
                   ),
           ),
         ),

@@ -32,7 +32,7 @@ void showTGToast(
         backgroundColor: TGColors.surfaceHover,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(TGRadius.input),
-          side: const BorderSide(color: TGColors.border),
+          side: BorderSide(color: TGColors.border),
         ),
         action: action,
         content: Row(
@@ -44,7 +44,7 @@ void showTGToast(
                 message,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: TGColors.textPrimary,
                   fontWeight: FontWeight.w700,
                   fontSize: 14,

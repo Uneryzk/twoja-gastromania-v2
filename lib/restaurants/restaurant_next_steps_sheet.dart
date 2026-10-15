@@ -164,7 +164,7 @@ class _Card extends StatelessWidget {
       color: theme.primaryBackground,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: TGColors.border),
+        side: BorderSide(color: TGColors.border),
       ),
       child: InkWell(
         onTap: onTap,

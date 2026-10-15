@@ -65,7 +65,7 @@ class _AdminSellerCasePageState extends State<AdminSellerCasePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('${profile?.phone ?? store?.phone ?? '—'} · NIP ${store?.nip ?? profile?.nip ?? '—'}'),
-                    Text(profile?.email ?? '', style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+                    Text(profile?.email ?? '', style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
                     if (store != null) Text('${store.city} · ${context.t('ui_reviews_n', {'n': '${store.reviewsCount}'})}'),
                     Text(context.t('ui_unjust_disputes', {'n': '${DealService.instance.unjustObjections90d[widget.sellerId] ?? 0}'})),
                     if (store?.status == TGStoreStatus.suspended || profile?.suspended == true)
@@ -104,10 +104,10 @@ class _AdminSellerCasePageState extends State<AdminSellerCasePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(children: [AdminReasonChip(reason: r.reason), const SizedBox(width: 8), Text(r.reportNo, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)), const Spacer(), Text(fmt.format(r.createdAt), style: const TextStyle(fontSize: 11, color: TGColors.textSecondary))]),
+                        Row(children: [AdminReasonChip(reason: r.reason), SizedBox(width: 8), Text(r.reportNo, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)), const Spacer(), Text(fmt.format(r.createdAt), style: TextStyle(fontSize: 11, color: TGColors.textSecondary))]),
                         const SizedBox(height: 6),
                         Text(r.text),
-                        Text(r.reporterEmail, style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+                        Text(r.reporterEmail, style: TextStyle(fontSize: 12, color: TGColors.textSecondary)),
                       ],
                     ),
                   ),
@@ -183,7 +183,7 @@ class AdminReviewCasePage extends StatelessWidget {
                       Text('${review.authorName} · ${review.rating}/5', style: const TextStyle(fontWeight: FontWeight.w800)),
                       Text(review.text, style: const TextStyle(height: 1.4)),
                       const SizedBox(height: 6),
-                      Text('${context.t('ui_seller')}: ${store?.name ?? review.sellerId}', style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+                      Text('${context.t('ui_seller')}: ${store?.name ?? review.sellerId}', style: TextStyle(fontSize: 12, color: TGColors.textSecondary)),
                       Text('${review.state.name} · ${review.listingNo}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
                       if (review.dealId.isNotEmpty)
                         TextButton(

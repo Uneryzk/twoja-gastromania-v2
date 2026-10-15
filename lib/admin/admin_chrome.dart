@@ -224,17 +224,17 @@ class _AdminTopBarState extends State<AdminTopBar> {
                       decoration: InputDecoration(
                         hintText: narrow ? context.t('ui_listing_no_header') : context.t('ui_admin_search'),
                         isDense: true,
-                        prefixIcon: const Icon(Icons.search, size: 18, color: TGColors.textSecondary),
+                        prefixIcon: Icon(Icons.search, size: 18, color: TGColors.textSecondary),
                         filled: true,
                         fillColor: TGColors.surface,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(TGRadius.input),
-                          borderSide: const BorderSide(color: TGColors.border),
+                          borderSide: BorderSide(color: TGColors.border),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(TGRadius.input),
-                          borderSide: const BorderSide(color: TGColors.border),
+                          borderSide: BorderSide(color: TGColors.border),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(TGRadius.input),
@@ -548,7 +548,7 @@ class _NavTile extends StatelessWidget {
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),
-                  Text(subtitle!, style: const TextStyle(color: TGColors.textSecondary, fontSize: 10, height: 1.3)),
+                  Text(subtitle!, style: TextStyle(color: TGColors.textSecondary, fontSize: 10, height: 1.3)),
                 ],
               ],
             ),
@@ -797,7 +797,7 @@ class AdminCard extends StatelessWidget {
       color: TGColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: TGColors.border),
+        side: BorderSide(color: TGColors.border),
       ),
       child: Padding(padding: padding, child: child),
     );
@@ -895,7 +895,7 @@ class EmailPreviewBlock extends StatelessWidget {
         children: [
           Text(context.t('ui_email_preview'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: TGColors.cta)),
           const SizedBox(height: 6),
-          Text(context.t('ui_email_to', {'to': email.to}), style: const TextStyle(fontSize: 12, color: TGColors.textSecondary)),
+          Text(context.t('ui_email_to', {'to': email.to}), style: TextStyle(fontSize: 12, color: TGColors.textSecondary)),
           Text(email.subject, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
           const SizedBox(height: 6),
           Text(email.body, style: const TextStyle(fontSize: 12, height: 1.4)),
@@ -985,7 +985,7 @@ class AdminPrinciplesFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      child: Text(context.t('ui_platform_principles'), style: const TextStyle(color: TGColors.textSecondary, fontSize: 11, height: 1.35)),
+      child: Text(context.t('ui_platform_principles'), style: TextStyle(color: TGColors.textSecondary, fontSize: 11, height: 1.35)),
     );
   }
 }

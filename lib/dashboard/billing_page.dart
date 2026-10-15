@@ -331,7 +331,7 @@ class _PaymentsTable extends StatelessWidget {
           for (final p in rows)
             TableRow(
               key: ValueKey('billing-payment-${p.id}'),
-              decoration: const BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
+              decoration: BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
               children: [
                 cell(Text(_dateFmt(context, p.createdAt))),
                 cell(Semantics(header: true, hint: 'row header', child: Text(p.description, maxLines: 2, overflow: TextOverflow.ellipsis))),
@@ -693,7 +693,7 @@ class _InvoicesTab extends StatelessWidget {
                 for (final inv in rows)
                   TableRow(
                     key: ValueKey('billing-invoice-${inv.id}'),
-                    decoration: const BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
+                    decoration: BoxDecoration(border: Border(top: BorderSide(color: TGColors.border))),
                     children: [
                       for (final w in <Widget>[
                         Semantics(header: true, hint: 'row header', child: Text(inv.number, style: const TextStyle(fontWeight: FontWeight.w800))),

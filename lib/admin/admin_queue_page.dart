@@ -506,7 +506,7 @@ class _QueueCards extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text(seller?.seller.name ?? context.t('ui_seller'), style: const TextStyle(color: TGColors.textSecondary, fontSize: 12)),
+                  Text(seller?.seller.name ?? context.t('ui_seller'), style: TextStyle(color: TGColors.textSecondary, fontSize: 12)),
                 ],
               ),
             ),

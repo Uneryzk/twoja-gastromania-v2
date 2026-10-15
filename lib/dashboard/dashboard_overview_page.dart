@@ -320,7 +320,7 @@ class _ActionCenter extends StatelessWidget {
             ),
           ),
         for (var i = 0; i < shown.length; i++) ...[
-          if (i > 0) const Divider(height: 1, color: TGColors.border),
+          if (i > 0) Divider(height: 1, color: TGColors.border),
           _ActionRow(item: shown[i], surface: surface, userId: userId),
         ],
       ],
